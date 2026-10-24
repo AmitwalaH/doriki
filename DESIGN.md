@@ -1,4 +1,4 @@
-# doriki — Design Document v0.1
+# doriki: Design Document v0.1
 
 As of 24 Oct 2026 · maintained by the repository owner
 
