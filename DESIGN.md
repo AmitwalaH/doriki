@@ -98,7 +98,7 @@ type Event struct {
 }
 ```
 
-Timestamps from different sources are not on the same clock. The normalizer anchors engine-log timestamps to the container `started` time from the container status and applies the pod's observed clock skew (difference between the first engine log line and `ContainerStarted`). Skew above 2 s is reported as a warning in the report.
+Timestamps from different sources are not on the same clock. The normalizer anchors engine-log timestamps to the container `started` time from the container status: if the first engine log line is stamped before `started`, which is impossible, every engine-log event is shifted later by that difference, and a first line after `started` is left alone because that time is real `container-init`, so a log clock running ahead is not detected from this anchor. Skew above 2 s is reported as a warning in the report.
 
 ### 4.2 Phase model
 
