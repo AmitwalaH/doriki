@@ -342,3 +342,31 @@ func TestAssignInputNotMutated(t *testing.T) {
 		t.Errorf("input changed")
 	}
 }
+
+// Decision 0003: the phases a report is expected to complete are those the selected pack can
+// produce. node-provision is optional (DESIGN.md section 4.2) and never expected.
+func TestExpected(t *testing.T) {
+	generic := Expected(nil)
+	want := []model.PhaseName{model.PhaseScheduling, model.PhaseImagePull, model.PhaseContainerInit}
+	if !slices.Equal(generic, want) {
+		t.Errorf("Expected(generic) = %v, want %v", generic, want)
+	}
+
+	withLoad := Expected([]string{"vllm.weights.load.start", "vllm.weights.load.end", "vllm.server.listening"})
+	want = []model.PhaseName{model.PhaseScheduling, model.PhaseImagePull, model.PhaseContainerInit,
+		model.PhaseWeightLoad, model.PhaseServerReady}
+	if !slices.Equal(withLoad, want) {
+		t.Errorf("Expected(load+listening) = %v, want %v", withLoad, want)
+	}
+
+	// Expected and Assign share one rule: under any pack, a phase Assign can report as
+	// something other than absent is either expected or optional.
+	opts := Options{Markers: propertyMarkers}
+	events := append(genericBoot(), marker("x.server.listening", 18), marker("x.request.first_token", 25))
+	r := mustAssign(t, events, opts)
+	for _, p := range r.Phases {
+		if p.State != model.StateAbsent && !slices.Contains(Expected(opts.Markers), p.Name) {
+			t.Errorf("%s is %s but not expected", p.Name, p.State)
+		}
+	}
+}

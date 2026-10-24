@@ -87,6 +87,15 @@ func event(ts time.Time, src model.Source, kind, raw string) model.Event {
 func podEvents(p *corev1.Pod, container string) []model.Event {
 	out := []model.Event{event(p.CreationTimestamp.Time, model.SourceContainerStatus, model.KindPodCreated, "pod created")}
 
+	// The image is a fact of the spec, which is fixed when the pod is created.
+	for _, c := range p.Spec.Containers {
+		if c.Name == container {
+			img := event(p.CreationTimestamp.Time, model.SourceManifest, model.KindContainerImage, "container "+container+" image "+c.Image)
+			img.Attrs = map[string]string{model.AttrImage: c.Image}
+			out = append(out, img)
+		}
+	}
+
 	for _, cs := range p.Status.ContainerStatuses {
 		if cs.Name != container {
 			continue

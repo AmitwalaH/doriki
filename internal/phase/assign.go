@@ -63,6 +63,28 @@ func (m matcher) observable(markers []string) bool {
 // spec is one row of DESIGN.md section 4.2's table. A zero start matcher never matches.
 type spec struct{ start, end matcher }
 
+// optional phases only happen in some boots (a node created for the pod), so their absence
+// is normal and never makes a report incomplete.
+var optional = []model.PhaseName{model.PhaseNodeProvision}
+
+// producible reports whether the selected pack can ever produce both of the phase's events.
+func (s spec) producible(markers []string) bool {
+	return s.start.observable(markers) && s.end.observable(markers)
+}
+
+// Expected returns, in the fixed order, the phases a boot is expected to complete under a
+// pack declaring these markers: every non-optional phase the pack can produce. A report
+// with any of these open or absent is incomplete (DESIGN.md section 7.3, decision 0003).
+func Expected(markers []string) []model.PhaseName {
+	var out []model.PhaseName
+	for _, name := range phaseOrder() {
+		if !slices.Contains(optional, name) && specs[name].producible(markers) {
+			out = append(out, name)
+		}
+	}
+	return out
+}
+
 var (
 	podCreated = matcher{kind: model.KindPodCreated, source: model.SourceContainerStatus}
 	podReady   = matcher{kind: model.KindPodReady, source: model.SourceContainerStatus}
@@ -207,7 +229,7 @@ func assignAttempt(events []model.Event, markers []string) ([]model.Phase, []mod
 // the start, the latest such event is used, so a clock bug shows as invalid instead of open.
 func assignPhase(name model.PhaseName, s spec, events []model.Event, markers []string, cursor time.Time) model.Phase {
 	absent := model.Phase{Name: name, State: model.StateAbsent}
-	if !s.start.observable(markers) || !s.end.observable(markers) {
+	if !s.producible(markers) {
 		return absent
 	}
 	startIdx := slices.IndexFunc(events, func(e model.Event) bool { return !e.TS.Before(cursor) && s.start.match(e) })

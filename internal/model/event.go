@@ -44,7 +44,12 @@ const (
 	KindPodReady         = "PodReady"         // Ready condition turned True
 	KindLogLine          = "log.line"         // any engine log line
 	KindLogMarker        = "log.marker"       // a log line a pack matched; Marker holds its id
+	KindContainerImage   = "ContainerImage"   // SourceManifest; AttrImage holds the image reference
 )
+
+// AttrImage on a KindContainerImage event is the profiled container's image, as written in
+// the pod spec. Pack selection reads it.
+const AttrImage = "image"
 
 // MaxRawBytes caps Event.Raw (DESIGN.md section 4.1).
 const MaxRawBytes = 512

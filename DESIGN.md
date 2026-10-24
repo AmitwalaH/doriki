@@ -74,7 +74,7 @@ collectors (K8s events/status, CRI, engine logs via packs, OTel spans [v0.2], --
                                                   renderers: terminal waterfall, JSON, HTML/Prometheus
 ```
 
-Collectors run concurrently and each returns a plain list of events; the normalizer merges and clock-aligns them; the phase engine and rules are deterministic functions over that list, which is why every fixture test exercises the real code path. The `--from-files` collector replaces the live ones with saved objects, so offline mode and live mode share every line of code after collection.
+Collectors run concurrently and each returns a plain list of events plus any warnings about its inputs (such as log lines with no timestamp); the normalizer merges and clock-aligns them; the phase engine and rules are deterministic functions over that list, which is why every fixture test exercises the real code path. The `--from-files` collector replaces the live ones with saved objects, so offline mode and live mode share every line of code after collection.
 
 **Runtime shape.** v0.1 is a process that starts, collects, prints and exits. `--follow` keeps the engine-log collector open and re-runs the pure core on every new marker. The v0.3 exporter is the same pipeline in a loop over a label selector, with the Prometheus renderer attached.
 
@@ -296,7 +296,7 @@ Standard kubectl flags via `cli-runtime` (`--kubeconfig`, `--context`, `-n`), pl
 | Code | Meaning |
 | --- | --- |
 | 0 | Report produced, all requested phases complete |
-| 1 | Report produced with `open` or `absent` phases (pod still booting, or events expired) |
+| 1 | Report produced with `open` or `absent` phases (pod still booting, or events expired); phases the selected pack cannot produce are listed as `absent` but do not count (decision 0003) |
 | 2 | Pod not found / no permission / unreachable cluster |
 | 3 | No parser pack matched and `--require-pack` was set |
 | 4 | `diff`: a phase regressed beyond `--fail-on` threshold (e.g. `--fail-on total>+20%`) |
@@ -395,7 +395,7 @@ This is what keeps the core testable from fixtures and lets the exporter (v0.3) 
 ### 9.2 Fixture policy
 
 - Fixtures are real captures, made with `doriki capture` (which redacts) and committed under `packs/<engine>/testdata/<version>/`. Synthetic logs are not accepted for packs.
-- Each fixture directory carries a `SOURCE.md`: engine version, image digest, GPU/CPU, who captured it, date. No cluster names, no internal hostnames, no tokens.
+- Each fixture directory carries a `SOURCE.md`: engine version, image digest, GPU/CPU, who captured it, date. No tokens, no names or hostnames from a real cluster; the defaults of a throwaway local `kind` cluster (node name, private pod and node IPs) are acceptable.
 - GPU fixtures for vLLM and SGLang are captured once on free Kaggle/Colab GPU time (or donated by community users) and reused forever; they are the only GPU-derived artifacts in the repo.
 - A fixture is never edited by hand. To change expectations, re-run `-update` and explain the diff in the PR.
 

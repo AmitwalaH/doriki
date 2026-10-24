@@ -93,6 +93,11 @@ func TestLoadKindNginxFixture(t *testing.T) {
 		first.Raw != "/docker-entrypoint.sh: /docker-entrypoint.d/ is not empty, will attempt to perform configuration" {
 		t.Errorf("first log line = %v %q", first.TS, first.Raw)
 	}
+	// The profiled container's image, as a manifest fact stamped with pod creation.
+	img := find(events, model.SourceManifest, model.KindContainerImage)
+	if len(img) != 1 || img[0].Attrs[model.AttrImage] != "nginx:1.29.3-alpine" || !img[0].TS.Equal(ts("2026-10-24T14:57:53Z")) {
+		t.Errorf("image events = %v, want one nginx:1.29.3-alpine at creation", img)
+	}
 	started := find(events, model.SourceContainerStatus, model.KindContainerStarted)[0]
 	if started.Attrs[model.AttrRestartCount] != "0" {
 		t.Errorf("restart_count = %q, want 0", started.Attrs[model.AttrRestartCount])
