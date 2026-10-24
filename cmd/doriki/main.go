@@ -9,13 +9,11 @@ import (
 	"github.com/AmitwalaH/doriki/internal/cli"
 )
 
-// exitUsage is DESIGN.md section 7.3's usage-error code. In M0 the only possible error is a
-// bad command or flag; exit 1 is reserved for reports with open phases.
-const exitUsage = 64
-
+// main only maps the result to an exit code (DESIGN.md section 7.3); cli.Exit decides it.
 func main() {
-	if err := cli.Execute(); err != nil {
-		fmt.Fprintln(os.Stderr, "doriki:", err)
-		os.Exit(exitUsage)
+	code, msg := cli.Exit(cli.Execute())
+	if msg != "" {
+		fmt.Fprintln(os.Stderr, "doriki:", msg)
 	}
+	os.Exit(code)
 }

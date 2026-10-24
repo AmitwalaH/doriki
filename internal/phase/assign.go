@@ -1,0 +1,324 @@
+package phase
+
+import (
+	"fmt"
+	"slices"
+	"strconv"
+	"strings"
+	"time"
+
+	"github.com/AmitwalaH/doriki/internal/model"
+)
+
+// Thresholds from DESIGN.md section 6.1 steps 4 and 5.
+const (
+	invalidAfter = time.Second // an end this far before its start is a clock bug or restart
+	gapOver      = time.Second // unattributed time longer than this is reported as a gap
+)
+
+// Variables so tests can swap in sentinels and prove Assign uses the shared encodings.
+var (
+	phaseOrder    = model.Phases
+	compareEvents = model.CompareEvents
+)
+
+// Options select what Assign reports. The zero value reports the latest attempt with no
+// engine phases.
+type Options struct {
+	// Markers are the marker ids the selected pack declares. An engine phase whose markers
+	// no declared id ends with cannot be observed, so it is absent rather than open.
+	Markers []string
+	// Attempt selects a boot attempt by restart count; nil means the latest.
+	Attempt *int
+	// AllAttempts also fills Report.Attempts with every observed attempt.
+	AllAttempts bool
+}
+
+// matcher recognises the events that start or end a phase.
+type matcher struct {
+	kind         string       // matches Event.Kind, when set
+	source       model.Source // with kind set, empty means any source
+	markerSuffix string       // matches Event.Marker ending in this, when set
+}
+
+func (m matcher) match(e model.Event) bool {
+	switch {
+	case m.markerSuffix != "":
+		return e.Source == model.SourceEngineLog && strings.HasSuffix(e.Marker, m.markerSuffix)
+	case m.kind != "":
+		return e.Kind == m.kind && (m.source == "" || e.Source == m.source)
+	default: // any event from the source
+		return m.source != "" && e.Source == m.source
+	}
+}
+
+// observable reports whether the selected pack can ever produce this matcher's event.
+func (m matcher) observable(markers []string) bool {
+	if m.markerSuffix == "" {
+		return true
+	}
+	return slices.ContainsFunc(markers, func(id string) bool { return strings.HasSuffix(id, m.markerSuffix) })
+}
+
+// spec is one row of DESIGN.md section 4.2's table. A zero start matcher never matches.
+type spec struct{ start, end matcher }
+
+// optional phases only happen in some boots (a node created for the pod), so their absence
+// is normal and never makes a report incomplete.
+var optional = []model.PhaseName{model.PhaseNodeProvision}
+
+// producible reports whether the selected pack can ever produce both of the phase's events.
+func (s spec) producible(markers []string) bool {
+	return s.start.observable(markers) && s.end.observable(markers)
+}
+
+// Expected returns, in the fixed order, the phases a boot is expected to complete under a
+// pack declaring these markers: every non-optional phase the pack can produce. A report
+// with any of these open or absent is incomplete (DESIGN.md section 7.3, decision 0003).
+func Expected(markers []string) []model.PhaseName {
+	var out []model.PhaseName
+	for _, name := range phaseOrder() {
+		if !slices.Contains(optional, name) && specs[name].producible(markers) {
+			out = append(out, name)
+		}
+	}
+	return out
+}
+
+var (
+	podCreated = matcher{kind: model.KindPodCreated, source: model.SourceContainerStatus}
+	podReady   = matcher{kind: model.KindPodReady, source: model.SourceContainerStatus}
+)
+
+var specs = map[model.PhaseName]spec{
+	// Scheduled is the k8s event, or the PodScheduled condition when the event has expired.
+	model.PhaseScheduling: {podCreated, matcher{kind: model.KindScheduled}},
+	// node-provision needs the node's Ready time, which no collector reads yet.
+	model.PhaseNodeProvision: {},
+	model.PhaseImagePull: {
+		matcher{kind: model.KindPulling, source: model.SourceK8sEvent},
+		matcher{kind: model.KindPulled, source: model.SourceK8sEvent},
+	},
+	model.PhaseContainerInit: {
+		matcher{kind: model.KindContainerStarted, source: model.SourceContainerStatus},
+		matcher{source: model.SourceEngineLog}, // the first engine log line
+	},
+	model.PhaseWeightFetch:  {matcher{markerSuffix: ".weights.fetch.start"}, matcher{markerSuffix: ".weights.fetch.end"}},
+	model.PhaseWeightLoad:   {matcher{markerSuffix: ".weights.load.start"}, matcher{markerSuffix: ".weights.load.end"}},
+	model.PhaseCompile:      {matcher{markerSuffix: ".compile.start"}, matcher{markerSuffix: ".compile.end"}},
+	model.PhaseGraphCapture: {matcher{markerSuffix: ".graph.start"}, matcher{markerSuffix: ".graph.end"}},
+	model.PhaseKVAlloc:      {matcher{markerSuffix: ".kv.start"}, matcher{markerSuffix: ".kv.end"}},
+	model.PhaseServerReady:  {matcher{markerSuffix: ".server.listening"}, podReady},
+	// --probe will be a second way to end first-token (M3).
+	model.PhaseFirstToken: {podReady, matcher{markerSuffix: ".request.first_token"}},
+}
+
+// Assign turns events into phases, gaps and totals for one boot attempt (DESIGN.md section
+// 6.1 steps 3 to 7). It is pure: it sorts a copy of events with the shared order, so any
+// permutation of the same events gives the same report. Callers normalize events first and
+// fill the report's version, time, manifest and events themselves.
+func Assign(events []model.Event, opts Options) (model.Report, error) {
+	sorted := slices.Clone(events)
+	slices.SortFunc(sorted, compareEvents)
+
+	attempts := splitAttempts(sorted)
+	chosen := len(attempts) - 1
+	if opts.Attempt != nil {
+		chosen = slices.IndexFunc(attempts, func(a attempt) bool { return a.number == *opts.Attempt })
+		if chosen < 0 {
+			return model.Report{}, fmt.Errorf("attempt %d was not observed; observed: %s", *opts.Attempt, attemptNumbers(attempts))
+		}
+	}
+
+	created, hasCreated := first(sorted, podCreated)
+	report := model.Report{ReportVersion: model.ReportVersion, AttemptsTotal: attemptsTotal(attempts)}
+	for i, a := range attempts {
+		phases, gaps, warnings := assignAttempt(a.events, opts.Markers)
+		totals := attemptTotals(a.events, phases, created, hasCreated)
+		if i == chosen {
+			report.Attempt = a.number
+			report.Phases, report.Gaps, report.Totals, report.Warnings = phases, gaps, totals, warnings
+		}
+		if opts.AllAttempts {
+			report.Attempts = append(report.Attempts, model.Attempt{Attempt: a.number, Phases: phases, Gaps: gaps, Totals: totals})
+		}
+	}
+	return report, nil
+}
+
+type attempt struct {
+	number int
+	events []model.Event
+}
+
+// splitAttempts cuts the sorted events at each container start (DESIGN.md section 6.1 step
+// 7). The first observed attempt also keeps everything before its start (scheduling, image
+// pull); a later attempt runs from its own start to the next one. With no container start
+// there is one attempt, number 0, holding every event.
+func splitAttempts(sorted []model.Event) []attempt {
+	var starts []int
+	for i, e := range sorted {
+		if e.Source == model.SourceContainerStatus && e.Kind == model.KindContainerStarted {
+			starts = append(starts, i)
+		}
+	}
+	if len(starts) == 0 {
+		return []attempt{{number: 0, events: sorted}}
+	}
+	out := make([]attempt, len(starts))
+	for i, s := range starts {
+		from, to := s, len(sorted)
+		if i == 0 {
+			from = 0
+		}
+		if i+1 < len(starts) {
+			to = starts[i+1]
+		}
+		// A start without a readable restart count is numbered by its position.
+		n, err := strconv.Atoi(sorted[s].Attrs[model.AttrRestartCount])
+		if err != nil {
+			n = i
+		}
+		out[i] = attempt{number: n, events: sorted[from:to]}
+	}
+	return out
+}
+
+// attemptsTotal counts boots from the highest restart count seen, since the pod object
+// only shows the latest starts.
+func attemptsTotal(attempts []attempt) int {
+	total := len(attempts)
+	for _, a := range attempts {
+		total = max(total, a.number+1)
+	}
+	return total
+}
+
+func attemptNumbers(attempts []attempt) string {
+	s := make([]string, len(attempts))
+	for i, a := range attempts {
+		s[i] = strconv.Itoa(a.number)
+	}
+	return strings.Join(s, ", ")
+}
+
+func assignAttempt(events []model.Event, markers []string) ([]model.Phase, []model.Gap, []model.Warning) {
+	var (
+		phases   []model.Phase
+		warnings []model.Warning
+		cursor   time.Time // the start of the last phase found; later phases start at or after it
+	)
+	for _, name := range phaseOrder() {
+		p := assignPhase(name, specs[name], events, markers, cursor)
+		if p.State != model.StateAbsent {
+			cursor = p.Start
+		}
+		if p.State == model.StateInvalid {
+			warnings = append(warnings, model.Warning{
+				Code: "phase-invalid",
+				Text: fmt.Sprintf("%s ends %.1fs before it starts; left out of gaps and totals", name, p.Start.Sub(p.End).Seconds()),
+			})
+		}
+		phases = append(phases, p)
+	}
+	return phases, gaps(phases), warnings
+}
+
+// assignPhase applies DESIGN.md section 6.1 steps 3 and 4 to one phase. The end is the
+// first end event at or after the start; if there is none but an end event exists before
+// the start, the latest such event is used, so a clock bug shows as invalid instead of open.
+func assignPhase(name model.PhaseName, s spec, events []model.Event, markers []string, cursor time.Time) model.Phase {
+	absent := model.Phase{Name: name, State: model.StateAbsent}
+	if !s.producible(markers) {
+		return absent
+	}
+	startIdx := slices.IndexFunc(events, func(e model.Event) bool { return !e.TS.Before(cursor) && s.start.match(e) })
+	if startIdx < 0 {
+		return absent
+	}
+	start := events[startIdx]
+	p := model.Phase{Name: name, Start: start.TS, State: model.StateOpen, Sources: []model.Source{start.Source}}
+
+	endIdx := slices.IndexFunc(events, func(e model.Event) bool { return !e.TS.Before(start.TS) && s.end.match(e) })
+	if endIdx < 0 {
+		for i, e := range events {
+			if e.TS.Before(start.TS) && s.end.match(e) {
+				endIdx = i
+			}
+		}
+	}
+	if endIdx < 0 {
+		return p
+	}
+	end := events[endIdx]
+	p.End = end.TS
+	if !slices.Contains(p.Sources, end.Source) {
+		p.Sources = append(p.Sources, end.Source)
+	}
+	slices.SortFunc(p.Sources, func(a, b model.Source) int {
+		return compareEvents(model.Event{Source: a}, model.Event{Source: b})
+	})
+
+	d := end.TS.Sub(start.TS)
+	if d < -invalidAfter {
+		p.State = model.StateInvalid
+		return p
+	}
+	seconds := max(d, 0).Seconds() // within 1 s either way is timestamp resolution
+	p.Seconds = &seconds
+	p.State = model.StateComplete
+	return p
+}
+
+// gaps reports unattributed time over 1 s between consecutive complete phases (DESIGN.md
+// section 6.1 step 5). Overlapping phases leave no gap.
+func gaps(phases []model.Phase) []model.Gap {
+	var out []model.Gap
+	var prev *model.Phase
+	for i := range phases {
+		p := &phases[i]
+		if p.State != model.StateComplete {
+			continue
+		}
+		if prev != nil {
+			if d := p.Start.Sub(prev.End); d > gapOver {
+				out = append(out, model.Gap{After: prev.Name, Before: p.Name, Seconds: d.Seconds()})
+			}
+		}
+		prev = p
+	}
+	return out
+}
+
+// attemptTotals measures from pod creation to this attempt's Ready and first token
+// (DESIGN.md section 6.1 step 6). Wall-clock span, never a sum of phases. A value whose end
+// point is missing, or precedes creation, is omitted.
+func attemptTotals(events []model.Event, phases []model.Phase, created model.Event, hasCreated bool) model.Totals {
+	var t model.Totals
+	if !hasCreated {
+		return t
+	}
+	since := func(ts time.Time) *float64 {
+		if ts.Before(created.TS) {
+			return nil
+		}
+		s := ts.Sub(created.TS).Seconds()
+		return &s
+	}
+	if ready, ok := first(events, podReady); ok {
+		t.PendingToReadySeconds = since(ready.TS)
+	}
+	for _, p := range phases {
+		if p.Name == model.PhaseFirstToken && p.State == model.StateComplete {
+			t.PendingToFirstTokenSeconds = since(p.End)
+		}
+	}
+	return t
+}
+
+func first(events []model.Event, m matcher) (model.Event, bool) {
+	if i := slices.IndexFunc(events, m.match); i >= 0 {
+		return events[i], true
+	}
+	return model.Event{}, false
+}
