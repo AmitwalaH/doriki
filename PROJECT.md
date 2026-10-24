@@ -91,7 +91,7 @@ Any condition unmet or unclear: report at Step 12, do not commit or push.
 
 | The fact | Where it lives | Who reads it |
 |---|---|---|
-| Phase order and names | `internal/phase/order.go` | phase engine, renderers, schema |
+| Phase order and names | `internal/model/phase.go` | phase engine, renderers, schema |
 | Env capture allowlist | `internal/manifest/allowlist.go` | manifest, capture |
 | Secret redaction patterns | `internal/manifest/redact.go` | manifest, capture |
 | Advice thresholds | the `const` block at the top of each file in `internal/rules/` | that rule only |
