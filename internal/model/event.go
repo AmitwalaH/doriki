@@ -31,9 +31,23 @@ type Event struct {
 	Confidence float32           `json:"confidence"`       // 1.0 for K8s and CRI; packs may set lower
 }
 
-// KindContainerStarted is the container-status event for a container start, one per boot
-// attempt. Engine-log clock correction anchors to it.
-const KindContainerStarted = "ContainerStarted"
+// Event kinds the phase engine reads (DESIGN.md section 4.2). Collectors emit them; facts
+// read from the pod object (creation, container starts, the Ready condition) come from
+// SourceContainerStatus, Kubernetes Event objects from SourceK8sEvent.
+const (
+	KindPodCreated       = "PodCreated" // pod metadata.creationTimestamp
+	KindScheduled        = "Scheduled"
+	KindPulling          = "Pulling"
+	KindPulled           = "Pulled"
+	KindContainerStarted = "ContainerStarted" // one per boot attempt; carries AttrRestartCount
+	KindPodReady         = "PodReady"         // Ready condition turned True
+	KindLogLine          = "log.line"         // any engine log line
+	KindLogMarker        = "log.marker"       // a log line a pack matched; Marker holds its id
+)
+
+// AttrRestartCount on a KindContainerStarted event is the container's restartCount at that
+// start, which is also its attempt number.
+const AttrRestartCount = "restart_count"
 
 // sourcePriority breaks timestamp ties (DESIGN.md section 6.1 step 2). Sources it does not
 // list sort after all of these.
