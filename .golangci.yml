@@ -1,0 +1,49 @@
+version: "2"
+
+linters:
+  # Exactly the linters PROJECT.md section 3 names; nothing a golangci-lint upgrade adds.
+  default: none
+  enable:
+    - depguard
+    - errcheck
+    - gosec
+    - govet
+    - staticcheck
+  settings:
+    depguard:
+      # Module boundaries from DESIGN.md section 8.3. Test files are exempt so tests can use
+      # testify and goldie. cli has no rule: it imports everything.
+      rules:
+        pure-core:
+          list-mode: strict
+          files:
+            - "**/internal/phase/**"
+            - "**/internal/rules/**"
+            - "**/internal/diff/**"
+            - "!$test"
+          allow:
+            - $gostd
+            - github.com/AmitwalaH/doriki/internal/model
+        pure-render:
+          list-mode: strict
+          files:
+            - "**/internal/render/**"
+            - "!$test"
+          allow:
+            - $gostd
+            - github.com/AmitwalaH/doriki/internal/model
+            - github.com/charmbracelet/lipgloss
+        collect:
+          list-mode: lax
+          files:
+            - "**/internal/collect/**"
+            - "!$test"
+          allow:
+            - github.com/AmitwalaH/doriki/internal/model
+          deny:
+            - pkg: github.com/AmitwalaH/doriki/internal
+              desc: collectors may import internal/model only (DESIGN.md section 8.3)
+
+formatters:
+  enable:
+    - gofmt

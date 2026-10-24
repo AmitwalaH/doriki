@@ -7,6 +7,10 @@ session, before any code:
 2. `PROJECT.md`: where we are: stack, commands, off-limits, decided and open, commit policy.
 3. `tasks/<YYYY-MM-DD>-<task>.md`: what we are doing now. The newest file is the current task.
 
+`METHOD.md` and the current task file are provided by the owner outside the repo; they are not
+committed. If either is missing from the working directory, stop and ask the owner for it before
+doing anything else.
+
 `DESIGN.md` is the product and architecture source of truth. If a task conflicts with it, stop
 and ask (METHOD.md rule 6, numbered questions).
 

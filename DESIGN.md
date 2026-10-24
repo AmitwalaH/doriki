@@ -371,10 +371,9 @@ doriki/
 
 ### 8.3 Module boundaries (enforced by `depguard` in lint)
 
-- `collect/*` may import `model` only; collectors return `[]model.Event` and know nothing about phases.
-- `phase`, `rules`, `diff` import `model` only and are pure (no I/O, no clock); they take a `now` parameter where needed.
-- `render/*` import `model` only.
-- `cli` is the only package that imports everything.
+- The pure packages (`phase`, `rules`, `diff`, `render`) import only the standard library, `model`, and their declared external libraries; `render`'s is `lipgloss`, and the others declare none. They do no I/O and read no clock; they take a `now` parameter where needed.
+- `collect/*` may import any external library but no internal package other than `model`; collectors return `[]model.Event` and know nothing about phases.
+- `cli` imports everything.
 
 This is what keeps the core testable from fixtures and lets the exporter (v0.3) reuse `phase` and `rules` unchanged.
 
@@ -464,15 +463,15 @@ The gate on 3 Nov can cut scope further or change a pack priority; it cannot mov
 
 | Milestone | Dates | Scope | Acceptance (all must pass) |
 | --- | --- | --- | --- |
-| M0+M1 skeleton and offline pipeline | 27 Oct – 2 Nov | Repo layout (8.2), `go.mod`, cobra root, `make build/test/lint/gate`, CI on push; `METHOD.md`, `PROJECT.md`, `DESIGN.md`, `CLAUDE.md`, first task file committed; name decided; `model`, `normalize`, `phase`, `files` collector; `vllm/0.28` pack with one real fixture; text + JSON renderers; golden tests; schema validation | `make gate` green on a clean clone; `doriki --from-files <fixture> -o text` matches the golden; JSON validates against `schema/report.v1.json`; phase property test passes 1,000 iterations; README has a real screenshot |
-| Validation gate | 3 Nov | 60-second asciinema; RFC post in vLLM and SGLang discussions and r/LocalLLaMA; request for `capture` bundles | Decision recorded in `docs/decisions/0001-gate.md`: continue as planned, cut further, or reorder packs. Responses are read daily until 18 Nov; the gate never stops the build |
+| M0+M1 skeleton and offline pipeline | 27 Oct – 2 Nov | Repo layout (8.2), `go.mod`, cobra root, `make build/test/lint/gate`, CI on push; `PROJECT.md`, `DESIGN.md`, `CLAUDE.md` committed; METHOD.md and the task file kept outside version control; name decided; `model`, `normalize`, `phase`, `files` collector; `vllm/0.28` pack with one real fixture; text + JSON renderers; golden tests; schema validation | `make gate` green on a clean clone; `doriki --from-files <fixture> -o text` matches the golden; JSON validates against `schema/report.v1.json`; phase property test passes 1,000 iterations; README has a real screenshot |
+| Validation gate | 3 Nov | 60-second asciinema; RFC post in vLLM and SGLang discussions and r/LocalLLaMA; request for `capture` bundles | Decision recorded in `docs/decisions/0002-gate.md`: continue as planned, cut further, or reorder packs. Responses are read daily until 18 Nov; the gate never stops the build |
 | M2 live collectors and e2e | 3 Nov – 9 Nov | `k8s` collector (pods, events, owners, nodes), `enginelog` streaming, `--follow`, `llamacpp` and `ollama` packs, `generic` fallback, `kind` e2e, clock-skew tests, RBAC manifest | `make e2e` passes on a GitHub-hosted runner in < 8 min; profiling a CPU llama.cpp pod shows `image-pull`, `weight-load`, `server-ready` complete; `--follow` ends on `server-ready` |
-| M3 manifest, rules, release pipeline | 10 Nov – 16 Nov | `manifest` package with fingerprint and redaction; `capture` command; the five advice rules `pull-dominant`, `fetch-remote-hub`, `compile-miss`, `load-slow-storage`, `restart-loop` with unit tests; goreleaser + cosign + SBOM; Homebrew tap; krew manifest; docs site | `cosign verify-blob` succeeds on a release candidate; `kubectl krew install --manifest=deploy/krew.yaml` works; redaction test proves no secret value reaches disk; `brew install` from the tap works on macOS and Linux |
+| M3 manifest, rules, release pipeline | 10 Nov – 16 Nov | `manifest` package with fingerprint and redaction; `capture` command; the five advice rules `pull-dominant`, `fetch-remote-hub`, `compile-miss`, `load-slow-storage`, `restart-loop` with unit tests; goreleaser + cosign + SBOM; Homebrew tap; krew manifest | `cosign verify-blob` succeeds on a release candidate; `kubectl krew install --manifest=deploy/krew.yaml` works; redaction test proves no secret value reaches disk; `brew install` from the tap works on macOS and Linux |
 | v0.1.0 released | 18 Nov | Tag, release notes, krew index PR opened, announcement post | Install from Homebrew on a fresh machine and profile a pod; GitHub release shows signed assets and SBOM; krew PR link in the release notes |
 
-**Cut to v0.2 (recorded in `docs/v0.2-backlog.md` at M0):** `diff` with `--fail-on`, OTel span collector, `sglang` pack, HTML renderer, the other six advice rules (`pull-small-node`, `fetch-rate-limited`, `graph-heavy`, `provision-dominant`, `probe-late`, `scale-thrash`), exporter mode and Helm chart, SLSA provenance. 17 Nov is a buffer day; if it is not needed, the first v0.2 item (`diff`) starts.
+**Cut to v0.2 (recorded in `docs/v0.2-backlog.md` at M0):** `diff` with `--fail-on`, OTel span collector, `sglang` pack, HTML renderer, the other six advice rules (`pull-small-node`, `fetch-rate-limited`, `graph-heavy`, `provision-dominant`, `probe-late`, `scale-thrash`), exporter mode and Helm chart, SLSA provenance, docs site. 17 Nov is a buffer day; if it is not needed, the first v0.2 item (`diff`) starts.
 
-**What slips first if a week runs long, in order:** docs site → Homebrew tap (GitHub Releases + `go install` still ship) → `ollama` pack → `capture` command. The vLLM pack, the live collectors, the signed release and the five rules do not slip; if they cannot fit, the owner is told by 12 Nov, not on 17 Nov.
+**What slips first if a week runs long, in order:** Homebrew tap (GitHub Releases + `go install` still ship) → `ollama` pack → `capture` command. The vLLM pack, the live collectors, the signed release and the five rules do not slip; if they cannot fit, the owner is told by 12 Nov, not on 17 Nov.
 
 After 18 Nov: read gate responses and v0.1.0 feedback for one week before choosing the v0.2 order; `diff` and the exporter are the default first two unless users say otherwise.
 

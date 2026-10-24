@@ -1,0 +1,8 @@
+/bin/
+/dist/
+*.test
+*.out
+
+# The owner's method and task files are provided outside version control.
+/METHOD.md
+/tasks/
