@@ -1,0 +1,6 @@
+# The fallback pack (DESIGN.md section 5.3). It is selected when no other pack matches a pod's
+# image. It detects nothing and declares no markers, so a report under it has the Kubernetes
+# phases only and every engine phase absent.
+pack_version: 1
+engine: generic
+versions: "*"

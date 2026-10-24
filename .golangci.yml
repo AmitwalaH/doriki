@@ -6,13 +6,34 @@ linters:
   enable:
     - depguard
     - errcheck
+    - forbidigo
     - gosec
     - govet
     - staticcheck
   settings:
+    forbidigo:
+      # The pure packages read no clock and do no I/O (DESIGN.md section 8.3). depguard allows
+      # $gostd, which includes time, os and net, so the calls are banned here instead; the
+      # time.Duration and time.Time types stay usable. Scoped to the pure packages by
+      # exclusions.rules below.
+      analyze-types: true
+      forbid:
+        - pattern: ^time\.(Now|Since|Until|Sleep|After|AfterFunc|Tick|NewTicker|NewTimer)$
+          msg: pure packages take `now` as a parameter instead of reading the clock
+        # With analyze-types the pattern sees the package name (exec.Command); pkg matches
+        # the import path.
+        - pattern: ^\w+\..+$
+          pkg: ^(os|os/exec|os/signal|io/ioutil|syscall|net|net/.+)$
+          msg: pure packages do no I/O
+        - pattern: ^filepath\.(Abs|EvalSymlinks|Glob|Walk|WalkDir)$
+          pkg: ^path/filepath$
+          msg: pure packages do no I/O
+        - pattern: ^(fmt\.Print(f|ln)?|print|println)$
+          msg: pure packages write only to the io.Writer they are given
     depguard:
       # Module boundaries from DESIGN.md section 8.3. Test files are exempt so tests can use
-      # testify and goldie. cli has no rule: it imports everything.
+      # testify and goldie. cli has no rule: it imports everything. normalize is in pure-core
+      # because DESIGN.md section 3 draws it inside the pure core.
       rules:
         pure-core:
           list-mode: strict
@@ -20,6 +41,7 @@ linters:
             - "**/internal/phase/**"
             - "**/internal/rules/**"
             - "**/internal/diff/**"
+            - "**/internal/normalize/**"
             - "!$test"
           allow:
             - $gostd
@@ -43,6 +65,15 @@ linters:
           deny:
             - pkg: github.com/AmitwalaH/doriki/internal
               desc: collectors may import internal/model only (DESIGN.md section 8.3)
+  exclusions:
+    rules:
+      # forbidigo guards only the pure packages, and not their tests.
+      - path-except: (^|/)internal/(phase|rules|diff|render|normalize)/
+        linters:
+          - forbidigo
+      - path: _test\.go$
+        linters:
+          - forbidigo
 
 formatters:
   enable:

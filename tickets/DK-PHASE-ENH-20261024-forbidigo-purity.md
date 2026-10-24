@@ -2,7 +2,7 @@
 
 **Date Discovered:** 2026-10-24
 **Severity:** MEDIUM
-**Status:** OPEN
+**Status:** CLOSED (2026-10-24)
 **Label:** [ticket]
 **Found by:** the M0 agent, read in config while writing `.golangci.yml`
 **Filed by:** the M0 agent

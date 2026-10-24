@@ -1,4 +1,4 @@
-# doriki — Design Document v0.1
+# doriki: Design Document v0.1
 
 As of 24 Oct 2026 · maintained by the repository owner
 
@@ -74,7 +74,7 @@ collectors (K8s events/status, CRI, engine logs via packs, OTel spans [v0.2], --
                                                   renderers: terminal waterfall, JSON, HTML/Prometheus
 ```
 
-Collectors run concurrently and each returns a plain list of events; the normalizer merges and clock-aligns them; the phase engine and rules are deterministic functions over that list, which is why every fixture test exercises the real code path. The `--from-files` collector replaces the live ones with saved objects, so offline mode and live mode share every line of code after collection.
+Collectors run concurrently and each returns a plain list of events plus any warnings about its inputs (such as log lines with no timestamp); the normalizer merges and clock-aligns them; the phase engine and rules are deterministic functions over that list, which is why every fixture test exercises the real code path. The `--from-files` collector replaces the live ones with saved objects, so offline mode and live mode share every line of code after collection.
 
 **Runtime shape.** v0.1 is a process that starts, collects, prints and exits. `--follow` keeps the engine-log collector open and re-runs the pure core on every new marker. The v0.3 exporter is the same pipeline in a loop over a label selector, with the Prometheus renderer attached.
 
@@ -98,7 +98,7 @@ type Event struct {
 }
 ```
 
-Timestamps from different sources are not on the same clock. The normalizer anchors engine-log timestamps to the container `started` time from the container status and applies the pod's observed clock skew (difference between the first engine log line and `ContainerStarted`). Skew above 2 s is reported as a warning in the report.
+Timestamps from different sources are not on the same clock. The normalizer anchors engine-log timestamps to the container `started` time from the container status: if the first engine log line is stamped before `started`, which is impossible, every engine-log event is shifted later by that difference, and a first line after `started` is left alone because that time is real `container-init`, so a log clock running ahead is not detected from this anchor. Skew above 2 s is reported as a warning in the report.
 
 ### 4.2 Phase model
 
@@ -106,7 +106,7 @@ Phases are a fixed ordered set. Each is defined by a start marker and an end mar
 
 | Phase | Starts at | Ends at | Primary source |
 | --- | --- | --- | --- |
-| `scheduling` | Pod `creationTimestamp` | Event `Scheduled` | k8s-event |
+| `scheduling` | Pod `creationTimestamp` | Event `Scheduled`, or the pod's `PodScheduled` condition when the event has expired | k8s-event, container-status |
 | `node-provision` | `Scheduled` on a node whose `Ready` condition is newer than the pod | Node `Ready` | k8s-event (optional) |
 | `image-pull` | Event `Pulling` | Event `Pulled` | k8s-event, cri |
 | `container-init` | Container `started` | first engine log line | container-status, engine-log |
@@ -296,7 +296,7 @@ Standard kubectl flags via `cli-runtime` (`--kubeconfig`, `--context`, `-n`), pl
 | Code | Meaning |
 | --- | --- |
 | 0 | Report produced, all requested phases complete |
-| 1 | Report produced with `open` or `absent` phases (pod still booting, or events expired) |
+| 1 | Report produced with `open` or `absent` phases (pod still booting, or events expired); phases the selected pack cannot produce are listed as `absent` but do not count (decision 0003) |
 | 2 | Pod not found / no permission / unreachable cluster |
 | 3 | No parser pack matched and `--require-pack` was set |
 | 4 | `diff`: a phase regressed beyond `--fail-on` threshold (e.g. `--fail-on total>+20%`) |
@@ -323,7 +323,7 @@ Terminal output fits 100 columns, no color when not a TTY or `NO_COLOR` is set, 
 | CLI | `spf13/cobra`, `spf13/pflag` | kubectl plugin convention |
 | K8s client | `k8s.io/client-go`, `k8s.io/cli-runtime` | official client; `cli-runtime` gives kubeconfig/context/namespace flags and resource name parsing (`pod/x`, `deploy/x`) for free |
 | Image digests | `google/go-containerregistry` | resolve tag → digest, read manifest size without pulling |
-| YAML | `gopkg.in/yaml.v3` | packs |
+| YAML | `go.yaml.in/yaml/v3` | packs |
 | Semver | `Masterminds/semver/v3` | pack version ranges |
 | Terminal | `charmbracelet/lipgloss` | bars and tables; no TUI framework |
 | HTML | stdlib `html/template` | single-file report, no JS |
@@ -395,7 +395,7 @@ This is what keeps the core testable from fixtures and lets the exporter (v0.3) 
 ### 9.2 Fixture policy
 
 - Fixtures are real captures, made with `doriki capture` (which redacts) and committed under `packs/<engine>/testdata/<version>/`. Synthetic logs are not accepted for packs.
-- Each fixture directory carries a `SOURCE.md`: engine version, image digest, GPU/CPU, who captured it, date. No cluster names, no internal hostnames, no tokens.
+- Each fixture directory carries a `SOURCE.md`: engine version, image digest, GPU/CPU, who captured it, date. No tokens, no names or hostnames from a real cluster; the defaults of a throwaway local `kind` cluster (node name, private pod and node IPs) are acceptable.
 - GPU fixtures for vLLM and SGLang are captured once on free Kaggle/Colab GPU time (or donated by community users) and reused forever; they are the only GPU-derived artifacts in the repo.
 - A fixture is never edited by hand. To change expectations, re-run `-update` and explain the diff in the PR.
 
