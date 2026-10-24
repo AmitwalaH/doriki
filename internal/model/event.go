@@ -6,6 +6,7 @@ import (
 	"slices"
 	"strings"
 	"time"
+	"unicode/utf8"
 )
 
 // Source says which collector produced an event.
@@ -44,6 +45,21 @@ const (
 	KindLogLine          = "log.line"         // any engine log line
 	KindLogMarker        = "log.marker"       // a log line a pack matched; Marker holds its id
 )
+
+// MaxRawBytes caps Event.Raw (DESIGN.md section 4.1).
+const MaxRawBytes = 512
+
+// TruncateRaw cuts s to at most MaxRawBytes without splitting a UTF-8 character.
+func TruncateRaw(s string) string {
+	if len(s) <= MaxRawBytes {
+		return s
+	}
+	cut := MaxRawBytes
+	for cut > 0 && !utf8.RuneStart(s[cut]) {
+		cut--
+	}
+	return s[:cut]
+}
 
 // AttrRestartCount on a KindContainerStarted event is the container's restartCount at that
 // start, which is also its attempt number.

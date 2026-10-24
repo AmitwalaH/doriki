@@ -2,6 +2,7 @@ package model
 
 import (
 	"slices"
+	"strings"
 	"testing"
 	"time"
 )
@@ -75,5 +76,22 @@ func TestCompareEventsTotal(t *testing.T) {
 	same.TS = t0.In(time.FixedZone("x", 3600))
 	if c := CompareEvents(base, same); c != 0 {
 		t.Errorf("identical events (different map instance and zone) compare %d, want 0", c)
+	}
+}
+
+// Raw keeps at most 512 bytes and backs off to a character boundary.
+func TestTruncateRaw(t *testing.T) {
+	cases := map[string]struct{ in, want string }{
+		"short":         {"abc", "abc"},
+		"exactly 512":   {strings.Repeat("a", 512), strings.Repeat("a", 512)},
+		"ascii over":    {strings.Repeat("a", 600), strings.Repeat("a", 512)},
+		"split 2-byte":  {strings.Repeat("a", 511) + "é", strings.Repeat("a", 511)},
+		"split 4-byte":  {strings.Repeat("a", 510) + "😀", strings.Repeat("a", 510)},
+		"rune ends 512": {strings.Repeat("a", 510) + "é" + "z", strings.Repeat("a", 510) + "é"},
+	}
+	for name, c := range cases {
+		if got := TruncateRaw(c.in); got != c.want {
+			t.Errorf("%s: got %d bytes, want %d", name, len(got), len(c.want))
+		}
 	}
 }

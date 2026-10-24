@@ -238,6 +238,13 @@ func TestEventsExpired(t *testing.T) {
 	if got := deref(r.Totals.PendingToReadySeconds); got != 20.0 {
 		t.Errorf("pending_to_ready = %v, want 20", got)
 	}
+
+	// When the Scheduled event has expired, the collector emits Scheduled from the pod's
+	// PodScheduled condition (container-status). It ends scheduling like the event does.
+	events = append(events, status(model.KindScheduled, 2))
+	assertPhase(t, phaseByName(mustAssign(t, events, Options{}), model.PhaseScheduling), model.Phase{
+		Name: model.PhaseScheduling, Start: at(0), End: at(2), Seconds: secs(2), State: model.StateComplete,
+		Sources: []model.Source{model.SourceContainerStatus}})
 }
 
 // DESIGN.md section 9.3, container restart mid-boot. The pod has restarted 3 times; the

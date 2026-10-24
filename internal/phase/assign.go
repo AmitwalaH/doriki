@@ -36,9 +36,9 @@ type Options struct {
 
 // matcher recognises the events that start or end a phase.
 type matcher struct {
-	kind         string // matches Event.Kind, when set
-	source       model.Source
-	markerSuffix string // matches Event.Marker ending in this, when set
+	kind         string       // matches Event.Kind, when set
+	source       model.Source // with kind set, empty means any source
+	markerSuffix string       // matches Event.Marker ending in this, when set
 }
 
 func (m matcher) match(e model.Event) bool {
@@ -46,7 +46,7 @@ func (m matcher) match(e model.Event) bool {
 	case m.markerSuffix != "":
 		return e.Source == model.SourceEngineLog && strings.HasSuffix(e.Marker, m.markerSuffix)
 	case m.kind != "":
-		return e.Source == m.source && e.Kind == m.kind
+		return e.Kind == m.kind && (m.source == "" || e.Source == m.source)
 	default: // any event from the source
 		return m.source != "" && e.Source == m.source
 	}
@@ -69,7 +69,8 @@ var (
 )
 
 var specs = map[model.PhaseName]spec{
-	model.PhaseScheduling: {podCreated, matcher{kind: model.KindScheduled, source: model.SourceK8sEvent}},
+	// Scheduled is the k8s event, or the PodScheduled condition when the event has expired.
+	model.PhaseScheduling: {podCreated, matcher{kind: model.KindScheduled}},
 	// node-provision needs the node's Ready time, which no collector reads yet.
 	model.PhaseNodeProvision: {},
 	model.PhaseImagePull: {

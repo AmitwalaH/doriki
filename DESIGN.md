@@ -106,7 +106,7 @@ Phases are a fixed ordered set. Each is defined by a start marker and an end mar
 
 | Phase | Starts at | Ends at | Primary source |
 | --- | --- | --- | --- |
-| `scheduling` | Pod `creationTimestamp` | Event `Scheduled` | k8s-event |
+| `scheduling` | Pod `creationTimestamp` | Event `Scheduled`, or the pod's `PodScheduled` condition when the event has expired | k8s-event, container-status |
 | `node-provision` | `Scheduled` on a node whose `Ready` condition is newer than the pod | Node `Ready` | k8s-event (optional) |
 | `image-pull` | Event `Pulling` | Event `Pulled` | k8s-event, cri |
 | `container-init` | Container `started` | first engine log line | container-status, engine-log |
@@ -323,7 +323,7 @@ Terminal output fits 100 columns, no color when not a TTY or `NO_COLOR` is set, 
 | CLI | `spf13/cobra`, `spf13/pflag` | kubectl plugin convention |
 | K8s client | `k8s.io/client-go`, `k8s.io/cli-runtime` | official client; `cli-runtime` gives kubeconfig/context/namespace flags and resource name parsing (`pod/x`, `deploy/x`) for free |
 | Image digests | `google/go-containerregistry` | resolve tag → digest, read manifest size without pulling |
-| YAML | `gopkg.in/yaml.v3` | packs |
+| YAML | `go.yaml.in/yaml/v3` | packs |
 | Semver | `Masterminds/semver/v3` | pack version ranges |
 | Terminal | `charmbracelet/lipgloss` | bars and tables; no TUI framework |
 | HTML | stdlib `html/template` | single-file report, no JS |
