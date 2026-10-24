@@ -105,7 +105,8 @@ Any condition unmet or unclear: report at Step 12, do not commit or push.
 - **Prefix:** `BP` is retired; use `DK`.
 - **Categories:** `CLI`, `COLLECT`, `PACK`, `PHASE`, `RULES`, `RENDER`, `REL`, `DOCS`.
 - **Where tickets live:** `tickets/` as `DK-<CAT>-<BUG|ENH>-<YYYYMMDD>-<slug>.md`.
-- **Where plans and handoffs live:** `tasks/` as `YYYY-MM-DD-<task>.md`. Decisions in
+- **Where plans and handoffs live:** `tasks/` as `YYYY-MM-DD-<task>.md`. `tasks/` is
+  local-only and not committed (it is in `.gitignore`). Decisions in
   `docs/decisions/NNNN-<slug>.md`.
 
 ## 8. What a user actually sees
