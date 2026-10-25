@@ -1,0 +1,99 @@
+{
+  "report_version": 1,
+  "generated_at": "2026-10-24T15:00:00Z",
+  "doriki_version": "dev",
+  "manifest": {
+    "manifest_version": 1,
+    "pod": {
+      "namespace": "default",
+      "name": "nginx-89d46f4b4-ffrkt"
+    },
+    "node": {
+      "name": "doriki-control-plane"
+    },
+    "engine": {
+      "parser_pack": "generic"
+    }
+  },
+  "attempt": 0,
+  "attempts_total": 1,
+  "phases": [
+    {
+      "name": "scheduling",
+      "start": "2026-10-24T14:57:53Z",
+      "end": "2026-10-24T14:57:53Z",
+      "seconds": 0,
+      "state": "complete",
+      "sources": [
+        "k8s-event",
+        "container-status"
+      ]
+    },
+    {
+      "name": "node-provision",
+      "state": "absent"
+    },
+    {
+      "name": "image-pull",
+      "start": "2026-10-24T14:57:53Z",
+      "end": "2026-10-24T14:58:13Z",
+      "seconds": 20,
+      "state": "complete",
+      "sources": [
+        "k8s-event"
+      ]
+    },
+    {
+      "name": "container-init",
+      "start": "2026-10-24T14:58:13Z",
+      "end": "2026-10-24T14:58:13.306219429Z",
+      "seconds": 0.306219429,
+      "state": "complete",
+      "sources": [
+        "container-status",
+        "engine-log"
+      ]
+    },
+    {
+      "name": "engine-init",
+      "state": "absent"
+    },
+    {
+      "name": "weight-fetch",
+      "state": "absent"
+    },
+    {
+      "name": "weight-load",
+      "state": "absent"
+    },
+    {
+      "name": "compile",
+      "state": "absent"
+    },
+    {
+      "name": "graph-capture",
+      "state": "absent"
+    },
+    {
+      "name": "kv-alloc",
+      "state": "absent"
+    },
+    {
+      "name": "server-ready",
+      "state": "absent"
+    },
+    {
+      "name": "first-token",
+      "state": "absent"
+    }
+  ],
+  "totals": {
+    "pending_to_ready_seconds": 21
+  },
+  "warnings": [
+    {
+      "code": "no-pack",
+      "text": "no parser pack matches image \"nginx:1.29.3-alpine\"; only Kubernetes phases are reported"
+    }
+  ]
+}

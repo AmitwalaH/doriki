@@ -1,0 +1,205 @@
+{
+    "apiVersion": "v1",
+    "items": [
+        {
+            "apiVersion": "v1",
+            "count": 1,
+            "eventTime": null,
+            "firstTimestamp": "2026-10-25T09:23:40Z",
+            "involvedObject": {
+                "apiVersion": "v1",
+                "kind": "Pod",
+                "name": "vllm-785fb8997d-bvsz4",
+                "namespace": "default",
+                "resourceVersion": "521",
+                "uid": "545cae50-e8b9-4a82-9c4c-b71840b1919a"
+            },
+            "kind": "Event",
+            "lastTimestamp": "2026-10-25T09:23:40Z",
+            "message": "Successfully assigned default/vllm-785fb8997d-bvsz4 to doriki-control-plane",
+            "metadata": {
+                "creationTimestamp": "2026-10-25T09:23:40Z",
+                "name": "vllm-785fb8997d-bvsz4.18e1bb70f80fb53f",
+                "namespace": "default",
+                "resourceVersion": "529",
+                "uid": "ba7cc03b-42bc-4ec6-aacb-ff001298d388"
+            },
+            "reason": "Scheduled",
+            "reportingComponent": "default-scheduler",
+            "reportingInstance": "",
+            "source": {
+                "component": "default-scheduler"
+            },
+            "type": "Normal"
+        },
+        {
+            "apiVersion": "v1",
+            "count": 1,
+            "eventTime": null,
+            "firstTimestamp": "2026-10-25T09:23:41Z",
+            "involvedObject": {
+                "apiVersion": "v1",
+                "fieldPath": "spec.containers{vllm}",
+                "kind": "Pod",
+                "name": "vllm-785fb8997d-bvsz4",
+                "namespace": "default",
+                "resourceVersion": "524",
+                "uid": "545cae50-e8b9-4a82-9c4c-b71840b1919a"
+            },
+            "kind": "Event",
+            "lastTimestamp": "2026-10-25T09:23:41Z",
+            "message": "Pulling image \"ghcr.io/mekayelanik/vllm-cpu@sha256:8ef8561070bd1bd06e15420b76cc55834086e8bcf6dc860dd65b793f2ff8bf5b\"",
+            "metadata": {
+                "creationTimestamp": "2026-10-25T09:23:41Z",
+                "name": "vllm-785fb8997d-bvsz4.18e1bb711a7c5ed8",
+                "namespace": "default",
+                "resourceVersion": "542",
+                "uid": "e7b67fc8-555e-477d-ae04-1cf6b456e8da"
+            },
+            "reason": "Pulling",
+            "reportingComponent": "kubelet",
+            "reportingInstance": "doriki-control-plane",
+            "source": {
+                "component": "kubelet",
+                "host": "doriki-control-plane"
+            },
+            "type": "Normal"
+        },
+        {
+            "apiVersion": "v1",
+            "count": 1,
+            "eventTime": null,
+            "firstTimestamp": "2026-10-25T09:28:09Z",
+            "involvedObject": {
+                "apiVersion": "v1",
+                "fieldPath": "spec.containers{vllm}",
+                "kind": "Pod",
+                "name": "vllm-785fb8997d-bvsz4",
+                "namespace": "default",
+                "resourceVersion": "524",
+                "uid": "545cae50-e8b9-4a82-9c4c-b71840b1919a"
+            },
+            "kind": "Event",
+            "lastTimestamp": "2026-10-25T09:28:09Z",
+            "message": "Successfully pulled image \"ghcr.io/mekayelanik/vllm-cpu@sha256:8ef8561070bd1bd06e15420b76cc55834086e8bcf6dc860dd65b793f2ff8bf5b\" in 4m27.995s (4m27.995s including waiting). Image size: 646586799 bytes.",
+            "metadata": {
+                "creationTimestamp": "2026-10-25T09:28:09Z",
+                "name": "vllm-785fb8997d-bvsz4.18e1bbaf7f20bc2f",
+                "namespace": "default",
+                "resourceVersion": "928",
+                "uid": "23b8035d-a370-4d8a-b15f-afe9444d5e37"
+            },
+            "reason": "Pulled",
+            "reportingComponent": "kubelet",
+            "reportingInstance": "doriki-control-plane",
+            "source": {
+                "component": "kubelet",
+                "host": "doriki-control-plane"
+            },
+            "type": "Normal"
+        },
+        {
+            "apiVersion": "v1",
+            "count": 1,
+            "eventTime": null,
+            "firstTimestamp": "2026-10-25T09:28:09Z",
+            "involvedObject": {
+                "apiVersion": "v1",
+                "fieldPath": "spec.containers{vllm}",
+                "kind": "Pod",
+                "name": "vllm-785fb8997d-bvsz4",
+                "namespace": "default",
+                "resourceVersion": "524",
+                "uid": "545cae50-e8b9-4a82-9c4c-b71840b1919a"
+            },
+            "kind": "Event",
+            "lastTimestamp": "2026-10-25T09:28:09Z",
+            "message": "Container created",
+            "metadata": {
+                "creationTimestamp": "2026-10-25T09:28:09Z",
+                "name": "vllm-785fb8997d-bvsz4.18e1bbaf8248186d",
+                "namespace": "default",
+                "resourceVersion": "929",
+                "uid": "e6772f81-a521-4264-82ae-c1ab34269a07"
+            },
+            "reason": "Created",
+            "reportingComponent": "kubelet",
+            "reportingInstance": "doriki-control-plane",
+            "source": {
+                "component": "kubelet",
+                "host": "doriki-control-plane"
+            },
+            "type": "Normal"
+        },
+        {
+            "apiVersion": "v1",
+            "count": 1,
+            "eventTime": null,
+            "firstTimestamp": "2026-10-25T09:28:09Z",
+            "involvedObject": {
+                "apiVersion": "v1",
+                "fieldPath": "spec.containers{vllm}",
+                "kind": "Pod",
+                "name": "vllm-785fb8997d-bvsz4",
+                "namespace": "default",
+                "resourceVersion": "524",
+                "uid": "545cae50-e8b9-4a82-9c4c-b71840b1919a"
+            },
+            "kind": "Event",
+            "lastTimestamp": "2026-10-25T09:28:09Z",
+            "message": "Container started",
+            "metadata": {
+                "creationTimestamp": "2026-10-25T09:28:09Z",
+                "name": "vllm-785fb8997d-bvsz4.18e1bbaf8ccba332",
+                "namespace": "default",
+                "resourceVersion": "930",
+                "uid": "bfe4f58e-fa36-4b53-9c1b-d9844c80727e"
+            },
+            "reason": "Started",
+            "reportingComponent": "kubelet",
+            "reportingInstance": "doriki-control-plane",
+            "source": {
+                "component": "kubelet",
+                "host": "doriki-control-plane"
+            },
+            "type": "Normal"
+        },
+        {
+            "apiVersion": "v1",
+            "count": 25,
+            "eventTime": null,
+            "firstTimestamp": "2026-10-25T09:28:09Z",
+            "involvedObject": {
+                "apiVersion": "v1",
+                "fieldPath": "spec.containers{vllm}",
+                "kind": "Pod",
+                "name": "vllm-785fb8997d-bvsz4",
+                "namespace": "default",
+                "resourceVersion": "524",
+                "uid": "545cae50-e8b9-4a82-9c4c-b71840b1919a"
+            },
+            "kind": "Event",
+            "lastTimestamp": "2026-10-25T09:28:55Z",
+            "message": "Readiness probe failed: Get \"http://10.244.0.5:8000/health\": dial tcp 10.244.0.5:8000: connect: connection refused",
+            "metadata": {
+                "creationTimestamp": "2026-10-25T09:28:09Z",
+                "name": "vllm-785fb8997d-bvsz4.18e1bbaf8d75b19c",
+                "namespace": "default",
+                "resourceVersion": "1023",
+                "uid": "575ac9ce-810e-4238-bf28-73dd764510c5"
+            },
+            "reason": "Unhealthy",
+            "reportingComponent": "kubelet",
+            "reportingInstance": "doriki-control-plane",
+            "source": {
+                "component": "kubelet",
+                "host": "doriki-control-plane"
+            },
+            "type": "Warning"
+        }
+    ],
+    "kind": "List",
+    "metadata": {
+        "resourceVersion": ""
+    }
+}

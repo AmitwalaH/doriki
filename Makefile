@@ -10,7 +10,7 @@ LDFLAGS := -s -w \
 # doriki is a single static binary; no package may need cgo.
 export CGO_ENABLED := 0
 
-.PHONY: build test lint gate e2e
+.PHONY: build test lint gate e2e schema
 
 build:
 	go build ./...
@@ -24,6 +24,11 @@ lint:
 	golangci-lint run ./...
 
 gate: build lint test
+
+# JSON Schemas from the Go types in internal/model; commit the result. The schema test fails
+# when they are stale.
+schema:
+	go run ./schema/gen
 
 # Red on purpose until M2 (PROJECT.md section 4).
 e2e:

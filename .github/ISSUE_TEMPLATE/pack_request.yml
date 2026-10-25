@@ -1,0 +1,60 @@
+name: Pack request or capture
+description: Ask for an engine or version doriki does not parse yet, ideally with a real startup capture.
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        doriki's parser packs are written only from real captures, never from memory, so a
+        capture of one real startup is what makes support possible. Save the three files right
+        after the pod becomes Ready (Kubernetes keeps events for about an hour):
+
+        ```sh
+        POD=<your pod>
+        kubectl logs "$POD" --timestamps > container.log
+        kubectl get pod "$POD" -o json > pod.json
+        kubectl get events --field-selector involvedObject.name="$POD" -o json > events.json
+        ```
+
+        **Redact before attaching**, as the README's "Please send a capture" section describes:
+        replace secret values (`HF_TOKEN`, API keys, `--api-key`, passwords) with `REDACTED`;
+        replace names only if you must, the same way everywhere; never change a timestamp,
+        reorder lines or delete log lines. Then say below what you changed.
+  - type: input
+    id: engine
+    attributes:
+      label: Engine
+      placeholder: "vLLM, SGLang, llama.cpp, Ollama, ..."
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Engine version and image
+      description: The version the engine prints at startup, and the image (tag or digest).
+      placeholder: "0.33.1, vllm/vllm-openai@sha256:..."
+    validations:
+      required: true
+  - type: input
+    id: hardware
+    attributes:
+      label: Hardware
+      description: GPU model and count, or CPU.
+      placeholder: "2x H100 80GB"
+    validations:
+      required: false
+  - type: textarea
+    id: captures
+    attributes:
+      label: The three capture files
+      description: Drag `container.log`, `pod.json` and `events.json` here (rename to `.txt` if GitHub refuses a file type).
+    validations:
+      required: true
+  - type: textarea
+    id: redactions
+    attributes:
+      label: What you redacted or renamed
+      description: Every change you made to the files, so we know what is original.
+      placeholder: "Replaced the HF_TOKEN value in pod.json with REDACTED; renamed node gpu-node-7 to node-a everywhere."
+    validations:
+      required: true

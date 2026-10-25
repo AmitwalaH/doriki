@@ -1,0 +1,6 @@
+# Questions and ideas go to Discussions; issues are for bugs and pack requests.
+blank_issues_enabled: false
+contact_links:
+  - name: Question or idea
+    url: https://github.com/AmitwalaH/doriki/discussions
+    about: Ask how to use doriki, how to read a waterfall, or suggest something. Bugs and pack requests use the templates above.

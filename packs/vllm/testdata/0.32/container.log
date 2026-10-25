@@ -1,0 +1,339 @@
+2026-10-25T09:28:09.367014427Z [38;5;51m             /SS       /SS       /SS      /SS            /SSSSSS  /SSSSSSS  /SS   /SS   [0m
+2026-10-25T09:28:09.367152750Z [38;5;51m            | SS      | SS      | SSS    /SSS           /SS__  SS| SS__  SS| SS  | SS   [0m
+2026-10-25T09:28:09.367161673Z [38;5;51m  /SS    /SS| SS      | SS      | SSSS  /SSSS          | SS  \__/| SS  \ SS| SS  | SS   [0m
+2026-10-25T09:28:09.367165837Z [38;5;51m |  SS  /SS/| SS      | SS      | SS SS/SS SS  /SSSSSS | SS      | SSSSSSS/| SS  | SS   [0m
+2026-10-25T09:28:09.367169089Z [38;5;51m  \  SS/SS/ | SS      | SS      | SS  SSS| SS |______/ | SS      | SS____/ | SS  | SS   [0m
+2026-10-25T09:28:09.367172387Z [38;5;51m   \  SSS/  | SS      | SS      | SS\  S | SS          | SS    SS| SS      | SS  | SS   [0m
+2026-10-25T09:28:09.367176508Z [38;5;51m    \  S/   | SSSSSSSS| SSSSSSSS| SS \/  | SS          |  SSSSSS/| SS      |  SSSSSS/   [0m
+2026-10-25T09:28:09.367180807Z [38;5;51m     \_/    |________/|________/|__/     |__/           \______/ |__/       \______/    [0m
+2026-10-25T09:28:09.367184134Z 
+2026-10-25T09:28:09.367189172Z [38;5;12m[38;5;12m 888888ba                                      dP         dP        dP                                             dP                 dP    [0m
+2026-10-25T09:28:09.367211895Z [38;5;12m 88     8b                                     88         88        88                                             88                 88    [0m
+2026-10-25T09:28:09.367215709Z [38;5;12m a88aaaa8P 88d888b. .d8888b. dP    dP .d8888b. 88d888b. d8888P    d8888P .d8888b.    dp    dp .d8888b. dP    dP    88d888b. dP    dP        [0m
+2026-10-25T09:28:09.367219945Z [38;5;12m 88    8b. 88    88 88    88 88    88 88    88 88    88   88        88   88    88    88    88 88    88 88    88    88    88 88    88        [0m
+2026-10-25T09:28:09.367223981Z [38;5;12m 88    .88 88       88.  .88 88.  .88 88.  .88 88    88   88        88   88.  .88    88.  .88 88.  .88 88.  .88    88.  .88 88.  .88  dP    [0m
+2026-10-25T09:28:09.367227547Z [38;5;12m 88888888P dP        88888P   88888P   8888P88 dP    dP   888P      888P  88888P      8888P88  88888P   88888P     88Y8888   8888P88  88    [0m
+2026-10-25T09:28:09.367231971Z [38;5;12m                                           .88                                           .88                                     .88        [0m
+2026-10-25T09:28:09.367235572Z [38;5;12m                                       d8888P                                        d8888P                                  d8888P         [0m
+2026-10-25T09:28:09.367239329Z [0m
+2026-10-25T09:28:09.367242387Z 
+2026-10-25T09:28:09.367253143Z  ███╗   ███╗██████╗        ███╗   ███╗███████╗██╗  ██╗ █████╗ ██╗   ██╗███████╗██╗          █████╗ ███╗   ██╗██╗██╗  ██╗                 [0m
+2026-10-25T09:28:09.367346422Z  ████╗ ████║██╔══██╗       ████╗ ████║██╔════╝██║ ██╔╝██╔══██╗╚██╗ ██╔╝██╔════╝██║         ██╔══██╗████╗  ██║██║██║ ██╔╝                 [0m
+2026-10-25T09:28:09.367352825Z  ██╔████╔██║██║  ██║       ██╔████╔██║█████╗  █████╔╝ ███████║ ╚████╔╝ █████╗  ██║         ███████║██╔██╗ ██║██║█████╔╝                  [0m
+2026-10-25T09:28:09.367356481Z  ██║╚██╔╝██║██║  ██║       ██║╚██╔╝██║██╔══╝  ██╔═██╗ ██╔══██║  ╚██╔╝  ██╔══╝  ██║         ██╔══██║██║╚██╗██║██║██╔═██╗                  [0m
+2026-10-25T09:28:09.367380189Z  ██║ ╚═╝ ██║██████╔╝██╗    ██║ ╚═╝ ██║███████╗██║  ██╗██║  ██║   ██║   ███████╗███████╗    ██║  ██║██║ ╚████║██║██║  ██╗                 [0m
+2026-10-25T09:28:09.367384493Z  ╚═╝     ╚═╝╚═════╝ ╚═╝    ╚═╝     ╚═╝╚══════╝╚═╝  ╚═╝╚═╝  ╚═╝   ╚═╝   ╚══════╝╚══════╝    ╚═╝  ╚═╝╚═╝  ╚═══╝╚═╝╚═╝  ╚═╝                 [0m
+2026-10-25T09:28:09.367387542Z 
+2026-10-25T09:28:09.402026759Z [38;5;250m══════════════════════════════════════════════════════════════════════════════[0m
+2026-10-25T09:28:09.402052053Z [38;5;12m  vLLM CPU Inference Engine[0m
+2026-10-25T09:28:09.402053629Z [38;5;250m══════════════════════════════════════════════════════════════════════════════[0m
+2026-10-25T09:28:09.402054641Z 
+2026-10-25T09:28:09.402055753Z [38;5;10m  Variant:[0m        noavx512
+2026-10-25T09:28:09.402056749Z [38;5;10m  vLLM Version:[0m   0.32.0
+2026-10-25T09:28:09.402057692Z [38;5;10m  Python:[0m         3.13.16
+2026-10-25T09:28:09.402058606Z [38;5;10m  Container IP:[0m   10.244.0.5
+2026-10-25T09:28:09.402059454Z 
+2026-10-25T09:28:09.402060886Z [38;5;208m  API Endpoint:[0m   http://10.244.0.5:8000
+2026-10-25T09:28:09.402061819Z [38;5;208m  Health Check:[0m   http://10.244.0.5:8000/health
+2026-10-25T09:28:09.402062770Z [38;5;208m  OpenAI API:[0m     http://10.244.0.5:8000/v1
+2026-10-25T09:28:09.402063724Z 
+2026-10-25T09:28:09.402064752Z [38;5;250m══════════════════════════════════════════════════════════════════════════════[0m
+2026-10-25T09:28:09.402065761Z [38;5;250m  GitHub: https://github.com/MekayelAnik/vllm-cpu[0m
+2026-10-25T09:28:09.402067269Z [38;5;250m  Docs:   https://docs.vllm.ai/en/stable/getting_started/installation/cpu/[0m
+2026-10-25T09:28:09.402068338Z [38;5;250m══════════════════════════════════════════════════════════════════════════════[0m
+2026-10-25T09:28:09.402069224Z 
+2026-10-25T09:28:09.468709184Z === Detected Hardware ===
+2026-10-25T09:28:09.468735430Z Architecture: x86_64
+2026-10-25T09:28:09.468737081Z Physical CPU cores: 6
+2026-10-25T09:28:09.468738537Z Logical CPU cores: 12
+2026-10-25T09:28:09.468739777Z Available memory: 5 GiB
+2026-10-25T09:28:09.468740906Z Total memory: 7 GiB
+2026-10-25T09:28:09.468742208Z NUMA nodes: 1
+2026-10-25T09:28:09.468743466Z =========================
+2026-10-25T09:28:09.475892757Z 
+2026-10-25T09:28:09.475915794Z === Variant Check ===
+2026-10-25T09:28:09.475917497Z CPU features: none
+2026-10-25T09:28:09.475919114Z Current: noavx512 | Best: noavx512
+2026-10-25T09:28:09.475920352Z Status: Optimal - current variant is the best for your CPU
+2026-10-25T09:28:09.475921359Z =====================
+2026-10-25T09:28:09.475933182Z 
+2026-10-25T09:28:09.475934380Z === Configuring CPU Performance Settings ===
+2026-10-25T09:28:09.475935381Z VLLM_CPU_KVCACHE_SPACE=1 GiB (user-configured)
+2026-10-25T09:28:09.475936316Z VLLM_CPU_OMP_THREADS_BIND=auto (NUMA-aware binding enabled)
+2026-10-25T09:28:09.475937294Z VLLM_CPU_NUM_OF_RESERVED_CPU=1 (auto: based on 6 cores)
+2026-10-25T09:28:09.478038622Z VLLM_CPU_SGL_KERNEL=0 (auto: AMX not detected)
+2026-10-25T09:28:09.478049120Z VLLM_CPU_MOE_PREPACK=1 (auto: MoE prepacking enabled)
+2026-10-25T09:28:09.478050447Z 
+2026-10-25T09:28:09.478051643Z === Memory Allocator Configuration ===
+2026-10-25T09:28:09.601539516Z libiomp5: /vllm/venv/lib/libiomp5.so
+2026-10-25T09:28:09.601584274Z TCMalloc: /usr/lib/x86_64-linux-gnu/libtcmalloc_minimal.so.4
+2026-10-25T09:28:09.601587947Z LD_PRELOAD=/vllm/venv/lib/libiomp5.so:/usr/lib/x86_64-linux-gnu/libtcmalloc_minimal.so.4
+2026-10-25T09:28:09.601690178Z 
+2026-10-25T09:28:09.601705652Z === Final vLLM CPU Configuration ===
+2026-10-25T09:28:09.601707865Z VLLM_CPU_KVCACHE_SPACE: 1 GiB
+2026-10-25T09:28:09.601709044Z VLLM_CPU_OMP_THREADS_BIND: auto
+2026-10-25T09:28:09.601710253Z VLLM_CPU_NUM_OF_RESERVED_CPU: 1
+2026-10-25T09:28:09.601716383Z VLLM_CPU_SGL_KERNEL: 0
+2026-10-25T09:28:09.601717544Z VLLM_CPU_MOE_PREPACK: 1
+2026-10-25T09:28:09.601718645Z VLLM_CPU_VARIANT: noavx512
+2026-10-25T09:28:09.601720425Z LD_PRELOAD: /vllm/venv/lib/libiomp5.so:/usr/lib/x86_64-linux-gnu/libtcmalloc_minimal.so.4
+2026-10-25T09:28:09.601721794Z MALLOC_TRIM_THRESHOLD_: 100000
+2026-10-25T09:28:09.601723683Z =====================================
+2026-10-25T09:28:09.601963441Z 
+2026-10-25T09:28:09.616245860Z === Server Configuration ===
+2026-10-25T09:28:09.616269588Z Host: 0.0.0.0
+2026-10-25T09:28:09.616273578Z Port: 8000
+2026-10-25T09:28:09.616275291Z Model: facebook/opt-125m
+2026-10-25T09:28:09.616276505Z Tokenizer: <auto>
+2026-10-25T09:28:09.616277668Z Dtype: bfloat16
+2026-10-25T09:28:09.616278825Z Block size: 128
+2026-10-25T09:28:09.616280030Z Tensor parallel: 1
+2026-10-25T09:28:09.616281285Z Pipeline parallel: 1
+2026-10-25T09:28:09.616282456Z Max model length: auto
+2026-10-25T09:28:09.616283562Z Max batched tokens: auto
+2026-10-25T09:28:09.616284670Z API key: 
+2026-10-25T09:28:09.616285807Z =============================
+2026-10-25T09:28:09.616286822Z 
+2026-10-25T09:28:09.616288525Z Starting vLLM server...
+2026-10-25T09:28:09.616290743Z Command: python -m vllm.entrypoints.openai.api_server --host 0.0.0.0 --port 8000 --model facebook/opt-125m --dtype bfloat16 --block-size 128 --enforce-eager
+2026-10-25T09:28:09.616291912Z 
+2026-10-25T09:28:37.270689750Z /vllm/venv/lib/python3.13/site-packages/vllm/entrypoints/openai/api_server.py:24: DeprecationWarning: `vllm.entrypoints.openai.api_server` is deprecated and will likely beunsupported in a future version. Use the corresponding function from `vllm.entrypoints.launchers` instead.
+2026-10-25T09:28:37.270716281Z   warnings.warn(
+2026-10-25T09:28:37.270720887Z /vllm/venv/lib/python3.13/site-packages/vllm/entrypoints/openai/api_server.py:51: DeprecationWarning: The `python -m vllm.entrypoints.openai.api_server` command is deprecated and may be removed in a future release. Please use `vllm server` instead.
+2026-10-25T09:28:37.270722744Z   warnings.warn(
+2026-10-25T09:28:37.562497270Z (APIServer pid=72) INFO 10-25 09:28:37 [api_utils.py:347] 
+2026-10-25T09:28:37.562523302Z (APIServer pid=72) INFO 10-25 09:28:37 [api_utils.py:347]        █     █     █▄   ▄█
+2026-10-25T09:28:37.562526639Z (APIServer pid=72) INFO 10-25 09:28:37 [api_utils.py:347]  ▄▄ ▄█ █     █     █ ▀▄▀ █  version 0.32.0
+2026-10-25T09:28:37.562542451Z (APIServer pid=72) INFO 10-25 09:28:37 [api_utils.py:347]   █▄█▀ █     █     █     █  model   facebook/opt-125m
+2026-10-25T09:28:37.562543988Z (APIServer pid=72) INFO 10-25 09:28:37 [api_utils.py:347]    ▀▀  ▀▀▀▀▀ ▀▀▀▀▀ ▀     ▀
+2026-10-25T09:28:37.562545071Z (APIServer pid=72) INFO 10-25 09:28:37 [api_utils.py:347] 
+2026-10-25T09:28:37.569079810Z (APIServer pid=72) INFO 10-25 09:28:37 [api_utils.py:286] non-default args: {'host': '0.0.0.0', 'model': 'facebook/opt-125m', 'dtype': 'bfloat16', 'enforce_eager': True, 'block_size': 128}
+2026-10-25T09:28:37.569958618Z (APIServer pid=72) WARNING 10-25 09:28:37 [interface.py:1457] Unknown vLLM environment variable detected: VLLM_EXTRA_ARGS
+2026-10-25T09:28:37.569965473Z (APIServer pid=72) WARNING 10-25 09:28:37 [interface.py:1457] Unknown vLLM environment variable detected: VLLM_CPU_SGL_KERNEL
+2026-10-25T09:28:38.738756349Z Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+2026-10-25T09:28:54.819629218Z W1025 09:28:54.818000 72 venv/lib/python3.13/site-packages/torch/_library/triton.py:53] Triton not available, find_triton_kernels = []
+2026-10-25T09:28:54.881088877Z (APIServer pid=72) INFO 10-25 09:28:54 [model.py:733] Resolved architecture: OPTForCausalLM
+2026-10-25T09:28:54.881113260Z (APIServer pid=72) WARNING 10-25 09:28:54 [model.py:2498] Casting torch.float16 to torch.bfloat16.
+2026-10-25T09:28:54.882049791Z (APIServer pid=72) INFO 10-25 09:28:54 [model.py:2152] Using max model len 2048
+2026-10-25T09:28:55.635920085Z (APIServer pid=72) WARNING 10-25 09:28:55 [config.py:1384] Could not retrieve safetensors metadata for facebook/opt-125m (Hub fetch failed and the cached snapshot holds no weights yet).
+2026-10-25T09:28:55.635947749Z (APIServer pid=72) WARNING 10-25 09:28:55 [vllm.py:1703] Enforce eager set, disabling torch.compile, CUDAGraphs, and JIT kernel warmup. This is equivalent to setting -cc.mode=none -cc.cudagraph_mode=none and --kernel_config.enable_jit_warmup=False
+2026-10-25T09:28:55.635969801Z (APIServer pid=72) WARNING 10-25 09:28:55 [vllm.py:1727] Inductor compilation was disabled by user settings, optimizations settings that are only active during inductor compilation will be ignored.
+2026-10-25T09:28:55.636365464Z (APIServer pid=72) INFO 10-25 09:28:55 [kernel.py:467] Final IR op priority after setting platform defaults: IrOpPriorityConfig(rms_norm=['native'], fused_add_rms_norm=['native'], gelu_and_mul_sparse=['native'])
+2026-10-25T09:28:55.636544668Z (APIServer pid=72) WARNING 10-25 09:28:55 [cpu.py:224] Triton is not installed. triton-cpu is expected on x86 CPUs.
+2026-10-25T09:28:55.636850305Z (APIServer pid=72) WARNING 10-25 09:28:55 [vllm.py:725] Model Runner V2 requires Triton; using the V1 model runner instead.
+2026-10-25T09:28:55.636873197Z (APIServer pid=72) INFO 10-25 09:28:55 [compilation.py:317] Enabled custom fusions: norm_quant, act_quant
+2026-10-25T09:28:57.356814654Z Fetching 9 files:   0%|          | 0/9 [00:00<?, ?it/s]Fetching 9 files:  22%|██▏       | 2/9 [00:00<00:00,  8.13it/s]Fetching 9 files:  44%|████▍     | 4/9 [00:00<00:00, 12.44it/s]Fetching 9 files:  89%|████████▉ | 8/9 [00:00<00:00, 18.79it/s]Fetching 9 files: 100%|██████████| 9/9 [00:00<00:00, 15.13it/s]
+2026-10-25T09:29:06.893981150Z (EngineCore pid=139) INFO 10-25 09:29:06 [core.py:133] Initializing a V1 LLM engine (v0.32.0) with config: model='facebook/opt-125m', speculative_config=None, tokenizer='facebook/opt-125m', skip_tokenizer_init=False, tokenizer_mode=auto, revision=main, tokenizer_revision=main, trust_remote_code=False, dtype=torch.bfloat16, max_seq_len=2048, download_dir=None, load_format=auto, tensor_parallel_size=1, pipeline_parallel_size=1, data_parallel_size=1, decode_context_parallel_size=1, dcp_comm_backend=ag_rs, disable_custom_all_reduce=True, quantization=None, quantization_config=None, enforce_eager=True, aux_output_config=AuxOutputConfig(enable_return_routed_experts=False, max_bytes=None), kv_cache_dtype=auto, device_config=cpu, structured_outputs_config=StructuredOutputsConfig(backend='auto', disable_any_whitespace=False, disable_additional_properties=False, reasoning_parser='', reasoning_parser_plugin='', enable_in_reasoning=False), observability_config=ObservabilityConfig(show_hidden_metrics_for_version=None, otlp_traces_endpoint=None, collect_detailed_traces=None, per_request_spec_decode_metrics='none', kv_cache_metrics=False, kv_cache_metrics_sample=0.01, custom_histogram_buckets=None, cudagraph_metrics=False, enable_layerwise_nvtx_tracing=False, enable_mfu_metrics=False, enable_mm_processor_stats=False, enable_logging_iteration_details=False, jit_monitor_mode='warn', jit_monitor_verbose=False), seed=0, served_model_name=facebook/opt-125m, enable_prefix_caching=True, enable_chunked_prefill=True, pooler_config=None, compilation_config={'mode': <CompilationMode.NONE: 0>, 'debug_dump_path': None, 'cache_dir': '', 'compile_cache_save_format': 'binary', 'backend': 'inductor', 'custom_ops': ['all'], 'ir_enable_torch_wrap': False, 'splitting_ops': [], 'compile_mm_encoder': False, 'cudagraph_mm_encoder': False, 'encoder_cudagraph_token_budgets': [], 'encoder_cudagraph_max_vision_items_per_batch': 0, 'encoder_cudagraph_max_frames_per_batch': None, 'cudagraph_decoder_replay': True, 'decoder_replay_cudagraph_capture_sizes': [], 'decoder_replay_trim_threshold': 768, 'compile_sizes': None, 'compile_ranges_endpoints': [2048], 'inductor_compile_config': {'enable_auto_functionalized_v2': False}, 'inductor_passes': {}, 'cudagraph_mode': <CUDAGraphMode.NONE: 0>, 'cudagraph_num_of_warmups': 0, 'cudagraph_capture_sizes': [], 'cudagraph_copy_inputs': False, 'cudagraph_specialize_lora': True, 'use_inductor_graph_partition': False, 'pass_config': {'fuse_norm_quant': True, 'fuse_act_quant': True, 'fuse_attn_quant': False, 'fuse_allreduce_rms': False, 'enable_qk_norm_rope_fusion': False, 'fuse_rope_kvcache_cat_mla': False, 'fuse_act_padding': False, 'fuse_qk_norm_rope_kvcache': False}, 'max_cudagraph_capture_size': None, 'dynamic_shapes_config': {'type': <DynamicShapesType.BACKED: 'backed'>, 'evaluate_guards': False, 'assume_32_bit_indexing': False}, 'local_cache_dir': None, 'fast_moe_cold_start': False, 'static_all_moe_layers': []}, kernel_config=KernelConfig(ir_op_priority=IrOpPriorityConfig(rms_norm=['native'], fused_add_rms_norm=['native'], gelu_and_mul_sparse=['native']), enable_flashinfer_autotune=True, enable_rocm_segmented_attn_autotune=False, enable_cutedsl_warmup=True, enable_jit_warmup=False, moe_backend='auto', sparse_indexer_topk_backend='auto', linear_backend='auto', linear_backend_per_quant=None)
+2026-10-25T09:29:06.946595578Z (EngineCore pid=139) INFO 10-25 09:29:06 [multiproc_executor.py:153] DP group leader: node_rank=0, node_rank_within_dp=0, master_addr=127.0.0.1, mq_connect_ip=10.244.0.5 (local), world_size=1, local_world_size=1
+2026-10-25T09:29:06.980821392Z (EngineCore pid=139) INFO 10-25 09:29:06 [ompmultiprocessing.py:185] OpenMP thread binding info: 
+2026-10-25T09:29:06.980859621Z (EngineCore pid=139) INFO 10-25 09:29:06 [ompmultiprocessing.py:185] 	VLLM_CPU_OMP_THREADS_BIND='auto', auto_setup=True, skip_setup=False
+2026-10-25T09:29:06.980862851Z (EngineCore pid=139) INFO 10-25 09:29:06 [ompmultiprocessing.py:185] 	local_world_size=1, reserve_cpu_num=1
+2026-10-25T09:29:06.980865226Z (EngineCore pid=139) INFO 10-25 09:29:06 [ompmultiprocessing.py:185] 	local_rank=0, core ids=[1, 3, 5, 7, 9]
+2026-10-25T09:29:06.980867938Z (EngineCore pid=139) INFO 10-25 09:29:06 [ompmultiprocessing.py:185] 	reserved_cpus=[11]
+2026-10-25T09:29:17.892092766Z /vllm/venv/lib/python3.13/site-packages/vllm/triton_utils/dispatcher.py:138: FutureWarning: `torch.distributed.reduce_op` is deprecated, please use `torch.distributed.ReduceOp` instead
+2026-10-25T09:29:17.892189633Z   if hasattr(value, "__dict__"):
+2026-10-25T09:29:17.892193777Z /vllm/venv/lib/python3.13/site-packages/vllm/triton_utils/dispatcher.py:139: FutureWarning: `torch.distributed.reduce_op` is deprecated, please use `torch.distributed.ReduceOp` instead
+2026-10-25T09:29:17.892200936Z   wrapper = lookup(vars(value).get("kernel"))
+2026-10-25T09:29:18.247975766Z W1025 09:29:18.247000 171 venv/lib/python3.13/site-packages/torch/_library/triton.py:53] Triton not available, find_triton_kernels = []
+2026-10-25T09:29:19.899230064Z [W1025 09:29:19.363511981 utils.cpp:68] Warning: NUMA binding: Using MEMBIND policy for memory allocation on the NUMA nodes (0). Memory allocations will be strictly bound to these NUMA nodes. (function init_cpu_memory_env)
+2026-10-25T09:29:19.909170616Z (VllmWorker-0 pid=171) WARNING 10-25 09:29:19 [vllm.py:725] Model Runner V2 requires Triton; using the V1 model runner instead.
+2026-10-25T09:29:19.910010972Z (Worker pid=171) INFO 10-25 09:29:19 [parallel_state.py:1906] world_size=1 rank=0 local_rank=0 distributed_init_method=file:///tmp/vllm_dist_149ffd9d56534ac9a89ecb43510dae8a backend=gloo
+2026-10-25T09:29:19.925354049Z (Worker pid=171) INFO 10-25 09:29:19 [parallel_state.py:2350] rank 0 in world size 1 is assigned as DP rank 0, PP rank 0, PCP rank 0, TP rank 0, ETP rank 0, EP rank N/A, EPLB rank N/A
+2026-10-25T09:29:19.952989112Z (Worker pid=171) INFO 10-25 09:29:19 [cpu_model_runner.py:68] Starting to load model facebook/opt-125m...
+2026-10-25T09:29:20.315830629Z (Worker pid=171) INFO 10-25 09:29:20 [base_loader.py:82] Initializing model took 0.361675 seconds
+2026-10-25T09:31:09.613199435Z (Worker pid=171) INFO 10-25 09:31:09 [weight_utils.py:532] Time spent downloading weights for facebook/opt-125m: 108.186023 seconds
+2026-10-25T09:31:09.614384480Z Loading pt checkpoint shards:   0% Completed | 0/1 [00:00<?, ?it/s]
+2026-10-25T09:31:09.773222677Z (Worker pid=171) WARNING 10-25 09:31:09 [utils.py:333] Attempted to load weight model.decoder.embed_tokens.weight with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:09.885514375Z (Worker pid=171) WARNING 10-25 09:31:09 [utils.py:333] Attempted to load weight model.decoder.embed_positions.weight with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:09.890431026Z (Worker pid=171) WARNING 10-25 09:31:09 [utils.py:333] Attempted to load weight model.decoder.final_layer_norm.weight with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:09.890527078Z (Worker pid=171) WARNING 10-25 09:31:09 [utils.py:333] Attempted to load weight model.decoder.final_layer_norm.bias with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:09.904637989Z (Worker pid=171) WARNING 10-25 09:31:09 [utils.py:333] Attempted to load weight model.decoder.layers.0.self_attn.out_proj.weight with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:09.906370590Z (Worker pid=171) WARNING 10-25 09:31:09 [utils.py:333] Attempted to load weight model.decoder.layers.0.self_attn.out_proj.bias with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:09.906396389Z (Worker pid=171) WARNING 10-25 09:31:09 [utils.py:333] Attempted to load weight model.decoder.layers.0.self_attn_layer_norm.weight with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:09.906409024Z (Worker pid=171) WARNING 10-25 09:31:09 [utils.py:333] Attempted to load weight model.decoder.layers.0.self_attn_layer_norm.bias with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:09.907052917Z (Worker pid=171) WARNING 10-25 09:31:09 [utils.py:333] Attempted to load weight model.decoder.layers.0.fc1.weight with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:09.909660957Z (Worker pid=171) WARNING 10-25 09:31:09 [utils.py:333] Attempted to load weight model.decoder.layers.0.fc1.bias with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:09.909908366Z (Worker pid=171) WARNING 10-25 09:31:09 [utils.py:333] Attempted to load weight model.decoder.layers.0.fc2.weight with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:09.913189283Z (Worker pid=171) WARNING 10-25 09:31:09 [utils.py:333] Attempted to load weight model.decoder.layers.0.fc2.bias with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:09.913316674Z (Worker pid=171) WARNING 10-25 09:31:09 [utils.py:333] Attempted to load weight model.decoder.layers.0.final_layer_norm.weight with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:09.913365623Z (Worker pid=171) WARNING 10-25 09:31:09 [utils.py:333] Attempted to load weight model.decoder.layers.0.final_layer_norm.bias with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:09.925069626Z (Worker pid=171) WARNING 10-25 09:31:09 [utils.py:333] Attempted to load weight model.decoder.layers.1.self_attn.out_proj.weight with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:09.926693088Z (Worker pid=171) WARNING 10-25 09:31:09 [utils.py:333] Attempted to load weight model.decoder.layers.1.self_attn.out_proj.bias with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:09.927207224Z (Worker pid=171) WARNING 10-25 09:31:09 [utils.py:333] Attempted to load weight model.decoder.layers.1.self_attn_layer_norm.weight with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:09.927574426Z (Worker pid=171) WARNING 10-25 09:31:09 [utils.py:333] Attempted to load weight model.decoder.layers.1.self_attn_layer_norm.bias with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:09.928119965Z (Worker pid=171) WARNING 10-25 09:31:09 [utils.py:333] Attempted to load weight model.decoder.layers.1.fc1.weight with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:09.932766166Z (Worker pid=171) WARNING 10-25 09:31:09 [utils.py:333] Attempted to load weight model.decoder.layers.1.fc1.bias with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:09.933039343Z (Worker pid=171) WARNING 10-25 09:31:09 [utils.py:333] Attempted to load weight model.decoder.layers.1.fc2.weight with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:09.935286637Z (Worker pid=171) WARNING 10-25 09:31:09 [utils.py:333] Attempted to load weight model.decoder.layers.1.fc2.bias with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:09.935497560Z (Worker pid=171) WARNING 10-25 09:31:09 [utils.py:333] Attempted to load weight model.decoder.layers.1.final_layer_norm.weight with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:09.935579817Z (Worker pid=171) WARNING 10-25 09:31:09 [utils.py:333] Attempted to load weight model.decoder.layers.1.final_layer_norm.bias with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:09.939955504Z (Worker pid=171) WARNING 10-25 09:31:09 [utils.py:333] Attempted to load weight model.decoder.layers.2.self_attn.out_proj.weight with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:09.941909205Z (Worker pid=171) WARNING 10-25 09:31:09 [utils.py:333] Attempted to load weight model.decoder.layers.2.self_attn.out_proj.bias with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:09.942033462Z (Worker pid=171) WARNING 10-25 09:31:09 [utils.py:333] Attempted to load weight model.decoder.layers.2.self_attn_layer_norm.weight with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:09.942263002Z (Worker pid=171) WARNING 10-25 09:31:09 [utils.py:333] Attempted to load weight model.decoder.layers.2.self_attn_layer_norm.bias with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:09.942539446Z (Worker pid=171) WARNING 10-25 09:31:09 [utils.py:333] Attempted to load weight model.decoder.layers.2.fc1.weight with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:09.945818578Z (Worker pid=171) WARNING 10-25 09:31:09 [utils.py:333] Attempted to load weight model.decoder.layers.2.fc1.bias with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:09.946282552Z (Worker pid=171) WARNING 10-25 09:31:09 [utils.py:333] Attempted to load weight model.decoder.layers.2.fc2.weight with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:09.949463973Z (Worker pid=171) WARNING 10-25 09:31:09 [utils.py:333] Attempted to load weight model.decoder.layers.2.fc2.bias with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:09.949517217Z (Worker pid=171) WARNING 10-25 09:31:09 [utils.py:333] Attempted to load weight model.decoder.layers.2.final_layer_norm.weight with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:09.949651418Z (Worker pid=171) WARNING 10-25 09:31:09 [utils.py:333] Attempted to load weight model.decoder.layers.2.final_layer_norm.bias with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:09.954733931Z (Worker pid=171) WARNING 10-25 09:31:09 [utils.py:333] Attempted to load weight model.decoder.layers.3.self_attn.out_proj.weight with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:09.957499099Z (Worker pid=171) WARNING 10-25 09:31:09 [utils.py:333] Attempted to load weight model.decoder.layers.3.self_attn.out_proj.bias with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:09.957694658Z (Worker pid=171) WARNING 10-25 09:31:09 [utils.py:333] Attempted to load weight model.decoder.layers.3.self_attn_layer_norm.weight with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:09.958161117Z (Worker pid=171) WARNING 10-25 09:31:09 [utils.py:333] Attempted to load weight model.decoder.layers.3.self_attn_layer_norm.bias with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:09.958554913Z (Worker pid=171) WARNING 10-25 09:31:09 [utils.py:333] Attempted to load weight model.decoder.layers.3.fc1.weight with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:09.963199427Z (Worker pid=171) WARNING 10-25 09:31:09 [utils.py:333] Attempted to load weight model.decoder.layers.3.fc1.bias with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:09.963682086Z (Worker pid=171) WARNING 10-25 09:31:09 [utils.py:333] Attempted to load weight model.decoder.layers.3.fc2.weight with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:09.966624951Z (Worker pid=171) WARNING 10-25 09:31:09 [utils.py:333] Attempted to load weight model.decoder.layers.3.fc2.bias with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:09.966883933Z (Worker pid=171) WARNING 10-25 09:31:09 [utils.py:333] Attempted to load weight model.decoder.layers.3.final_layer_norm.weight with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:09.966894686Z (Worker pid=171) WARNING 10-25 09:31:09 [utils.py:333] Attempted to load weight model.decoder.layers.3.final_layer_norm.bias with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:09.969236432Z (Worker pid=171) WARNING 10-25 09:31:09 [utils.py:333] Attempted to load weight model.decoder.layers.4.self_attn.out_proj.weight with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:09.970305669Z (Worker pid=171) WARNING 10-25 09:31:09 [utils.py:333] Attempted to load weight model.decoder.layers.4.self_attn.out_proj.bias with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:09.970444146Z (Worker pid=171) WARNING 10-25 09:31:09 [utils.py:333] Attempted to load weight model.decoder.layers.4.self_attn_layer_norm.weight with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:09.970452414Z (Worker pid=171) WARNING 10-25 09:31:09 [utils.py:333] Attempted to load weight model.decoder.layers.4.self_attn_layer_norm.bias with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:09.970613557Z (Worker pid=171) WARNING 10-25 09:31:09 [utils.py:333] Attempted to load weight model.decoder.layers.4.fc1.weight with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:09.979110137Z (Worker pid=171) WARNING 10-25 09:31:09 [utils.py:333] Attempted to load weight model.decoder.layers.4.fc1.bias with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:09.979414146Z (Worker pid=171) WARNING 10-25 09:31:09 [utils.py:333] Attempted to load weight model.decoder.layers.4.fc2.weight with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:09.984001132Z (Worker pid=171) WARNING 10-25 09:31:09 [utils.py:333] Attempted to load weight model.decoder.layers.4.fc2.bias with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:09.984260206Z (Worker pid=171) WARNING 10-25 09:31:09 [utils.py:333] Attempted to load weight model.decoder.layers.4.final_layer_norm.weight with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:09.984304788Z (Worker pid=171) WARNING 10-25 09:31:09 [utils.py:333] Attempted to load weight model.decoder.layers.4.final_layer_norm.bias with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:09.988510860Z (Worker pid=171) WARNING 10-25 09:31:09 [utils.py:333] Attempted to load weight model.decoder.layers.5.self_attn.out_proj.weight with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:09.989763918Z (Worker pid=171) WARNING 10-25 09:31:09 [utils.py:333] Attempted to load weight model.decoder.layers.5.self_attn.out_proj.bias with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:09.990179569Z (Worker pid=171) WARNING 10-25 09:31:09 [utils.py:333] Attempted to load weight model.decoder.layers.5.self_attn_layer_norm.weight with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:09.990497117Z (Worker pid=171) WARNING 10-25 09:31:09 [utils.py:333] Attempted to load weight model.decoder.layers.5.self_attn_layer_norm.bias with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:09.990814213Z (Worker pid=171) WARNING 10-25 09:31:09 [utils.py:333] Attempted to load weight model.decoder.layers.5.fc1.weight with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:09.994184202Z (Worker pid=171) WARNING 10-25 09:31:09 [utils.py:333] Attempted to load weight model.decoder.layers.5.fc1.bias with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:09.994478139Z (Worker pid=171) WARNING 10-25 09:31:09 [utils.py:333] Attempted to load weight model.decoder.layers.5.fc2.weight with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:10.002203374Z (Worker pid=171) WARNING 10-25 09:31:10 [utils.py:333] Attempted to load weight model.decoder.layers.5.fc2.bias with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:10.002231264Z (Worker pid=171) WARNING 10-25 09:31:10 [utils.py:333] Attempted to load weight model.decoder.layers.5.final_layer_norm.weight with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:10.002424895Z (Worker pid=171) WARNING 10-25 09:31:10 [utils.py:333] Attempted to load weight model.decoder.layers.5.final_layer_norm.bias with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:10.008063287Z (Worker pid=171) WARNING 10-25 09:31:10 [utils.py:333] Attempted to load weight model.decoder.layers.6.self_attn.out_proj.weight with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:10.009971374Z (Worker pid=171) WARNING 10-25 09:31:10 [utils.py:333] Attempted to load weight model.decoder.layers.6.self_attn.out_proj.bias with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:10.010090636Z (Worker pid=171) WARNING 10-25 09:31:10 [utils.py:333] Attempted to load weight model.decoder.layers.6.self_attn_layer_norm.weight with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:10.010095296Z (Worker pid=171) WARNING 10-25 09:31:10 [utils.py:333] Attempted to load weight model.decoder.layers.6.self_attn_layer_norm.bias with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:10.010388293Z (Worker pid=171) WARNING 10-25 09:31:10 [utils.py:333] Attempted to load weight model.decoder.layers.6.fc1.weight with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:10.015491639Z (Worker pid=171) WARNING 10-25 09:31:10 [utils.py:333] Attempted to load weight model.decoder.layers.6.fc1.bias with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:10.015783830Z (Worker pid=171) WARNING 10-25 09:31:10 [utils.py:333] Attempted to load weight model.decoder.layers.6.fc2.weight with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:10.019334654Z (Worker pid=171) WARNING 10-25 09:31:10 [utils.py:333] Attempted to load weight model.decoder.layers.6.fc2.bias with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:10.019978874Z (Worker pid=171) WARNING 10-25 09:31:10 [utils.py:333] Attempted to load weight model.decoder.layers.6.final_layer_norm.weight with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:10.020329247Z (Worker pid=171) WARNING 10-25 09:31:10 [utils.py:333] Attempted to load weight model.decoder.layers.6.final_layer_norm.bias with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:10.024311671Z (Worker pid=171) WARNING 10-25 09:31:10 [utils.py:333] Attempted to load weight model.decoder.layers.7.self_attn.out_proj.weight with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:10.026812882Z (Worker pid=171) WARNING 10-25 09:31:10 [utils.py:333] Attempted to load weight model.decoder.layers.7.self_attn.out_proj.bias with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:10.026932970Z (Worker pid=171) WARNING 10-25 09:31:10 [utils.py:333] Attempted to load weight model.decoder.layers.7.self_attn_layer_norm.weight with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:10.027532010Z (Worker pid=171) WARNING 10-25 09:31:10 [utils.py:333] Attempted to load weight model.decoder.layers.7.self_attn_layer_norm.bias with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:10.027615037Z (Worker pid=171) WARNING 10-25 09:31:10 [utils.py:333] Attempted to load weight model.decoder.layers.7.fc1.weight with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:10.030765463Z (Worker pid=171) WARNING 10-25 09:31:10 [utils.py:333] Attempted to load weight model.decoder.layers.7.fc1.bias with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:10.031030985Z (Worker pid=171) WARNING 10-25 09:31:10 [utils.py:333] Attempted to load weight model.decoder.layers.7.fc2.weight with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:10.037518277Z (Worker pid=171) WARNING 10-25 09:31:10 [utils.py:333] Attempted to load weight model.decoder.layers.7.fc2.bias with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:10.037621531Z (Worker pid=171) WARNING 10-25 09:31:10 [utils.py:333] Attempted to load weight model.decoder.layers.7.final_layer_norm.weight with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:10.037630851Z (Worker pid=171) WARNING 10-25 09:31:10 [utils.py:333] Attempted to load weight model.decoder.layers.7.final_layer_norm.bias with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:10.049307316Z (Worker pid=171) WARNING 10-25 09:31:10 [utils.py:333] Attempted to load weight model.decoder.layers.8.self_attn.out_proj.weight with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:10.050424467Z (Worker pid=171) WARNING 10-25 09:31:10 [utils.py:333] Attempted to load weight model.decoder.layers.8.self_attn.out_proj.bias with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:10.050582795Z (Worker pid=171) WARNING 10-25 09:31:10 [utils.py:333] Attempted to load weight model.decoder.layers.8.self_attn_layer_norm.weight with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:10.050722853Z (Worker pid=171) WARNING 10-25 09:31:10 [utils.py:333] Attempted to load weight model.decoder.layers.8.self_attn_layer_norm.bias with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:10.051030436Z (Worker pid=171) WARNING 10-25 09:31:10 [utils.py:333] Attempted to load weight model.decoder.layers.8.fc1.weight with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:10.054570866Z (Worker pid=171) WARNING 10-25 09:31:10 [utils.py:333] Attempted to load weight model.decoder.layers.8.fc1.bias with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:10.055189127Z (Worker pid=171) WARNING 10-25 09:31:10 [utils.py:333] Attempted to load weight model.decoder.layers.8.fc2.weight with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:10.058140810Z (Worker pid=171) WARNING 10-25 09:31:10 [utils.py:333] Attempted to load weight model.decoder.layers.8.fc2.bias with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:10.058509274Z (Worker pid=171) WARNING 10-25 09:31:10 [utils.py:333] Attempted to load weight model.decoder.layers.8.final_layer_norm.weight with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:10.058788902Z (Worker pid=171) WARNING 10-25 09:31:10 [utils.py:333] Attempted to load weight model.decoder.layers.8.final_layer_norm.bias with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:10.064089160Z (Worker pid=171) WARNING 10-25 09:31:10 [utils.py:333] Attempted to load weight model.decoder.layers.9.self_attn.out_proj.weight with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:10.065470032Z (Worker pid=171) WARNING 10-25 09:31:10 [utils.py:333] Attempted to load weight model.decoder.layers.9.self_attn.out_proj.bias with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:10.065638605Z (Worker pid=171) WARNING 10-25 09:31:10 [utils.py:333] Attempted to load weight model.decoder.layers.9.self_attn_layer_norm.weight with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:10.065645100Z (Worker pid=171) WARNING 10-25 09:31:10 [utils.py:333] Attempted to load weight model.decoder.layers.9.self_attn_layer_norm.bias with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:10.066180728Z (Worker pid=171) WARNING 10-25 09:31:10 [utils.py:333] Attempted to load weight model.decoder.layers.9.fc1.weight with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:10.069772177Z (Worker pid=171) WARNING 10-25 09:31:10 [utils.py:333] Attempted to load weight model.decoder.layers.9.fc1.bias with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:10.070068495Z (Worker pid=171) WARNING 10-25 09:31:10 [utils.py:333] Attempted to load weight model.decoder.layers.9.fc2.weight with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:10.074040749Z (Worker pid=171) WARNING 10-25 09:31:10 [utils.py:333] Attempted to load weight model.decoder.layers.9.fc2.bias with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:10.074073020Z (Worker pid=171) WARNING 10-25 09:31:10 [utils.py:333] Attempted to load weight model.decoder.layers.9.final_layer_norm.weight with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:10.074268825Z (Worker pid=171) WARNING 10-25 09:31:10 [utils.py:333] Attempted to load weight model.decoder.layers.9.final_layer_norm.bias with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:10.077894147Z (Worker pid=171) WARNING 10-25 09:31:10 [utils.py:333] Attempted to load weight model.decoder.layers.10.self_attn.out_proj.weight with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:10.078648397Z (Worker pid=171) WARNING 10-25 09:31:10 [utils.py:333] Attempted to load weight model.decoder.layers.10.self_attn.out_proj.bias with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:10.078811596Z (Worker pid=171) WARNING 10-25 09:31:10 [utils.py:333] Attempted to load weight model.decoder.layers.10.self_attn_layer_norm.weight with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:10.078930451Z (Worker pid=171) WARNING 10-25 09:31:10 [utils.py:333] Attempted to load weight model.decoder.layers.10.self_attn_layer_norm.bias with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:10.078964244Z (Worker pid=171) WARNING 10-25 09:31:10 [utils.py:333] Attempted to load weight model.decoder.layers.10.fc1.weight with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:10.082379249Z (Worker pid=171) WARNING 10-25 09:31:10 [utils.py:333] Attempted to load weight model.decoder.layers.10.fc1.bias with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:10.082591008Z (Worker pid=171) WARNING 10-25 09:31:10 [utils.py:333] Attempted to load weight model.decoder.layers.10.fc2.weight with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:10.086648837Z (Worker pid=171) WARNING 10-25 09:31:10 [utils.py:333] Attempted to load weight model.decoder.layers.10.fc2.bias with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:10.086685856Z (Worker pid=171) WARNING 10-25 09:31:10 [utils.py:333] Attempted to load weight model.decoder.layers.10.final_layer_norm.weight with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:10.086927525Z (Worker pid=171) WARNING 10-25 09:31:10 [utils.py:333] Attempted to load weight model.decoder.layers.10.final_layer_norm.bias with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:10.092862792Z (Worker pid=171) WARNING 10-25 09:31:10 [utils.py:333] Attempted to load weight model.decoder.layers.11.self_attn.out_proj.weight with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:10.094561396Z (Worker pid=171) WARNING 10-25 09:31:10 [utils.py:333] Attempted to load weight model.decoder.layers.11.self_attn.out_proj.bias with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:10.094834603Z (Worker pid=171) WARNING 10-25 09:31:10 [utils.py:333] Attempted to load weight model.decoder.layers.11.self_attn_layer_norm.weight with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:10.095079472Z (Worker pid=171) WARNING 10-25 09:31:10 [utils.py:333] Attempted to load weight model.decoder.layers.11.self_attn_layer_norm.bias with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:10.095349277Z (Worker pid=171) WARNING 10-25 09:31:10 [utils.py:333] Attempted to load weight model.decoder.layers.11.fc1.weight with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:10.098928615Z (Worker pid=171) WARNING 10-25 09:31:10 [utils.py:333] Attempted to load weight model.decoder.layers.11.fc1.bias with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:10.099199687Z (Worker pid=171) WARNING 10-25 09:31:10 [utils.py:333] Attempted to load weight model.decoder.layers.11.fc2.weight with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:10.102235202Z (Worker pid=171) WARNING 10-25 09:31:10 [utils.py:333] Attempted to load weight model.decoder.layers.11.fc2.bias with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:10.102270188Z (Worker pid=171) WARNING 10-25 09:31:10 [utils.py:333] Attempted to load weight model.decoder.layers.11.final_layer_norm.weight with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:10.102475739Z (Worker pid=171) WARNING 10-25 09:31:10 [utils.py:333] Attempted to load weight model.decoder.layers.11.final_layer_norm.bias with dtype torch.float16 into parameter with dtype torch.bfloat16
+2026-10-25T09:31:10.102931147Z Loading pt checkpoint shards: 100% Completed | 1/1 [00:00<00:00,  2.05it/s]
+2026-10-25T09:31:10.103102456Z Loading pt checkpoint shards: 100% Completed | 1/1 [00:00<00:00,  2.05it/s]
+2026-10-25T09:31:10.103111721Z 
+2026-10-25T09:31:10.103559029Z (Worker pid=171) INFO 10-25 09:31:10 [default_loader.py:501] Loading weights took 0.49 seconds
+2026-10-25T09:31:10.537965049Z (Worker pid=171) WARNING 10-25 09:31:10 [utils.py:597] Failed to create oneDNN linear, fallback to torch linear. Exception: could not create a primitive descriptor for the matmul primitive. Run workload with environment variable ONEDNN_VERBOSE=all to get additional diagnostic information.
+2026-10-25T09:31:11.017797216Z (Worker pid=171) WARNING 10-25 09:31:11 [torch_utils.py:283] OMP_NUM_THREADS=5 is set; leaving Torch threads at 5 for serving. Multi-threaded torch CPU ops during serving can degrade performance through spin-wait contention and cgroup CPU-quota throttling.
+2026-10-25T09:31:11.027928643Z (EngineCore pid=139) INFO 10-25 09:31:11 [torch_utils.py:295] Reducing Torch threads from 6 to 1 for serving. Set OMP_NUM_THREADS in the external environment to override.
+2026-10-25T09:31:11.032929324Z (EngineCore pid=139) INFO 10-25 09:31:11 [utils.py:347] Using LBHNC KV cache layout.
+2026-10-25T09:31:11.070671948Z (Worker pid=171) INFO 10-25 09:31:11 [cpu_worker.py:260] Explicitly set (1.0/4.0) GiB for KV cache on node 0.
+2026-10-25T09:31:11.073080769Z (EngineCore pid=139) INFO 10-25 09:31:11 [kv_cache_utils.py:2327] CPU KV cache size: 29,056 tokens, Maximum concurrency for 2,048 tokens per request: 14.19x
+2026-10-25T09:31:11.667952071Z (EngineCore pid=139) INFO 10-25 09:31:11 [core.py:402] init engine (profile, create kv cache, warmup model) took 0.64 s
+2026-10-25T09:31:12.546540389Z W1025 09:31:12.545000 139 venv/lib/python3.13/site-packages/torch/_library/triton.py:53] Triton not available, find_triton_kernels = []
+2026-10-25T09:31:12.597530464Z Fetching 9 files:   0%|          | 0/9 [00:00<?, ?it/s]Fetching 9 files: 100%|██████████| 9/9 [00:00<00:00, 1062.99it/s]
+2026-10-25T09:31:12.778094280Z (EngineCore pid=139) WARNING 10-25 09:31:12 [vllm.py:725] Model Runner V2 requires Triton; using the V1 model runner instead.
+2026-10-25T09:31:13.667090306Z Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+2026-10-25T09:31:13.903565836Z (EngineCore pid=139) WARNING 10-25 09:31:13 [config.py:1384] Could not retrieve safetensors metadata for facebook/opt-125m (Hub fetch failed and the cached snapshot holds no weights yet).
+2026-10-25T09:31:13.903694579Z (EngineCore pid=139) WARNING 10-25 09:31:13 [vllm.py:1703] Enforce eager set, disabling torch.compile, CUDAGraphs, and JIT kernel warmup. This is equivalent to setting -cc.mode=none -cc.cudagraph_mode=none and --kernel_config.enable_jit_warmup=False
+2026-10-25T09:31:13.903950619Z (EngineCore pid=139) WARNING 10-25 09:31:13 [vllm.py:1727] Inductor compilation was disabled by user settings, optimizations settings that are only active during inductor compilation will be ignored.
+2026-10-25T09:31:13.904922607Z (EngineCore pid=139) INFO 10-25 09:31:13 [kernel.py:467] Final IR op priority after setting platform defaults: IrOpPriorityConfig(rms_norm=['native'], fused_add_rms_norm=['native'], gelu_and_mul_sparse=['native'])
+2026-10-25T09:31:13.905134839Z (EngineCore pid=139) WARNING 10-25 09:31:13 [cpu.py:224] Triton is not installed. triton-cpu is expected on x86 CPUs.
+2026-10-25T09:31:13.905674984Z (EngineCore pid=139) INFO 10-25 09:31:13 [compilation.py:317] Enabled custom fusions: norm_quant, act_quant
+2026-10-25T09:31:13.911868710Z (APIServer pid=72) INFO 10-25 09:31:13 [entry.py:136] Supported tasks: ['generate']
+2026-10-25T09:31:15.312057146Z (APIServer pid=72) INFO 10-25 09:31:15 [factories.py:89] Scale-out endpoints are disabled. Restart vllm serve with --enable-scale-out to enable them.
+2026-10-25T09:31:15.467934477Z (APIServer pid=72) INFO 10-25 09:31:15 [hf.py:648] Detected the chat template content format to be 'string'. You can set `--chat-template-content-format` to override this.
+2026-10-25T09:31:15.501937054Z (APIServer pid=72) WARNING 10-25 09:31:15 [serving.py:262] The chat template requires system-first ordering, so inline system messages in /v1/messages requests (e.g. Claude Code's per-turn reminders) are merged into the leading system prompt. Each new one changes the prompt prefix, so the rest of the conversation misses the prefix cache. Pass a --chat-template that accepts non-leading system messages to avoid this.
+2026-10-25T09:31:15.507598455Z (APIServer pid=72) INFO 10-25 09:31:15 [entry.py:140] Starting vLLM server on http://0.0.0.0:8000
+2026-10-25T09:31:15.507622532Z (APIServer pid=72) INFO 10-25 09:31:15 [launcher.py:186] Available routes are:
+2026-10-25T09:31:15.507651239Z (APIServer pid=72) INFO 10-25 09:31:15 [launcher.py:195] Route: /openapi.json, Methods: HEAD, GET
+2026-10-25T09:31:15.507778979Z (APIServer pid=72) INFO 10-25 09:31:15 [launcher.py:195] Route: /docs, Methods: HEAD, GET
+2026-10-25T09:31:15.507783925Z (APIServer pid=72) INFO 10-25 09:31:15 [launcher.py:195] Route: /docs/oauth2-redirect, Methods: HEAD, GET
+2026-10-25T09:31:15.507785918Z (APIServer pid=72) INFO 10-25 09:31:15 [launcher.py:195] Route: /redoc, Methods: HEAD, GET
+2026-10-25T09:31:15.507791749Z (APIServer pid=72) INFO 10-25 09:31:15 [launcher.py:195] Route: /load, Methods: GET
+2026-10-25T09:31:15.507808152Z (APIServer pid=72) INFO 10-25 09:31:15 [launcher.py:195] Route: /version, Methods: GET
+2026-10-25T09:31:15.507973611Z (APIServer pid=72) INFO 10-25 09:31:15 [launcher.py:195] Route: /kv_event_sources, Methods: GET
+2026-10-25T09:31:15.507985335Z (APIServer pid=72) INFO 10-25 09:31:15 [launcher.py:195] Route: /health, Methods: GET
+2026-10-25T09:31:15.507993493Z (APIServer pid=72) INFO 10-25 09:31:15 [launcher.py:195] Route: /metrics, Methods: GET
+2026-10-25T09:31:15.508118120Z (APIServer pid=72) INFO 10-25 09:31:15 [launcher.py:195] Route: /tokenize, Methods: POST
+2026-10-25T09:31:15.508122788Z (APIServer pid=72) INFO 10-25 09:31:15 [launcher.py:195] Route: /detokenize, Methods: POST
+2026-10-25T09:31:15.513390257Z (APIServer pid=72) INFO 10-25 09:31:15 [launcher.py:195] Route: /v1/models, Methods: GET
+2026-10-25T09:31:15.513455165Z (APIServer pid=72) INFO 10-25 09:31:15 [launcher.py:195] Route: /v1/systemone, Methods: POST
+2026-10-25T09:31:15.513461033Z (APIServer pid=72) INFO 10-25 09:31:15 [launcher.py:195] Route: /ping, Methods: GET
+2026-10-25T09:31:15.513462483Z (APIServer pid=72) INFO 10-25 09:31:15 [launcher.py:195] Route: /ping, Methods: POST
+2026-10-25T09:31:15.513464007Z (APIServer pid=72) INFO 10-25 09:31:15 [launcher.py:195] Route: /invocations, Methods: POST
+2026-10-25T09:31:15.513465736Z (APIServer pid=72) INFO 10-25 09:31:15 [launcher.py:195] Route: /v1/chat/completions, Methods: POST
+2026-10-25T09:31:15.513467115Z (APIServer pid=72) INFO 10-25 09:31:15 [launcher.py:195] Route: /v1/chat/completions/batch, Methods: POST
+2026-10-25T09:31:15.513468441Z (APIServer pid=72) INFO 10-25 09:31:15 [launcher.py:195] Route: /v1/responses, Methods: POST
+2026-10-25T09:31:15.513469876Z (APIServer pid=72) INFO 10-25 09:31:15 [launcher.py:195] Route: /v1/responses/{response_id}, Methods: GET
+2026-10-25T09:31:15.513471406Z (APIServer pid=72) INFO 10-25 09:31:15 [launcher.py:195] Route: /v1/responses/{response_id}/cancel, Methods: POST
+2026-10-25T09:31:15.513472681Z (APIServer pid=72) INFO 10-25 09:31:15 [launcher.py:195] Route: /v1/completions, Methods: POST
+2026-10-25T09:31:15.513473864Z (APIServer pid=72) INFO 10-25 09:31:15 [launcher.py:195] Route: /v1/messages, Methods: POST
+2026-10-25T09:31:15.513475086Z (APIServer pid=72) INFO 10-25 09:31:15 [launcher.py:195] Route: /v1/messages/count_tokens, Methods: POST
+2026-10-25T09:31:15.513476238Z (APIServer pid=72) INFO 10-25 09:31:15 [launcher.py:195] Route: /generative_scoring, Methods: POST
+2026-10-25T09:31:15.513477401Z (APIServer pid=72) INFO 10-25 09:31:15 [launcher.py:195] Route: /scale_elastic_ep, Methods: POST
+2026-10-25T09:31:15.513488724Z (APIServer pid=72) INFO 10-25 09:31:15 [launcher.py:195] Route: /is_scaling_elastic_ep, Methods: POST
+2026-10-25T09:31:15.513491287Z (APIServer pid=72) INFO 10-25 09:31:15 [launcher.py:195] Route: /v1/chat/completions/render, Methods: POST
+2026-10-25T09:31:15.513493475Z (APIServer pid=72) INFO 10-25 09:31:15 [launcher.py:195] Route: /v1/messages/render, Methods: POST
+2026-10-25T09:31:15.513495377Z (APIServer pid=72) INFO 10-25 09:31:15 [launcher.py:195] Route: /v1/completions/render, Methods: POST
+2026-10-25T09:31:15.513497084Z (APIServer pid=72) INFO 10-25 09:31:15 [launcher.py:195] Route: /v1/responses/render, Methods: POST
+2026-10-25T09:31:15.513498972Z (APIServer pid=72) INFO 10-25 09:31:15 [launcher.py:195] Route: /v1/chat/completions/derender, Methods: POST
+2026-10-25T09:31:15.513500723Z (APIServer pid=72) INFO 10-25 09:31:15 [launcher.py:195] Route: /v1/completions/derender, Methods: POST
+2026-10-25T09:31:15.513502438Z (APIServer pid=72) INFO 10-25 09:31:15 [launcher.py:195] Route: /inference/v1/generate, Methods: POST
+2026-10-25T09:31:15.513505034Z (APIServer pid=72) INFO 10-25 09:31:15 [launcher.py:195] Route: /inference/v1/abort_requests, Methods: POST
+2026-10-25T09:31:15.596140953Z INFO:     Started server process [72]
+2026-10-25T09:31:15.596164973Z INFO:     Waiting for application startup.
+2026-10-25T09:31:16.038564038Z INFO:     Application startup complete.
+2026-10-25T09:31:16.438227280Z INFO:     10.244.0.1:59576 - "GET /health HTTP/1.1" 200 OK
+2026-10-25T09:31:18.434574451Z INFO:     10.244.0.1:59578 - "GET /health HTTP/1.1" 200 OK
+2026-10-25T09:31:20.434995854Z INFO:     10.244.0.1:59594 - "GET /health HTTP/1.1" 200 OK
+2026-10-25T09:31:22.434948628Z INFO:     10.244.0.1:59602 - "GET /health HTTP/1.1" 200 OK
+2026-10-25T09:31:24.438806739Z INFO:     10.244.0.1:59610 - "GET /health HTTP/1.1" 200 OK

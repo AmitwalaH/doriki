@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -88,7 +89,6 @@ func TestUsageErrors(t *testing.T) {
 	}{
 		"live mode":      {[]string{"-o", "json", "pod/x"}, "--from-files"},
 		"two files":      {[]string{"--from-files", "-o", "json", "a", "b"}, "3 files"},
-		"text output":    {append([]string{"--from-files"}, fixtureArgs...), "-o json"},
 		"unknown output": {append([]string{"--from-files", "-o", "yaml"}, fixtureArgs...), `"yaml"`},
 		"missing file":   {[]string{"--from-files", "-o", "json", "nope.json", fixtureArgs[1], fixtureArgs[2]}, "nope.json"},
 	}
@@ -106,8 +106,8 @@ func TestUsageErrors(t *testing.T) {
 // pack list reads the same pack list as version; a sentinel list must show up.
 func TestPackList(t *testing.T) {
 	out, err := run(t, "pack", "list")
-	if err != nil || out != "generic\n" {
-		t.Errorf("pack list = %q, %v; want generic", out, err)
+	if err != nil || out != "generic\nvllm/0.32\n" {
+		t.Errorf("pack list = %q, %v; want generic and vllm/0.32", out, err)
 	}
 	saved := packNames
 	t.Cleanup(func() { packNames = saved })
@@ -205,5 +205,66 @@ func TestExit(t *testing.T) {
 		if code, msg := Exit(c.err); code != c.code || msg != c.msg {
 			t.Errorf("%s: Exit = %d %q, want %d %q", name, code, msg, c.code, c.msg)
 		}
+	}
+}
+
+// DK-PHASE-ENH-20261024-cached-image-pull: a pod that booted on a node already holding its
+// image exits 0, with image-pull complete and cached (decision 0004), not 1 as if booting.
+func TestWarmNodeExitsZero(t *testing.T) {
+	warm := "../../packs/generic/testdata/kind-nginx-warm/"
+	out, err := run(t, "--from-files", "-o", "json", warm+"pod.json", warm+"events.json", warm+"container.log")
+	if code, msg := Exit(err); code != 0 || msg != "" {
+		t.Errorf("Exit = %d %q, want 0", code, msg)
+	}
+	var r model.Report
+	if err := json.Unmarshal([]byte(out), &r); err != nil {
+		t.Fatal(err)
+	}
+	for _, p := range r.Phases {
+		if p.Name == model.PhaseImagePull && (p.State != model.StateComplete || p.Attrs[model.AttrCached] != "true") {
+			t.Errorf("image-pull = %+v, want complete and cached", p)
+		}
+	}
+}
+
+// Decision 0005: an expected phase the phase engine excused with a phase-unobserved warning
+// (an engine phase still absent once the pod was Ready) and a skipped phase do not hold the
+// exit code at 1; the same phase absent without that warning still does.
+func TestExitCodeAfterReady(t *testing.T) {
+	expected := []model.PhaseName{model.PhaseCompile, model.PhaseGraphCapture}
+	report := func(compile, graph model.PhaseState, warnings ...model.Warning) model.Report {
+		return model.Report{
+			Phases:   []model.Phase{{Name: model.PhaseCompile, State: compile}, {Name: model.PhaseGraphCapture, State: graph}},
+			Warnings: warnings,
+		}
+	}
+	unobserved := model.Warning{Code: model.WarnPhaseUnobserved, Phase: model.PhaseGraphCapture}
+	cases := map[string]struct {
+		r    model.Report
+		want int
+	}{
+		"skipped and excused":              {report(model.StateSkipped, model.StateAbsent, unobserved), 0},
+		"absent, not excused":              {report(model.StateSkipped, model.StateAbsent), 1},
+		"warning names another phase":      {report(model.StateAbsent, model.StateComplete, unobserved), 1},
+		"other warning code for the phase": {report(model.StateSkipped, model.StateAbsent, model.Warning{Code: "x", Phase: model.PhaseGraphCapture}), 1},
+		"open still counts":                {report(model.StateSkipped, model.StateOpen, unobserved), 1},
+	}
+	for name, tc := range cases {
+		if got := exitCode(tc.r, expected); got != tc.want {
+			t.Errorf("%s: exit %d, want %d", name, got, tc.want)
+		}
+	}
+}
+
+// A start_from_duration marker produces its ".start" marker too, so the pack can produce the
+// phase: markerIDs must list the derived id, or the phase engine treats weight-fetch as one
+// the pack cannot produce and leaves it absent without a warning.
+func TestMarkerIDsIncludeDerivedStart(t *testing.T) {
+	p := model.Pack{Markers: []model.PackMarker{
+		{ID: "x.weights.fetch.end", StartFromDuration: "s"},
+		{ID: "x.kv.end"},
+	}}
+	if got, want := markerIDs(p), []string{"x.weights.fetch.end", "x.weights.fetch.start", "x.kv.end"}; !slices.Equal(got, want) {
+		t.Errorf("markerIDs = %v, want %v", got, want)
 	}
 }

@@ -1,0 +1,275 @@
+{
+    "apiVersion": "v1",
+    "kind": "Pod",
+    "metadata": {
+        "creationTimestamp": "2026-10-25T09:23:40Z",
+        "generateName": "vllm-785fb8997d-",
+        "generation": 1,
+        "labels": {
+            "app": "vllm",
+            "pod-template-hash": "785fb8997d"
+        },
+        "name": "vllm-785fb8997d-bvsz4",
+        "namespace": "default",
+        "ownerReferences": [
+            {
+                "apiVersion": "apps/v1",
+                "blockOwnerDeletion": true,
+                "controller": true,
+                "kind": "ReplicaSet",
+                "name": "vllm-785fb8997d",
+                "uid": "2c2e30f4-7e05-47dc-acf9-34070872bad7"
+            }
+        ],
+        "resourceVersion": "1219",
+        "uid": "545cae50-e8b9-4a82-9c4c-b71840b1919a"
+    },
+    "spec": {
+        "containers": [
+            {
+                "env": [
+                    {
+                        "name": "VLLM_MODEL",
+                        "value": "facebook/opt-125m"
+                    },
+                    {
+                        "name": "VLLM_CPU_KVCACHE_SPACE",
+                        "value": "1"
+                    },
+                    {
+                        "name": "VLLM_EXTRA_ARGS",
+                        "value": "--enforce-eager"
+                    }
+                ],
+                "image": "ghcr.io/mekayelanik/vllm-cpu@sha256:8ef8561070bd1bd06e15420b76cc55834086e8bcf6dc860dd65b793f2ff8bf5b",
+                "imagePullPolicy": "IfNotPresent",
+                "name": "vllm",
+                "ports": [
+                    {
+                        "containerPort": 8000,
+                        "protocol": "TCP"
+                    }
+                ],
+                "readinessProbe": {
+                    "failureThreshold": 1000,
+                    "httpGet": {
+                        "path": "/health",
+                        "port": 8000,
+                        "scheme": "HTTP"
+                    },
+                    "periodSeconds": 2,
+                    "successThreshold": 1,
+                    "timeoutSeconds": 1
+                },
+                "resources": {
+                    "limits": {
+                        "memory": "4Gi"
+                    },
+                    "requests": {
+                        "memory": "4Gi"
+                    }
+                },
+                "terminationMessagePath": "/dev/termination-log",
+                "terminationMessagePolicy": "File",
+                "volumeMounts": [
+                    {
+                        "mountPath": "/dev/shm",
+                        "name": "dshm"
+                    },
+                    {
+                        "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+                        "name": "kube-api-access-wp27p",
+                        "readOnly": true
+                    }
+                ]
+            }
+        ],
+        "dnsPolicy": "ClusterFirst",
+        "enableServiceLinks": true,
+        "nodeName": "doriki-control-plane",
+        "preemptionPolicy": "PreemptLowerPriority",
+        "priority": 0,
+        "restartPolicy": "Always",
+        "schedulerName": "default-scheduler",
+        "securityContext": {},
+        "serviceAccount": "default",
+        "serviceAccountName": "default",
+        "terminationGracePeriodSeconds": 30,
+        "tolerations": [
+            {
+                "effect": "NoExecute",
+                "key": "node.kubernetes.io/not-ready",
+                "operator": "Exists",
+                "tolerationSeconds": 300
+            },
+            {
+                "effect": "NoExecute",
+                "key": "node.kubernetes.io/unreachable",
+                "operator": "Exists",
+                "tolerationSeconds": 300
+            }
+        ],
+        "volumes": [
+            {
+                "emptyDir": {
+                    "medium": "Memory",
+                    "sizeLimit": "1Gi"
+                },
+                "name": "dshm"
+            },
+            {
+                "name": "kube-api-access-wp27p",
+                "projected": {
+                    "defaultMode": 420,
+                    "sources": [
+                        {
+                            "serviceAccountToken": {
+                                "expirationSeconds": 3607,
+                                "path": "token"
+                            }
+                        },
+                        {
+                            "configMap": {
+                                "items": [
+                                    {
+                                        "key": "ca.crt",
+                                        "path": "ca.crt"
+                                    }
+                                ],
+                                "name": "kube-root-ca.crt"
+                            }
+                        },
+                        {
+                            "downwardAPI": {
+                                "items": [
+                                    {
+                                        "fieldRef": {
+                                            "apiVersion": "v1",
+                                            "fieldPath": "metadata.namespace"
+                                        },
+                                        "path": "namespace"
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                }
+            }
+        ]
+    },
+    "status": {
+        "allocatedResources": {
+            "memory": "4Gi"
+        },
+        "conditions": [
+            {
+                "lastProbeTime": null,
+                "lastTransitionTime": "2026-10-25T09:23:41Z",
+                "observedGeneration": 1,
+                "status": "True",
+                "type": "PodReadyToStartContainers"
+            },
+            {
+                "lastProbeTime": null,
+                "lastTransitionTime": "2026-10-25T09:23:40Z",
+                "observedGeneration": 1,
+                "status": "True",
+                "type": "Initialized"
+            },
+            {
+                "lastProbeTime": null,
+                "lastTransitionTime": "2026-10-25T09:31:16Z",
+                "observedGeneration": 1,
+                "status": "True",
+                "type": "Ready"
+            },
+            {
+                "lastProbeTime": null,
+                "lastTransitionTime": "2026-10-25T09:31:16Z",
+                "observedGeneration": 1,
+                "status": "True",
+                "type": "ContainersReady"
+            },
+            {
+                "lastProbeTime": null,
+                "lastTransitionTime": "2026-10-25T09:23:40Z",
+                "observedGeneration": 1,
+                "status": "True",
+                "type": "PodScheduled"
+            }
+        ],
+        "containerStatuses": [
+            {
+                "allocatedResources": {
+                    "memory": "4Gi"
+                },
+                "containerID": "containerd://e980a5fa8501e523690cae77b4f691b6cbb995c6acaa7daf0aa8e4f760feba93",
+                "image": "sha256:3ba742eefc79c415881f8752f48f8bf1cf35bf925ba3ff1763110729ce3998b2",
+                "imageID": "ghcr.io/mekayelanik/vllm-cpu@sha256:8ef8561070bd1bd06e15420b76cc55834086e8bcf6dc860dd65b793f2ff8bf5b",
+                "lastState": {},
+                "name": "vllm",
+                "ready": true,
+                "resources": {
+                    "limits": {
+                        "memory": "4Gi"
+                    },
+                    "requests": {
+                        "memory": "4Gi"
+                    }
+                },
+                "restartCount": 0,
+                "started": true,
+                "state": {
+                    "running": {
+                        "startedAt": "2026-10-25T09:28:09Z"
+                    }
+                },
+                "user": {
+                    "linux": {
+                        "gid": 0,
+                        "supplementalGroups": [
+                            0
+                        ],
+                        "uid": 0
+                    }
+                },
+                "volumeMounts": [
+                    {
+                        "mountPath": "/dev/shm",
+                        "name": "dshm"
+                    },
+                    {
+                        "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+                        "name": "kube-api-access-wp27p",
+                        "readOnly": true,
+                        "recursiveReadOnly": "Disabled"
+                    }
+                ]
+            }
+        ],
+        "hostIP": "172.19.0.2",
+        "hostIPs": [
+            {
+                "ip": "172.19.0.2"
+            }
+        ],
+        "observedGeneration": 1,
+        "phase": "Running",
+        "podIP": "10.244.0.5",
+        "podIPs": [
+            {
+                "ip": "10.244.0.5"
+            }
+        ],
+        "qosClass": "Burstable",
+        "resources": {
+            "limits": {
+                "memory": "4Gi"
+            },
+            "requests": {
+                "memory": "4Gi"
+            }
+        },
+        "startTime": "2026-10-25T09:23:40Z"
+    }
+}

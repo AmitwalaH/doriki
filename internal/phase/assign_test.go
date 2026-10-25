@@ -97,6 +97,7 @@ func TestAssignGenericBoot(t *testing.T) {
 		{Name: model.PhaseNodeProvision, State: model.StateAbsent},
 		{Name: model.PhaseImagePull, Start: at(3), End: at(10), Seconds: secs(7), State: model.StateComplete, Sources: []model.Source{k}},
 		{Name: model.PhaseContainerInit, Start: at(11), End: at(12), Seconds: secs(1), State: model.StateComplete, Sources: []model.Source{cs, model.SourceEngineLog}},
+		{Name: model.PhaseEngineInit, State: model.StateAbsent},
 		{Name: model.PhaseWeightFetch, State: model.StateAbsent},
 		{Name: model.PhaseWeightLoad, State: model.StateAbsent},
 		{Name: model.PhaseCompile, State: model.StateAbsent},
@@ -368,5 +369,160 @@ func TestExpected(t *testing.T) {
 		if p.State != model.StateAbsent && !slices.Contains(Expected(opts.Markers), p.Name) {
 			t.Errorf("%s is %s but not expected", p.Name, p.State)
 		}
+	}
+}
+
+func cachedPull(s float64) model.Event {
+	e := k8s(model.KindPulled, s)
+	e.Attrs = map[string]string{model.AttrCached: "true"}
+	return e
+}
+
+// Decision 0004: with no Pulling event, a cached Pulled is a complete 0 s image-pull that
+// starts and ends at that event and carries cached. An uncached Pulled alone (its Pulling
+// expired) still leaves image-pull absent: only the kubelet's "already present" says there
+// was no pull. The phase carries no other attribute of its events.
+func TestCachedImagePull(t *testing.T) {
+	events := []model.Event{
+		status(model.KindPodCreated, 0),
+		k8s(model.KindScheduled, 1),
+		cachedPull(2),
+		started(3, 0),
+		logLine(4),
+		status(model.KindPodReady, 5),
+	}
+	r := mustAssign(t, events, Options{})
+	assertPhase(t, phaseByName(r, model.PhaseImagePull), model.Phase{
+		Name: model.PhaseImagePull, Start: at(2), End: at(2), Seconds: secs(0), State: model.StateComplete,
+		Attrs: map[string]string{model.AttrCached: "true"}, Sources: []model.Source{model.SourceK8sEvent},
+	})
+	if a := phaseByName(r, model.PhaseContainerInit).Attrs; a != nil {
+		t.Errorf("container-init attrs = %v, want none (restart_count stays on the event)", a)
+	}
+	if !slices.Contains(Expected(nil), model.PhaseImagePull) {
+		t.Errorf("image-pull is not expected, so a cached pull would not be checked by the exit code")
+	}
+
+	events[2] = k8s(model.KindPulled, 2)
+	r = mustAssign(t, events, Options{})
+	if p := phaseByName(r, model.PhaseImagePull); p.State != model.StateAbsent {
+		t.Errorf("uncached Pulled alone: image-pull = %+v, want absent", p)
+	}
+}
+
+func markerWith(id string, s float64, conf float32, attrs map[string]string) model.Event {
+	e := marker(id, s)
+	e.Confidence, e.Attrs = conf, attrs
+	return e
+}
+
+var enginePack = []string{
+	"x.weights.fetch.start", "x.weights.fetch.end", "x.weights.load.start", "x.weights.load.end",
+	"x.compile.start", "x.compile.end", "x.compile.skipped", "x.graph.start", "x.graph.end",
+	"x.kv.start", "x.kv.end", "x.server.listening",
+}
+
+// An engine boot: compile is skipped by the engine (a ".skipped" marker logged before the
+// weights), graph-capture never logged, the pod Ready at 30.
+func engineBoot() []model.Event {
+	return append(genericBoot()[:6:6],
+		markerWith("x.compile.skipped", 13, 1, nil),
+		markerWith("x.weights.fetch.start", 14, 0.9, map[string]string{model.AttrStartDerived: "end minus 6 s reported by the engine", "model": "m"}),
+		markerWith("x.weights.fetch.end", 20, 1, map[string]string{"model": "m", "seconds": "6"}),
+		marker("x.weights.load.start", 20),
+		markerWith("x.weights.load.end", 21, 1, map[string]string{"seconds": "1.0"}),
+		marker("x.kv.start", 22),
+		marker("x.kv.end", 23),
+		marker("x.server.listening", 29),
+		status(model.KindPodReady, 30),
+	)
+}
+
+// Decision 0005 addition: a phase with no start but its ".skipped" marker is skipped, names
+// the marker, has no time span, and does not move later phases' search back to the marker.
+// A phase whose start is observed is not skipped even if the marker is there too.
+func TestSkippedPhase(t *testing.T) {
+	r := mustAssign(t, engineBoot(), Options{Markers: enginePack, Pack: "x/1"})
+	assertPhase(t, phaseByName(r, model.PhaseCompile), model.Phase{
+		Name: model.PhaseCompile, State: model.StateSkipped,
+		Attrs: map[string]string{"skipped_by": "x.compile.skipped"}, Sources: []model.Source{model.SourceEngineLog},
+	})
+	if kv := phaseByName(r, model.PhaseKVAlloc); kv.State != model.StateComplete || !kv.Start.Equal(at(22)) {
+		t.Errorf("kv-alloc = %+v, want complete from 22", kv)
+	}
+
+	events := append(engineBoot(), marker("x.compile.start", 21.5), marker("x.compile.end", 21.8))
+	if c := phaseByName(mustAssign(t, events, Options{Markers: enginePack}), model.PhaseCompile); c.State != model.StateComplete {
+		t.Errorf("compile observed and skipped marker present: %+v, want complete", c)
+	}
+}
+
+// A phase takes the attributes of its engine markers (end wins on a shared key) and the
+// lowest confidence of its two events when below 1.0. Kubernetes and log-line events add no
+// attributes: container-init ends at the first engine log event, which carries none here.
+func TestEngineAttrsAndConfidence(t *testing.T) {
+	r := mustAssign(t, engineBoot(), Options{Markers: enginePack})
+	conf := float32(0.9)
+	assertPhase(t, phaseByName(r, model.PhaseWeightFetch), model.Phase{
+		Name: model.PhaseWeightFetch, Start: at(14), End: at(20), Seconds: secs(6), State: model.StateComplete,
+		Attrs:      map[string]string{model.AttrStartDerived: "end minus 6 s reported by the engine", "model": "m", "seconds": "6"},
+		Sources:    []model.Source{model.SourceEngineLog},
+		Confidence: &conf,
+	})
+	if p := phaseByName(r, model.PhaseWeightLoad); p.Confidence != nil || p.Attrs["seconds"] != "1.0" {
+		t.Errorf("weight-load = %+v, want no confidence written and seconds 1.0", p)
+	}
+	if p := phaseByName(r, model.PhaseContainerInit); p.Attrs != nil || p.Confidence != nil {
+		t.Errorf("container-init = %+v, want no attributes or confidence", p)
+	}
+}
+
+// Decision 0005: once the pod is Ready, an expected engine phase that is still absent gets a
+// phase-unobserved warning naming the phase and the pack. Before Ready there is none (the pod
+// may still be booting), and a skipped phase never gets one.
+func TestPhaseUnobserved(t *testing.T) {
+	r := mustAssign(t, engineBoot(), Options{Markers: enginePack, Pack: "x/1"})
+	want := []model.Warning{{
+		Code: model.WarnPhaseUnobserved, Phase: model.PhaseGraphCapture,
+		Text: "graph-capture: no log line matched before the pod was Ready (pack x/1); the engine may have skipped it, or this engine version words it differently",
+	}}
+	if !reflect.DeepEqual(r.Warnings, want) {
+		t.Errorf("warnings = %+v\nwant %+v", r.Warnings, want)
+	}
+
+	notReady := slices.DeleteFunc(engineBoot(), func(e model.Event) bool { return e.Kind == model.KindPodReady })
+	if w := mustAssign(t, notReady, Options{Markers: enginePack, Pack: "x/1"}).Warnings; len(w) != 0 {
+		t.Errorf("not Ready: warnings = %v, want none", w)
+	}
+
+	// A Kubernetes phase absent after Ready is not excused: no phase-unobserved for it.
+	noPull := slices.DeleteFunc(engineBoot(), func(e model.Event) bool { return e.Kind == model.KindPulling })
+	for _, w := range mustAssign(t, noPull, Options{Markers: enginePack, Pack: "x/1"}).Warnings {
+		if w.Phase == model.PhaseImagePull {
+			t.Errorf("image-pull got %+v", w)
+		}
+	}
+}
+
+// Decision 0006: engine-init runs from the first engine log line (where container-init ends)
+// to the pack's ".engine.init.end" marker. Under a pack that does not declare that marker,
+// such as generic, it is absent and not expected.
+func TestEngineInit(t *testing.T) {
+	events := append(engineBoot(), marker("x.engine.init.end", 13.5))
+	r := mustAssign(t, events, Options{Markers: append(slices.Clone(enginePack), "x.engine.init.end")})
+	assertPhase(t, phaseByName(r, model.PhaseEngineInit), model.Phase{
+		Name: model.PhaseEngineInit, Start: at(12), End: at(13.5), Seconds: secs(1.5), State: model.StateComplete,
+		Sources: []model.Source{model.SourceEngineLog},
+	})
+	if ci := phaseByName(r, model.PhaseContainerInit); !ci.End.Equal(at(12)) {
+		t.Errorf("container-init ends at %v, want 12, where engine-init starts", ci.End)
+	}
+
+	r = mustAssign(t, genericBoot(), Options{})
+	if p := phaseByName(r, model.PhaseEngineInit); p.State != model.StateAbsent {
+		t.Errorf("generic: engine-init = %+v, want absent", p)
+	}
+	if slices.Contains(Expected(nil), model.PhaseEngineInit) {
+		t.Errorf("generic: engine-init expected")
 	}
 }

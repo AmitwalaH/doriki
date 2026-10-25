@@ -1,0 +1,408 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/AmitwalaH/doriki/main/schema/report.v1.json",
+  "$ref": "#/$defs/Report",
+  "$defs": {
+    "Advice": {
+      "properties": {
+        "rule": {
+          "type": "string"
+        },
+        "severity": {
+          "type": "string"
+        },
+        "text": {
+          "type": "string"
+        },
+        "evidence": {
+          "type": "object"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "rule",
+        "severity",
+        "text"
+      ],
+      "description": "Advice is one rule's finding (DESIGN.md section 6.2)."
+    },
+    "Attempt": {
+      "properties": {
+        "attempt": {
+          "type": "integer"
+        },
+        "phases": {
+          "items": {
+            "$ref": "#/$defs/Phase"
+          },
+          "type": "array"
+        },
+        "gaps": {
+          "items": {
+            "$ref": "#/$defs/Gap"
+          },
+          "type": "array"
+        },
+        "totals": {
+          "$ref": "#/$defs/Totals"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "attempt"
+      ],
+      "description": "Attempt is one boot of the container: the first start and each restart."
+    },
+    "Event": {
+      "properties": {
+        "ts": {
+          "type": "string",
+          "format": "date-time",
+          "description": "UTC, clock-corrected by normalize"
+        },
+        "source": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string",
+          "description": "e.g. \"Scheduled\", \"Pulling\", \"log.marker\""
+        },
+        "marker": {
+          "type": "string",
+          "description": "parser-pack marker id"
+        },
+        "attrs": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "type": "object",
+          "description": "raw key/values from the source"
+        },
+        "raw": {
+          "type": "string",
+          "description": "original line or message, at most 512 bytes"
+        },
+        "confidence": {
+          "type": "number",
+          "description": "1.0 for K8s and CRI; packs may set lower"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "ts",
+        "source",
+        "kind",
+        "confidence"
+      ],
+      "description": "Event is the one normalized type every collector produces (DESIGN.md section 4.1)."
+    },
+    "Gap": {
+      "properties": {
+        "after": {
+          "type": "string",
+          "enum": [
+            "scheduling",
+            "node-provision",
+            "image-pull",
+            "container-init",
+            "engine-init",
+            "weight-fetch",
+            "weight-load",
+            "compile",
+            "graph-capture",
+            "kv-alloc",
+            "server-ready",
+            "first-token"
+          ]
+        },
+        "before": {
+          "type": "string",
+          "enum": [
+            "scheduling",
+            "node-provision",
+            "image-pull",
+            "container-init",
+            "engine-init",
+            "weight-fetch",
+            "weight-load",
+            "compile",
+            "graph-capture",
+            "kv-alloc",
+            "server-ready",
+            "first-token"
+          ]
+        },
+        "seconds": {
+          "type": "number"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "after",
+        "before",
+        "seconds"
+      ],
+      "description": "Gap is unattributed time between two consecutive complete phases, reported instead of being folded into a neighbour."
+    },
+    "Manifest": {
+      "properties": {
+        "manifest_version": {
+          "type": "integer"
+        },
+        "pod": {
+          "$ref": "#/$defs/ManifestPod"
+        },
+        "node": {
+          "$ref": "#/$defs/ManifestNode"
+        },
+        "engine": {
+          "$ref": "#/$defs/ManifestEngine"
+        },
+        "model": {
+          "$ref": "#/$defs/ManifestModel"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "manifest_version"
+      ],
+      "description": "Manifest is the deployment manifest (DESIGN.md section 4.3)."
+    },
+    "ManifestEngine": {
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        },
+        "parser_pack": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "ManifestModel": {
+      "properties": {
+        "ref": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "ManifestNode": {
+      "properties": {
+        "name": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "ManifestPod": {
+      "properties": {
+        "namespace": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "Phase": {
+      "properties": {
+        "name": {
+          "type": "string",
+          "enum": [
+            "scheduling",
+            "node-provision",
+            "image-pull",
+            "container-init",
+            "engine-init",
+            "weight-fetch",
+            "weight-load",
+            "compile",
+            "graph-capture",
+            "kv-alloc",
+            "server-ready",
+            "first-token"
+          ]
+        },
+        "start": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "end": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "seconds": {
+          "type": "number"
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "complete",
+            "open",
+            "absent",
+            "invalid",
+            "skipped"
+          ]
+        },
+        "attrs": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "type": "object"
+        },
+        "sources": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "confidence": {
+          "type": "number",
+          "description": "Confidence is the lowest confidence of the phase's start and end events, written only\nwhen below 1.0: a heuristic marker or a derived start (DESIGN.md section 5.2)."
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "name",
+        "state"
+      ],
+      "description": "Phase is one row of the waterfall."
+    },
+    "Report": {
+      "properties": {
+        "report_version": {
+          "type": "integer"
+        },
+        "generated_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "doriki_version": {
+          "type": "string"
+        },
+        "manifest": {
+          "$ref": "#/$defs/Manifest"
+        },
+        "attempt": {
+          "type": "integer",
+          "description": "The boot attempt the top-level phases describe. Attempt numbers follow the\ncontainer's restartCount, so the first boot is attempt 0 and is always written."
+        },
+        "attempts_total": {
+          "type": "integer"
+        },
+        "phases": {
+          "items": {
+            "$ref": "#/$defs/Phase"
+          },
+          "type": "array"
+        },
+        "gaps": {
+          "items": {
+            "$ref": "#/$defs/Gap"
+          },
+          "type": "array"
+        },
+        "totals": {
+          "$ref": "#/$defs/Totals"
+        },
+        "advice": {
+          "items": {
+            "$ref": "#/$defs/Advice"
+          },
+          "type": "array"
+        },
+        "warnings": {
+          "items": {
+            "$ref": "#/$defs/Warning"
+          },
+          "type": "array"
+        },
+        "attempts": {
+          "items": {
+            "$ref": "#/$defs/Attempt"
+          },
+          "type": "array",
+          "description": "Every attempt, filled only with --all-attempts."
+        },
+        "events": {
+          "items": {
+            "$ref": "#/$defs/Event"
+          },
+          "type": "array",
+          "description": "The input events, filled only with --include-events."
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "report_version",
+        "attempt",
+        "attempts_total"
+      ],
+      "description": "Report is the contract every renderer consumes (DESIGN.md section 4.4)."
+    },
+    "Totals": {
+      "properties": {
+        "pending_to_ready_seconds": {
+          "type": "number"
+        },
+        "pending_to_first_token_seconds": {
+          "type": "number"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "description": "Totals use the wall-clock span, not the sum of phases."
+    },
+    "Warning": {
+      "properties": {
+        "code": {
+          "type": "string"
+        },
+        "text": {
+          "type": "string"
+        },
+        "phase": {
+          "type": "string",
+          "enum": [
+            "scheduling",
+            "node-provision",
+            "image-pull",
+            "container-init",
+            "engine-init",
+            "weight-fetch",
+            "weight-load",
+            "compile",
+            "graph-capture",
+            "kv-alloc",
+            "server-ready",
+            "first-token"
+          ],
+          "description": "Phase names the phase the warning is about, when it is about one."
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "code",
+        "text"
+      ],
+      "description": "Warning is something the user should know about the inputs, such as clock skew."
+    }
+  }
+}

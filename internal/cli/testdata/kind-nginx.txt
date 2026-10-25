@@ -1,0 +1,11 @@
+Pod default/nginx-89d46f4b4-ffrkt   pack generic   node doriki-control-plane   total 0:21
+
+scheduling      │                                               0.0s
+image-pull      ██████████████████████████████████████████      0:20
+container-init                                            █     0.3s
+
+absent: node-provision, engine-init, weight-fetch, weight-load, compile, graph-capture, kv-alloc,
+  server-ready, first-token (not seen in the events or the log; pack generic)
+
+Warnings
+  no-pack: no parser pack matches image "nginx:1.29.3-alpine"; only Kubernetes phases are reported
