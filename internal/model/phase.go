@@ -49,6 +49,13 @@ const (
 	StateSkipped  PhaseState = "skipped"  // the engine said it skips this phase (decision 0005)
 )
 
+var phaseStates = [...]PhaseState{StateComplete, StateOpen, StateAbsent, StateInvalid, StateSkipped}
+
+// PhaseStates returns every phase state, for the report schema's enum. A copy, like Phases.
+func PhaseStates() []PhaseState {
+	return slices.Clone(phaseStates[:])
+}
+
 // Phase is one row of the waterfall. Start, End and Seconds are omitted when not observed;
 // Seconds is a pointer because a complete phase of 0 s is real and must still be written.
 type Phase struct {

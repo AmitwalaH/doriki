@@ -24,3 +24,11 @@ func TestPhasesReturnsCopy(t *testing.T) {
 		t.Errorf("after mutating a returned slice, Phases()[0] = %q, want %q", got, PhaseScheduling)
 	}
 }
+
+// PhaseStates lists each state constant once, so the schema enum cannot miss one.
+func TestPhaseStates(t *testing.T) {
+	want := []PhaseState{StateComplete, StateOpen, StateAbsent, StateInvalid, StateSkipped}
+	if got := PhaseStates(); !slices.Equal(got, want) {
+		t.Errorf("PhaseStates() = %v, want %v", got, want)
+	}
+}
