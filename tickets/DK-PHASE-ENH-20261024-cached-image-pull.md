@@ -2,7 +2,7 @@
 
 **Date Discovered:** 2026-10-24
 **Severity:** MEDIUM
-**Status:** OPEN
+**Status:** CLOSED (2026-10-25)
 **Label:** [decision]
 **Found by:** the M1a agent, read in code while writing the exit-code rule (decision 0003)
 **Filed by:** the M1a agent
@@ -37,3 +37,12 @@ implemented in M1b together with a real warm-node capture; this ticket stays ope
 
 ## Related
 Decisions 0003 and 0004; `DESIGN.md` sections 4.2, 6.2 (`pull-dominant`) and 7.3.
+
+## Resolution (2026-10-25)
+Implemented in M1b with a real warm-node capture, `packs/generic/testdata/kind-nginx-warm/`.
+The collector tags a `Pulled` event whose message contains "already present on machine" with
+`cached: true` (`internal/collect/files/files.go`, `cachedPullText`); the phase engine accepts
+that event as image-pull's start (`internal/phase/assign.go`, `altStarts`) and copies `cached`
+onto the phase. Measured on the capture: before, `image-pull` absent and exit 1; after,
+complete at 0 s with `cached: true` and exit 0. Kubelet 1.37 words it "... already present on
+machine and can be accessed by the pod"; the match is on the shared part.

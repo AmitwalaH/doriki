@@ -370,3 +370,41 @@ func TestExpected(t *testing.T) {
 		}
 	}
 }
+
+func cachedPull(s float64) model.Event {
+	e := k8s(model.KindPulled, s)
+	e.Attrs = map[string]string{model.AttrCached: "true"}
+	return e
+}
+
+// Decision 0004: with no Pulling event, a cached Pulled is a complete 0 s image-pull that
+// starts and ends at that event and carries cached. An uncached Pulled alone (its Pulling
+// expired) still leaves image-pull absent: only the kubelet's "already present" says there
+// was no pull. The phase carries no other attribute of its events.
+func TestCachedImagePull(t *testing.T) {
+	events := []model.Event{
+		status(model.KindPodCreated, 0),
+		k8s(model.KindScheduled, 1),
+		cachedPull(2),
+		started(3, 0),
+		logLine(4),
+		status(model.KindPodReady, 5),
+	}
+	r := mustAssign(t, events, Options{})
+	assertPhase(t, phaseByName(r, model.PhaseImagePull), model.Phase{
+		Name: model.PhaseImagePull, Start: at(2), End: at(2), Seconds: secs(0), State: model.StateComplete,
+		Attrs: map[string]string{model.AttrCached: "true"}, Sources: []model.Source{model.SourceK8sEvent},
+	})
+	if a := phaseByName(r, model.PhaseContainerInit).Attrs; a != nil {
+		t.Errorf("container-init attrs = %v, want none (restart_count stays on the event)", a)
+	}
+	if !slices.Contains(Expected(nil), model.PhaseImagePull) {
+		t.Errorf("image-pull is not expected, so a cached pull would not be checked by the exit code")
+	}
+
+	events[2] = k8s(model.KindPulled, 2)
+	r = mustAssign(t, events, Options{})
+	if p := phaseByName(r, model.PhaseImagePull); p.State != model.StateAbsent {
+		t.Errorf("uncached Pulled alone: image-pull = %+v, want absent", p)
+	}
+}

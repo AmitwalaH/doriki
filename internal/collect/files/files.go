@@ -165,10 +165,19 @@ func k8sEvents(p *corev1.Pod, container string, items []corev1.Event) []model.Ev
 		default:
 			continue
 		}
-		out = append(out, event(ts, model.SourceK8sEvent, e.Reason, e.Message))
+		ev := event(ts, model.SourceK8sEvent, e.Reason, e.Message)
+		if e.Reason == model.KindPulled && strings.Contains(e.Message, cachedPullText) {
+			ev.Attrs = map[string]string{model.AttrCached: "true"}
+		}
+		out = append(out, ev)
 	}
 	return out
 }
+
+// cachedPullText is how the kubelet's Pulled message says the image was already on the node
+// (decision 0004). Kubelet 1.37 continues "... and can be accessed by the pod"; older ones
+// stop here, so the match is on this part only.
+const cachedPullText = "already present on machine"
 
 func hasScheduled(events []model.Event) bool {
 	for _, e := range events {
