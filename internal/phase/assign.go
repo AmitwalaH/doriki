@@ -32,12 +32,15 @@ type Options struct {
 	Attempt *int
 	// AllAttempts also fills Report.Attempts with every observed attempt.
 	AllAttempts bool
+	// Pack names the selected pack in warnings.
+	Pack string
 }
 
 // matcher recognises the events that start or end a phase.
 type matcher struct {
 	kind         string       // matches Event.Kind, when set
 	source       model.Source // with kind set, empty means any source
+	attr         string       // with kind set, the event must also have this attribute "true"
 	markerSuffix string       // matches Event.Marker ending in this, when set
 }
 
@@ -46,7 +49,7 @@ func (m matcher) match(e model.Event) bool {
 	case m.markerSuffix != "":
 		return e.Source == model.SourceEngineLog && strings.HasSuffix(e.Marker, m.markerSuffix)
 	case m.kind != "":
-		return e.Kind == m.kind && (m.source == "" || e.Source == m.source)
+		return e.Kind == m.kind && (m.source == "" || e.Source == m.source) && (m.attr == "" || e.Attrs[m.attr] == "true")
 	default: // any event from the source
 		return m.source != "" && e.Source == m.source
 	}
@@ -62,6 +65,25 @@ func (m matcher) observable(markers []string) bool {
 
 // spec is one row of DESIGN.md section 4.2's table. A zero start matcher never matches.
 type spec struct{ start, end matcher }
+
+// phaseAttrs are the attributes a phase takes from a start event of any source. A phase
+// takes every attribute of its engine markers (named groups from the pack); collector
+// bookkeeping such as the restart count stays on the event.
+var phaseAttrs = []string{model.AttrCached}
+
+// engine reports whether the phase is bounded by a pack marker. Once the pod is Ready, an
+// absent engine phase was skipped or not recognised, not pending (decision 0005).
+func (s spec) engine() bool { return s.start.markerSuffix != "" || s.end.markerSuffix != "" }
+
+// skipSuffix is the marker suffix an engine logs when it skips the phase: ".compile.start"
+// gives ".compile.skipped" (decision 0005). Phases whose start is not a ".start" marker
+// cannot be skipped.
+func (s spec) skipSuffix() string {
+	if base, ok := strings.CutSuffix(s.start.markerSuffix, ".start"); ok {
+		return base + ".skipped"
+	}
+	return ""
+}
 
 // optional phases only happen in some boots (a node created for the pod), so their absence
 // is normal and never makes a report incomplete.
@@ -103,6 +125,9 @@ var specs = map[model.PhaseName]spec{
 		matcher{kind: model.KindContainerStarted, source: model.SourceContainerStatus},
 		matcher{source: model.SourceEngineLog}, // the first engine log line
 	},
+	// engine-init starts where container-init ends, at the first engine log line; the pack
+	// says where it ends (decision 0006).
+	model.PhaseEngineInit:   {matcher{source: model.SourceEngineLog}, matcher{markerSuffix: ".engine.init.end"}},
 	model.PhaseWeightFetch:  {matcher{markerSuffix: ".weights.fetch.start"}, matcher{markerSuffix: ".weights.fetch.end"}},
 	model.PhaseWeightLoad:   {matcher{markerSuffix: ".weights.load.start"}, matcher{markerSuffix: ".weights.load.end"}},
 	model.PhaseCompile:      {matcher{markerSuffix: ".compile.start"}, matcher{markerSuffix: ".compile.end"}},
@@ -111,6 +136,17 @@ var specs = map[model.PhaseName]spec{
 	model.PhaseServerReady:  {matcher{markerSuffix: ".server.listening"}, podReady},
 	// --probe will be a second way to end first-token (M3).
 	model.PhaseFirstToken: {podReady, matcher{markerSuffix: ".request.first_token"}},
+}
+
+// altStarts are second events that can start a phase. An image already on the node has no
+// Pulling, only a cached Pulled: a complete 0 s pull that starts and ends at that event
+// (decision 0004).
+var altStarts = map[model.PhaseName]matcher{
+	model.PhaseImagePull: {kind: model.KindPulled, source: model.SourceK8sEvent, attr: model.AttrCached},
+}
+
+func startsAt(name model.PhaseName, s spec, e model.Event) bool {
+	return s.start.match(e) || altStarts[name].match(e)
 }
 
 // Assign turns events into phases, gaps and totals for one boot attempt (DESIGN.md section
@@ -133,7 +169,7 @@ func Assign(events []model.Event, opts Options) (model.Report, error) {
 	created, hasCreated := first(sorted, podCreated)
 	report := model.Report{ReportVersion: model.ReportVersion, AttemptsTotal: attemptsTotal(attempts)}
 	for i, a := range attempts {
-		phases, gaps, warnings := assignAttempt(a.events, opts.Markers)
+		phases, gaps, warnings := assignAttempt(a.events, opts.Markers, opts.Pack)
 		totals := attemptTotals(a.events, phases, created, hasCreated)
 		if i == chosen {
 			report.Attempt = a.number
@@ -202,7 +238,7 @@ func attemptNumbers(attempts []attempt) string {
 	return strings.Join(s, ", ")
 }
 
-func assignAttempt(events []model.Event, markers []string) ([]model.Phase, []model.Gap, []model.Warning) {
+func assignAttempt(events []model.Event, markers []string, pack string) ([]model.Phase, []model.Gap, []model.Warning) {
 	var (
 		phases   []model.Phase
 		warnings []model.Warning
@@ -210,7 +246,7 @@ func assignAttempt(events []model.Event, markers []string) ([]model.Phase, []mod
 	)
 	for _, name := range phaseOrder() {
 		p := assignPhase(name, specs[name], events, markers, cursor)
-		if p.State != model.StateAbsent {
+		if p.State != model.StateAbsent && p.State != model.StateSkipped {
 			cursor = p.Start
 		}
 		if p.State == model.StateInvalid {
@@ -221,7 +257,27 @@ func assignAttempt(events []model.Event, markers []string) ([]model.Phase, []mod
 		}
 		phases = append(phases, p)
 	}
-	return phases, gaps(phases), warnings
+	return phases, gaps(phases), append(warnings, unobserved(phases, events, markers, pack)...)
+}
+
+// unobserved warns about each expected engine phase still absent once the pod is Ready
+// (decision 0005). Before Ready the pod may still be booting, so there is nothing to say.
+func unobserved(phases []model.Phase, events []model.Event, markers []string, pack string) []model.Warning {
+	if _, ready := first(events, podReady); !ready {
+		return nil
+	}
+	expected := Expected(markers)
+	var out []model.Warning
+	for _, p := range phases {
+		if p.State == model.StateAbsent && specs[p.Name].engine() && slices.Contains(expected, p.Name) {
+			out = append(out, model.Warning{
+				Code:  model.WarnPhaseUnobserved,
+				Phase: p.Name,
+				Text:  fmt.Sprintf("%s: no log line matched before the pod was Ready (pack %s); the engine may have skipped it, or this engine version words it differently", p.Name, pack),
+			})
+		}
+	}
+	return out
 }
 
 // assignPhase applies DESIGN.md section 6.1 steps 3 and 4 to one phase. The end is the
@@ -232,12 +288,30 @@ func assignPhase(name model.PhaseName, s spec, events []model.Event, markers []s
 	if !s.producible(markers) {
 		return absent
 	}
-	startIdx := slices.IndexFunc(events, func(e model.Event) bool { return !e.TS.Before(cursor) && s.start.match(e) })
+	startIdx := slices.IndexFunc(events, func(e model.Event) bool { return !e.TS.Before(cursor) && startsAt(name, s, e) })
 	if startIdx < 0 {
+		// The skip marker may be logged long before the phase would run (vLLM says so at
+		// config time), so it is looked for in the whole attempt, not after the cursor.
+		if skip := (matcher{markerSuffix: s.skipSuffix()}); skip.markerSuffix != "" {
+			if e, ok := first(events, skip); ok {
+				return model.Phase{Name: name, State: model.StateSkipped, Attrs: map[string]string{"skipped_by": e.Marker},
+					Sources: []model.Source{e.Source}, Confidence: below1(e.Confidence)}
+			}
+		}
 		return absent
 	}
 	start := events[startIdx]
-	p := model.Phase{Name: name, Start: start.TS, State: model.StateOpen, Sources: []model.Source{start.Source}}
+	p := model.Phase{Name: name, Start: start.TS, State: model.StateOpen, Sources: []model.Source{start.Source}, Confidence: below1(start.Confidence)}
+	for _, k := range phaseAttrs {
+		if v, ok := start.Attrs[k]; ok {
+			p.Attrs = setAttr(p.Attrs, k, v)
+		}
+	}
+	if s.start.markerSuffix != "" {
+		for k, v := range start.Attrs {
+			p.Attrs = setAttr(p.Attrs, k, v)
+		}
+	}
 
 	endIdx := slices.IndexFunc(events, func(e model.Event) bool { return !e.TS.Before(start.TS) && s.end.match(e) })
 	if endIdx < 0 {
@@ -252,6 +326,14 @@ func assignPhase(name model.PhaseName, s spec, events []model.Event, markers []s
 	}
 	end := events[endIdx]
 	p.End = end.TS
+	if s.end.markerSuffix != "" {
+		for k, v := range end.Attrs {
+			p.Attrs = setAttr(p.Attrs, k, v)
+		}
+	}
+	if end.Confidence < start.Confidence {
+		p.Confidence = below1(end.Confidence)
+	}
 	if !slices.Contains(p.Sources, end.Source) {
 		p.Sources = append(p.Sources, end.Source)
 	}
@@ -268,6 +350,22 @@ func assignPhase(name model.PhaseName, s spec, events []model.Event, markers []s
 	p.Seconds = &seconds
 	p.State = model.StateComplete
 	return p
+}
+
+// below1 is a confidence as written on a phase: only when below 1.0.
+func below1(c float32) *float32 {
+	if c >= 1 {
+		return nil
+	}
+	return &c
+}
+
+func setAttr(attrs map[string]string, k, v string) map[string]string {
+	if attrs == nil {
+		attrs = map[string]string{}
+	}
+	attrs[k] = v
+	return attrs
 }
 
 // gaps reports unattributed time over 1 s between consecutive complete phases (DESIGN.md

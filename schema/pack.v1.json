@@ -1,0 +1,125 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/AmitwalaH/doriki/main/schema/pack.v1.json",
+  "$ref": "#/$defs/Pack",
+  "$defs": {
+    "Pack": {
+      "properties": {
+        "pack_version": {
+          "type": "integer"
+        },
+        "engine": {
+          "type": "string"
+        },
+        "versions": {
+          "type": "string",
+          "description": "semver range the pack is tested against"
+        },
+        "detect": {
+          "$ref": "#/$defs/PackDetect"
+        },
+        "timestamp": {
+          "$ref": "#/$defs/PackTimestamp"
+        },
+        "markers": {
+          "items": {
+            "$ref": "#/$defs/PackMarker"
+          },
+          "type": "array"
+        },
+        "facts": {
+          "items": {
+            "$ref": "#/$defs/PackFact"
+          },
+          "type": "array"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "pack_version",
+        "engine",
+        "versions"
+      ],
+      "description": "Pack is a parser pack (DESIGN.md section 5.2): what doriki knows about one engine's logs, as data."
+    },
+    "PackDetect": {
+      "properties": {
+        "image_regex": {
+          "type": "string"
+        },
+        "log_regex": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "description": "PackDetect says how a pack is chosen for a pod (DESIGN.md section 5.3)."
+    },
+    "PackFact": {
+      "properties": {
+        "key": {
+          "type": "string"
+        },
+        "regex": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "key",
+        "regex"
+      ],
+      "description": "PackFact is a one-shot manifest fact read from the log: the named group \"v\" of the first matching line."
+    },
+    "PackMarker": {
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "regex": {
+          "type": "string"
+        },
+        "confidence": {
+          "type": "number",
+          "description": "1.0 when unset"
+        },
+        "attrs": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "type": "object"
+        },
+        "start_from_duration": {
+          "type": "string",
+          "description": "StartFromDuration names a group holding a duration in seconds, on a marker whose ID ends\nin \".end\" for an engine that logs only how long a step took when it finishes. The\nmatching line also yields the \".start\" marker, stamped that many seconds earlier, with\nconfidence at most DerivedStartConfidence and the attribute AttrStartDerived."
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "id",
+        "regex"
+      ],
+      "description": "PackMarker turns matching log lines into marker events; named groups become the event's attributes."
+    },
+    "PackTimestamp": {
+      "properties": {
+        "regex": {
+          "type": "string"
+        },
+        "layout": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "regex",
+        "layout"
+      ],
+      "description": "PackTimestamp parses the engine's own timestamp from a log line: Regex has a named group \"ts\" and Layout is its Go time layout, without a year (the year comes from the container start)."
+    }
+  }
+}

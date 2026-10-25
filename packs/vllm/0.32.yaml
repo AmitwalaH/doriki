@@ -1,0 +1,89 @@
+# vLLM 0.32.0 (DESIGN.md section 5). Written from the real capture in testdata/0.32 (the
+# community CPU build, eager mode, in kind) and nothing else: every marker at confidence 1.0
+# matches a line of that capture, and packs/vllm_test.go checks it.
+#
+# The CPU capture cannot show three things, so they have untested markers at confidence 0.8,
+# each citing the vLLM 0.32.0 source that logs it (the files as installed in the fixture's
+# image, paths under site-packages/vllm/):
+#   - compile: eager mode turns torch.compile off; the capture shows the "skipped" line.
+#   - graph-capture: CPU vLLM captures no CUDA graphs, and eager mode turns them off; the
+#     capture shows the same "skipped" line.
+#   - kv-alloc on GPU: the CPU worker logs its own KV cache lines, which are tested.
+# A GPU capture should replace each with a tested marker. Several entries may share an id.
+pack_version: 1
+engine: vllm
+# The captured version only; widen it with a fixture from each new version.
+versions: "0.32.0"
+detect:
+  # Upstream's image and the community CPU build of the fixture.
+  image_regex: "vllm-openai|vllm-cpu"
+  # v1/engine/core.py:134, line 126 of the capture.
+  log_regex: 'Initializing a V1 LLM engine \(v(?P<version>[0-9]+\.[0-9]+\.[0-9]+)\)'
+timestamp:
+  # vLLM's logger: "(Worker pid=171) INFO 10-25 09:31:09 [weight_utils.py:532] ...". The
+  # process prefix is optional; entrypoint, progress bar and uvicorn lines have no time.
+  regex: '(?:^|\) )(?:DEBUG|INFO|WARNING|ERROR|CRITICAL) (?P<ts>\d{2}-\d{2} \d{2}:\d{2}:\d{2}) \['
+  layout: "01-02 15:04:05"
+markers:
+  # engine-init runs from the first log line to here (decision 0006): vLLM has imported,
+  # configured the engine and starts on the model. v1/worker/cpu_model_runner.py:68; the GPU
+  # runner logs the same words (v1/worker/gpu_model_runner.py:5040).
+  - id: vllm.engine.init.end
+    regex: 'Starting to load model (?P<model>\S+)\.\.\.'
+  # vLLM logs only the download's total when it ends; the start is derived from it
+  # (confidence 0.9, attribute start_derived). weight_utils.py:532.
+  - id: vllm.weights.fetch.end
+    regex: 'Time spent downloading weights for (?P<model>\S+): (?P<seconds>[0-9.]+) seconds'
+    start_from_duration: seconds
+  # Logged whether or not weights were downloaded, so the start is derived from its own
+  # duration too, rather than from the download line that a cached model never prints.
+  # default_loader.py:501.
+  - id: vllm.weights.load.end
+    regex: "Loading weights took (?P<seconds>[0-9.]+) seconds"
+    start_from_duration: seconds
+  # Eager mode turns off torch.compile and CUDA graphs, and says so once at config time.
+  # config/vllm.py:1698 and 1704; both wordings start this way.
+  - id: vllm.compile.skipped
+    regex: 'Enforce eager set, disabling torch\.compile'
+  - id: vllm.graph.skipped
+    regex: 'Enforce eager set, disabling torch\.compile,? (?:and )?CUDAGraphs'
+  # Untested: compilation/monitor.py:40 ("%sStarting torch.compile").
+  - id: vllm.compile.start
+    regex: 'Starting torch\.compile'
+    confidence: 0.8
+  # Untested: compilation/monitor.py:20 ("%storch.compile took %.2f s in total").
+  - id: vllm.compile.end
+    regex: 'torch\.compile took (?P<seconds>[0-9.]+) s in total'
+    confidence: 0.8
+  # Untested: v1/worker/gpu_model_runner.py:6657, a progress bar ("Capturing CUDA graphs
+  # (...)"), so it has a runtime timestamp only.
+  - id: vllm.graph.start
+    regex: "Capturing CUDA graphs"
+    confidence: 0.8
+  # Untested: v1/worker/gpu_model_runner.py:6582 ("Graph capturing finished in %.0f secs").
+  - id: vllm.graph.end
+    regex: "Graph capturing finished in (?P<seconds>[0-9]+) secs"
+    confidence: 0.8
+  # CPU: v1/worker/cpu_worker.py, "Explicitly set (1.0/4.0) GiB for KV cache on node 0."
+  - id: vllm.kv.start
+    regex: 'Explicitly set \((?P<gib>[0-9.]+)/[0-9.]+\) GiB for KV cache'
+  # Untested, GPU: v1/worker/gpu_worker.py:760 ("Available KV cache memory: %s GiB").
+  - id: vllm.kv.start
+    regex: "Available KV cache memory: (?P<gib>[0-9.]+) GiB"
+    confidence: 0.8
+  # v1/core/kv_cache_utils.py:2328 ("%s KV cache size: %s tokens"), "CPU" in the capture.
+  - id: vllm.kv.end
+    regex: "CPU KV cache size: (?P<tokens>[0-9,]+) tokens"
+  # Untested, GPU: the same source line with "GPU".
+  - id: vllm.kv.end
+    regex: "GPU KV cache size: (?P<tokens>[0-9,]+) tokens"
+    confidence: 0.8
+  # uvicorn, after the routes are listed: the server is accepting connections.
+  - id: vllm.server.listening
+    regex: 'Application startup complete\.'
+facts:
+  - key: engine.version
+    regex: 'Initializing a V1 LLM engine \(v(?P<v>[0-9.]+)\)'
+  # entrypoints/openai/api_utils.py: "non-default args: {..., 'model': 'facebook/opt-125m', ...}"
+  - key: model.ref
+    regex: "non-default args: .*'model': '(?P<v>[^']+)'"

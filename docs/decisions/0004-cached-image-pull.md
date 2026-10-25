@@ -1,6 +1,6 @@
 # 0004: A cached image is a complete 0 s image-pull, not an absent one
 
-**Date:** 2026-10-24 · **Decided by:** the owner · **Status:** decided, not yet implemented
+**Date:** 2026-10-24 · **Decided by:** the owner · **Status:** decided, implemented 2026-10-25 (M1b)
 
 When a pod starts on a node that already has its image, the kubelet logs no `Pulling` event,
 only `Pulled` with "Container image ... already present on machine". Reporting `image-pull` as

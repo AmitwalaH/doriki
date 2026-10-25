@@ -1,0 +1,172 @@
+{
+    "apiVersion": "v1",
+    "items": [
+        {
+            "apiVersion": "v1",
+            "count": 1,
+            "eventTime": null,
+            "firstTimestamp": "2026-10-25T09:15:05Z",
+            "involvedObject": {
+                "apiVersion": "v1",
+                "kind": "Pod",
+                "name": "nginx-89d46f4b4-ndl9f",
+                "namespace": "default",
+                "resourceVersion": "565",
+                "uid": "417d416c-fb52-447e-9764-d174ec0d0c61"
+            },
+            "kind": "Event",
+            "lastTimestamp": "2026-10-25T09:15:05Z",
+            "message": "Successfully assigned default/nginx-89d46f4b4-ndl9f to doriki-control-plane",
+            "metadata": {
+                "creationTimestamp": "2026-10-25T09:15:05Z",
+                "name": "nginx-89d46f4b4-ndl9f.18e1baf925b4cc77",
+                "namespace": "default",
+                "resourceVersion": "570",
+                "uid": "83ea8a04-7fc5-4d5f-a516-f24246039caf"
+            },
+            "reason": "Scheduled",
+            "reportingComponent": "default-scheduler",
+            "reportingInstance": "",
+            "source": {
+                "component": "default-scheduler"
+            },
+            "type": "Normal"
+        },
+        {
+            "apiVersion": "v1",
+            "count": 1,
+            "eventTime": null,
+            "firstTimestamp": "2026-10-25T09:15:06Z",
+            "involvedObject": {
+                "apiVersion": "v1",
+                "fieldPath": "spec.containers{nginx}",
+                "kind": "Pod",
+                "name": "nginx-89d46f4b4-ndl9f",
+                "namespace": "default",
+                "resourceVersion": "567",
+                "uid": "417d416c-fb52-447e-9764-d174ec0d0c61"
+            },
+            "kind": "Event",
+            "lastTimestamp": "2026-10-25T09:15:06Z",
+            "message": "Container image \"nginx:1.29.3-alpine\" already present on machine and can be accessed by the pod",
+            "metadata": {
+                "creationTimestamp": "2026-10-25T09:15:06Z",
+                "name": "nginx-89d46f4b4-ndl9f.18e1baf942e989ff",
+                "namespace": "default",
+                "resourceVersion": "575",
+                "uid": "d9ac2ecb-160e-4b99-b49f-db5d2b43c85d"
+            },
+            "reason": "Pulled",
+            "reportingComponent": "kubelet",
+            "reportingInstance": "doriki-control-plane",
+            "source": {
+                "component": "kubelet",
+                "host": "doriki-control-plane"
+            },
+            "type": "Normal"
+        },
+        {
+            "apiVersion": "v1",
+            "count": 1,
+            "eventTime": null,
+            "firstTimestamp": "2026-10-25T09:15:06Z",
+            "involvedObject": {
+                "apiVersion": "v1",
+                "fieldPath": "spec.containers{nginx}",
+                "kind": "Pod",
+                "name": "nginx-89d46f4b4-ndl9f",
+                "namespace": "default",
+                "resourceVersion": "567",
+                "uid": "417d416c-fb52-447e-9764-d174ec0d0c61"
+            },
+            "kind": "Event",
+            "lastTimestamp": "2026-10-25T09:15:06Z",
+            "message": "Container created",
+            "metadata": {
+                "creationTimestamp": "2026-10-25T09:15:06Z",
+                "name": "nginx-89d46f4b4-ndl9f.18e1baf9453467b0",
+                "namespace": "default",
+                "resourceVersion": "577",
+                "uid": "ae9470ed-4e02-49b8-b523-4b1d7f61d7fb"
+            },
+            "reason": "Created",
+            "reportingComponent": "kubelet",
+            "reportingInstance": "doriki-control-plane",
+            "source": {
+                "component": "kubelet",
+                "host": "doriki-control-plane"
+            },
+            "type": "Normal"
+        },
+        {
+            "apiVersion": "v1",
+            "count": 1,
+            "eventTime": null,
+            "firstTimestamp": "2026-10-25T09:15:06Z",
+            "involvedObject": {
+                "apiVersion": "v1",
+                "fieldPath": "spec.containers{nginx}",
+                "kind": "Pod",
+                "name": "nginx-89d46f4b4-ndl9f",
+                "namespace": "default",
+                "resourceVersion": "567",
+                "uid": "417d416c-fb52-447e-9764-d174ec0d0c61"
+            },
+            "kind": "Event",
+            "lastTimestamp": "2026-10-25T09:15:06Z",
+            "message": "Container started",
+            "metadata": {
+                "creationTimestamp": "2026-10-25T09:15:06Z",
+                "name": "nginx-89d46f4b4-ndl9f.18e1baf94c851faf",
+                "namespace": "default",
+                "resourceVersion": "578",
+                "uid": "538290b7-fee1-4848-bba4-19c123f543ec"
+            },
+            "reason": "Started",
+            "reportingComponent": "kubelet",
+            "reportingInstance": "doriki-control-plane",
+            "source": {
+                "component": "kubelet",
+                "host": "doriki-control-plane"
+            },
+            "type": "Normal"
+        },
+        {
+            "apiVersion": "v1",
+            "count": 1,
+            "eventTime": null,
+            "firstTimestamp": "2026-10-25T09:15:06Z",
+            "involvedObject": {
+                "apiVersion": "v1",
+                "fieldPath": "spec.containers{nginx}",
+                "kind": "Pod",
+                "name": "nginx-89d46f4b4-ndl9f",
+                "namespace": "default",
+                "resourceVersion": "567",
+                "uid": "417d416c-fb52-447e-9764-d174ec0d0c61"
+            },
+            "kind": "Event",
+            "lastTimestamp": "2026-10-25T09:15:06Z",
+            "message": "Readiness probe failed: Get \"http://10.244.0.6:80/\": dial tcp 10.244.0.6:80: connect: connection refused",
+            "metadata": {
+                "creationTimestamp": "2026-10-25T09:15:06Z",
+                "name": "nginx-89d46f4b4-ndl9f.18e1baf94d01edec",
+                "namespace": "default",
+                "resourceVersion": "579",
+                "uid": "acf2bbd4-912a-44c0-8a74-b734ca1ae260"
+            },
+            "reason": "Unhealthy",
+            "reportingComponent": "kubelet",
+            "reportingInstance": "doriki-control-plane",
+            "source": {
+                "component": "kubelet",
+                "host": "doriki-control-plane"
+            },
+            "type": "Warning"
+        }
+    ],
+    "kind": "List",
+    "metadata": {
+        "resourceVersion": ""
+    }
+}

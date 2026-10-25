@@ -1,0 +1,3 @@
+# Captured fixtures are data, not source: keep them out of GitHub's language bar and collapse
+# them in pull request diffs.
+packs/**/testdata/** linguist-generated=true

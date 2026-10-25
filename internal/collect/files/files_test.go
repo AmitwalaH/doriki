@@ -2,6 +2,7 @@ package files
 
 import (
 	"fmt"
+	"maps"
 	"strings"
 	"testing"
 	"time"
@@ -218,23 +219,48 @@ func TestEventSelection(t *testing.T) {
 	}
 }
 
-// Decision d1: lines without a timestamp prefix become no event and are counted in a
-// warning. A wholly untimed log gives no log events at all.
+// Lines without a runtime timestamp are kept, marked untimed with a zero time, for enginelog
+// to date from the engine's own timestamp or to drop with the log-untimed warning (M1b task
+// item 6; this replaces decision d1's drop in the collector). Timed lines are unchanged and
+// the collector itself no longer warns.
 func TestUntimedLog(t *testing.T) {
 	log := "2026-10-24T10:00:41.5Z first\nno timestamp here\n\n2026-10-24T10:00:42Z  second with two spaces\r\nalso untimed\n"
 	events, warnings := read(t, pod("True", 0, runningMain, `{}`), `{"items": []}`, log)
 	lines := find(events, model.SourceEngineLog, model.KindLogLine)
-	if len(lines) != 2 || lines[0].Raw != "first" || lines[1].Raw != " second with two spaces" {
-		t.Errorf("log events = %+v, want the two timed lines with the prefix and one space removed", lines)
+	if len(lines) != 4 {
+		t.Fatalf("log events = %+v, want 4 (blank line skipped)", lines)
 	}
-	want := model.Warning{Code: "log-untimed", Text: "2 of 4 log lines have no timestamp and were skipped; capture logs with kubectl logs --timestamps"}
-	if len(warnings) != 1 || warnings[0] != want {
-		t.Errorf("warnings = %v, want %v", warnings, want)
+	if lines[0].Raw != "first" || !lines[0].TS.Equal(ts("2026-10-24T10:00:41.5Z")) || lines[0].Attrs != nil ||
+		lines[2].Raw != " second with two spaces" || !lines[2].TS.Equal(ts("2026-10-24T10:00:42Z")) {
+		t.Errorf("timed lines = %+v, %+v; want the prefix and one space removed, no attributes", lines[0], lines[2])
 	}
+	for _, i := range []int{1, 3} {
+		if !lines[i].TS.IsZero() || lines[i].Attrs[model.AttrUntimed] != "true" {
+			t.Errorf("untimed line %d = %+v, want zero time and untimed", i, lines[i])
+		}
+	}
+	if lines[1].Raw != "no timestamp here" || lines[3].Raw != "also untimed" {
+		t.Errorf("untimed raw = %q, %q, want the whole line", lines[1].Raw, lines[3].Raw)
+	}
+	if len(warnings) != 0 {
+		t.Errorf("warnings = %v, want none from the collector", warnings)
+	}
+}
 
-	events, warnings = read(t, pod("True", 0, runningMain, `{}`), `{"items": []}`, "plain\nlog\n")
-	if n := len(find(events, model.SourceEngineLog, model.KindLogLine)); n != 0 || len(warnings) != 1 {
-		t.Errorf("untimed log: %d log events, warnings %v; want 0 and one warning", n, warnings)
+// The manifest event carries the pod's namespace, name and node next to the image, for the
+// report's manifest (DESIGN.md section 4.3).
+func TestPodIdentity(t *testing.T) {
+	events, _, err := Load(fixture+"pod.json", fixture+"events.json", fixture+"container.log")
+	if err != nil {
+		t.Fatal(err)
+	}
+	img := find(events, model.SourceManifest, model.KindContainerImage)
+	want := map[string]string{
+		model.AttrImage: "nginx:1.29.3-alpine", model.AttrNamespace: "default",
+		model.AttrPod: "nginx-89d46f4b4-ffrkt", model.AttrNode: "doriki-control-plane",
+	}
+	if len(img) != 1 || !maps.Equal(img[0].Attrs, want) {
+		t.Errorf("manifest event = %+v, want attrs %v", img, want)
 	}
 }
 
@@ -261,5 +287,42 @@ func TestReadErrors(t *testing.T) {
 	}
 	if _, _, err := Load(fixture+"missing.json", fixture+"events.json", fixture+"container.log"); err == nil || !strings.Contains(err.Error(), "missing.json") {
 		t.Errorf("missing file error = %v, want one naming the file", err)
+	}
+}
+
+// Decision 0004: a Pulled event saying the image was already on the node is tagged cached.
+// The warm capture is kubelet 1.37's wording; the shorter form is what decision 0004 quotes
+// from older kubelets. A real pull is not tagged.
+func TestCachedPull(t *testing.T) {
+	warm := "../../../packs/generic/testdata/kind-nginx-warm/"
+	events, _, err := Load(warm+"pod.json", warm+"events.json", warm+"container.log")
+	if err != nil {
+		t.Fatal(err)
+	}
+	pulled := find(events, model.SourceK8sEvent, model.KindPulled)
+	if len(pulled) != 1 || pulled[0].Attrs[model.AttrCached] != "true" {
+		t.Errorf("warm capture Pulled = %+v, want one tagged cached", pulled)
+	}
+
+	events, _, err = Load(fixture+"pod.json", fixture+"events.json", fixture+"container.log")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if pulled := find(events, model.SourceK8sEvent, model.KindPulled); len(pulled) != 1 || pulled[0].Attrs != nil {
+		t.Errorf("cold capture Pulled = %+v, want one with no attributes", pulled)
+	}
+
+	eventsJSON := `{"kind": "List", "items": [
+	  {"reason": "Pulled", "message": "Container image \"x:1\" already present on machine", "involvedObject": {"kind": "Pod", "name": "p", "namespace": "ns"},
+	   "firstTimestamp": "2026-10-24T10:00:03Z"},
+	  {"reason": "Created", "message": "already present on machine", "involvedObject": {"kind": "Pod", "name": "p", "namespace": "ns"},
+	   "firstTimestamp": "2026-10-24T10:00:04Z"}
+	]}`
+	events, _ = read(t, pod("True", 0, runningMain, `{}`), eventsJSON, "")
+	if pulled := find(events, model.SourceK8sEvent, model.KindPulled); len(pulled) != 1 || pulled[0].Attrs[model.AttrCached] != "true" {
+		t.Errorf("older kubelet wording: Pulled = %+v, want it tagged cached", pulled)
+	}
+	if created := find(events, model.SourceK8sEvent, "Created"); len(created) != 1 || created[0].Attrs != nil {
+		t.Errorf("only Pulled events are tagged; Created = %+v", created)
 	}
 }

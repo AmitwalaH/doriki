@@ -32,12 +32,13 @@ The single exception to METHOD.md rule 1 is written in `PROJECT.md` section 5. Y
 `git add`, `git commit` and `git push origin task/<branch>` only when every condition there
 holds. If any condition fails, or you are unsure, do not commit or push: report at Step 12 and
 stop. You never push to `main`, never force-push, never merge, rebase, or open a pull request.
+When to add the co-author trailer, and when to leave it out, is also written there, once.
 
 ## Commands (also in PROJECT.md section 3)
 
 - `make build` · `make test` · `make lint` · `make gate` (build + lint + test)
 - `make e2e` (kind, CPU engines; added to the gate at M2)
-- `go run ./cmd/doriki --from-files packs/vllm/testdata/0.28/{pod.json,events.json,container.log}`
+- `go run ./cmd/doriki --from-files packs/vllm/testdata/0.32/{pod.json,events.json,container.log}`
   is the fastest manual check once M1 lands.
 
 ## Checkpoints (from METHOD.md section 3)
