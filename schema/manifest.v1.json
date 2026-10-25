@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/AmitwalaH/doriki/main/schema/manifest.v1.json",
+  "$ref": "#/$defs/Manifest",
+  "$defs": {
+    "Manifest": {
+      "properties": {
+        "manifest_version": {
+          "type": "integer"
+        },
+        "pod": {
+          "$ref": "#/$defs/ManifestPod"
+        },
+        "node": {
+          "$ref": "#/$defs/ManifestNode"
+        },
+        "engine": {
+          "$ref": "#/$defs/ManifestEngine"
+        },
+        "model": {
+          "$ref": "#/$defs/ManifestModel"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "manifest_version"
+      ],
+      "description": "Manifest is the deployment manifest (DESIGN.md section 4.3)."
+    },
+    "ManifestEngine": {
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        },
+        "parser_pack": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "ManifestModel": {
+      "properties": {
+        "ref": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "ManifestNode": {
+      "properties": {
+        "name": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "ManifestPod": {
+      "properties": {
+        "namespace": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    }
+  }
+}
