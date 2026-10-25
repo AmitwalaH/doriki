@@ -38,24 +38,25 @@ As of 24 Oct 2026 · maintained by the repository owner
 4. **Record for later.** `--output json` writes a self-contained report; teams attach it to tickets or commit it as a fixture.
 5. **Fleet view (v0.3+).** `doriki export` runs as a Deployment and publishes `doriki_phase_seconds` histograms to Prometheus for every inference pod matching a label selector.
 
-**Expected terminal output (illustrative).**
+**Terminal output** (real: the vLLM 0.32 CPU fixture, recorded as `internal/cli/testdata/vllm-0.32.txt`; advice rules arrive in M3, so it has no Advice block).
 
 ```text
-Pod default/vllm-qwen3-7c9f   engine vllm 0.28.1   node gpu-a100-3   total 6m12s
+Pod default/vllm-785fb8997d-bvsz4   engine vllm 0.32.0   node doriki-control-plane   total 7:36
 
-scheduling        ████                                   0:12
-image-pull        ████████████████████████               2:41   ghcr.io/…/vllm-openai@sha256:3f9a…
-weight-fetch      ██████████                             1:05   hf://Qwen/Qwen3-35B-A3B rev 8d1c…
-weight-load       ████                                   0:29
-compile           ████████                               0:53   torch.compile cache MISS
-graph-capture     ███                                    0:31
-kv-alloc          █                                      0:08
-first-token       █                                      0:13
+scheduling      │                                               0.0s
+image-pull      ██████████████████████████                      4:28
+container-init                            █                     0.4s
+engine-init                               ███████               1:11  facebook/opt-125m
+gap                                              ░              0:01
+weight-fetch                                     ██████████    ~1:48  facebook/opt-125m
+weight-load                                                █   ~0.5s
+kv-alloc                                                   █    0.0s  1.0 GiB, 29,056 tokens
+gap                                                        ░    0:05
+server-ready                                               │    0.0s
 
-Advice
-  1. image-pull is 43% of boot. Image is 11.2 GB and not present on node; add a prepull DaemonSet or use an OCI image volume (K8s ≥1.31).
-  2. compile cache missed: VLLM_CACHE_ROOT is ephemeral on this pod. Mount a shared PVC or set a cache key stable across restarts.
-  3. weight-fetch pulled from huggingface.co with no mirror; consider a cluster-local HF mirror or Dragonfly.
+skipped: compile, graph-capture (the engine said it skips them)
+absent: node-provision, first-token (not seen in the events or the log; pack vllm/0.32)
+~ estimated: confidence below 1.0 (a start derived from a logged duration, or a heuristic marker)
 ```
 
 **What "done" feels like.** An operator with no prior knowledge of the tool installs it with `kubectl krew install doriki`, runs it against a pod, and knows within one screen what to fix first.
