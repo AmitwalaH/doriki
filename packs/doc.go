@@ -13,6 +13,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/Masterminds/semver/v3"
 	"go.yaml.in/yaml/v3"
 
 	"github.com/AmitwalaH/doriki/internal/model"
@@ -65,6 +66,7 @@ func All() ([]model.Pack, error) {
 		if err != nil {
 			return nil, fmt.Errorf("pack %s: %w", p, err)
 		}
+		pack.Name = nameFromPath(p)
 		out = append(out, pack)
 	}
 	return out, nil
@@ -78,17 +80,23 @@ func parse(b []byte) (model.Pack, error) {
 	return pack, err
 }
 
-// Select picks the pack for a container image (DESIGN.md section 5.3). With no match it
-// falls back to the generic pack and warns, naming the image.
-func Select(image string) (model.Pack, []model.Warning, error) {
+// detectLines is how far into the log log_regex looks for the engine version (DESIGN.md
+// section 5.3).
+const detectLines = 200
+
+// Select picks the pack for a container image and its log lines (DESIGN.md section 5.3). The
+// image narrows the packs; log_regex on the first 200 lines reads the engine version, and the
+// pack whose versions range holds it wins. With no match it falls back to the generic pack
+// and warns, naming the image or the version.
+func Select(image string, lines ...string) (model.Pack, []model.Warning, error) {
 	all, err := All()
 	if err != nil {
 		return model.Pack{}, nil, err
 	}
-	return selectFrom(all, image)
+	return selectFrom(all, image, lines...)
 }
 
-func selectFrom(all []model.Pack, image string) (model.Pack, []model.Warning, error) {
+func selectFrom(all []model.Pack, image string, lines ...string) (model.Pack, []model.Warning, error) {
 	var generic *model.Pack
 	var matched []model.Pack
 	for i, p := range all {
@@ -107,18 +115,101 @@ func selectFrom(all []model.Pack, image string) (model.Pack, []model.Warning, er
 			matched = append(matched, p)
 		}
 	}
-	switch {
-	case len(matched) == 1:
-		return matched[0], nil, nil
-	case len(matched) > 1:
-		// DESIGN.md section 5.3 disambiguates with log_regex; that lands with the first
-		// engine pack (M1b).
-		return model.Pack{}, nil, fmt.Errorf("image %q matches %d packs; selecting by log is not implemented yet", image, len(matched))
-	case generic == nil:
+	if len(matched) > 0 {
+		return selectByVersion(matched, generic, image, lines)
+	}
+	if generic == nil {
 		return model.Pack{}, nil, fmt.Errorf("no pack matches image %q and the generic pack is missing", image)
 	}
 	return *generic, []model.Warning{{
 		Code: "no-pack",
 		Text: fmt.Sprintf("no parser pack matches image %q; only Kubernetes phases are reported", image),
 	}}, nil
+}
+
+// selectByVersion chooses among the packs matching the image by the version their log_regex
+// reads from the first lines.
+func selectByVersion(matched []model.Pack, generic *model.Pack, image string, lines []string) (model.Pack, []model.Warning, error) {
+	lines = lines[:min(len(lines), detectLines)]
+	var covering, names, ranges []string
+	var found string
+	byName := map[string]model.Pack{}
+	for _, p := range matched {
+		names, ranges = append(names, p.Name), append(ranges, p.Versions)
+		byName[p.Name] = p
+		v, err := logVersion(p, lines)
+		if err != nil {
+			return model.Pack{}, nil, err
+		}
+		if v == "" {
+			continue
+		}
+		found = v
+		ok, err := covers(p, v)
+		if err != nil {
+			return model.Pack{}, nil, err
+		}
+		if ok {
+			covering = append(covering, p.Name)
+		}
+	}
+	switch {
+	case len(covering) == 1:
+		return byName[covering[0]], nil, nil
+	case len(covering) > 1:
+		return model.Pack{}, nil, fmt.Errorf("packs %s all cover version %s", strings.Join(covering, ", "), found)
+	case found != "":
+		if generic == nil {
+			return model.Pack{}, nil, fmt.Errorf("no pack covers version %s and the generic pack is missing", found)
+		}
+		return *generic, []model.Warning{{
+			Code: "no-pack",
+			Text: fmt.Sprintf("image %q matches packs %s, but the log says version %s, which none of them covers (%s); only Kubernetes phases are reported",
+				image, strings.Join(names, ", "), found, strings.Join(ranges, "; ")),
+		}}, nil
+	case len(matched) == 1:
+		p := matched[0]
+		if p.Detect.LogRegex == "" {
+			return p, nil, nil
+		}
+		return p, []model.Warning{{
+			Code: "pack-version-unknown",
+			Text: fmt.Sprintf("the log does not say the engine version in its first %d lines; using pack %s, tested with %s", detectLines, p.Name, p.Versions),
+		}}, nil
+	}
+	return model.Pack{}, nil, fmt.Errorf("image %q matches packs %s and the log does not say which version it is", image, strings.Join(names, ", "))
+}
+
+// logVersion is the named group "version" of the pack's log_regex on the first matching line.
+func logVersion(p model.Pack, lines []string) (string, error) {
+	if p.Detect.LogRegex == "" {
+		return "", nil
+	}
+	re, err := regexp.Compile(p.Detect.LogRegex)
+	if err != nil {
+		return "", fmt.Errorf("pack %s: log_regex: %w", p.Name, err)
+	}
+	i := re.SubexpIndex("version")
+	if i < 0 {
+		return "", fmt.Errorf("pack %s: log_regex has no named group version", p.Name)
+	}
+	for _, l := range lines {
+		if m := re.FindStringSubmatch(l); m != nil {
+			return m[i], nil
+		}
+	}
+	return "", nil
+}
+
+// covers reports whether the pack's versions range holds v.
+func covers(p model.Pack, v string) (bool, error) {
+	c, err := semver.NewConstraint(p.Versions)
+	if err != nil {
+		return false, fmt.Errorf("pack %s: versions: %w", p.Name, err)
+	}
+	sv, err := semver.NewVersion(v)
+	if err != nil {
+		return false, nil // the log said something that is not a version; no pack covers it
+	}
+	return c.Check(sv), nil
 }

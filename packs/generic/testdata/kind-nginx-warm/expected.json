@@ -40,6 +40,10 @@
       ]
     },
     {
+      "name": "engine-init",
+      "state": "absent"
+    },
+    {
       "name": "weight-fetch",
       "state": "absent"
     },

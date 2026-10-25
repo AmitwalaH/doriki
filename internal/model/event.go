@@ -45,11 +45,31 @@ const (
 	KindLogLine          = "log.line"         // any engine log line
 	KindLogMarker        = "log.marker"       // a log line a pack matched; Marker holds its id
 	KindContainerImage   = "ContainerImage"   // SourceManifest; AttrImage holds the image reference
+	KindFact             = "Fact"             // SourceManifest; a pack fact read from the engine log
 )
 
-// AttrImage on a KindContainerImage event is the profiled container's image, as written in
-// the pod spec. Pack selection reads it.
-const AttrImage = "image"
+// Attributes of a KindContainerImage event: the profiled container's image as written in the
+// pod spec (pack selection reads it), and the pod's namespace, name and node.
+const (
+	AttrImage     = "image"
+	AttrNamespace = "namespace"
+	AttrPod       = "pod"
+	AttrNode      = "node"
+)
+
+// Attributes of a KindFact event: the pack fact's key and the value read from the log.
+const (
+	AttrFactKey   = "key"
+	AttrFactValue = "value"
+)
+
+// AttrUntimed is "true" on a KindLogLine event whose line had no runtime timestamp; its TS is
+// zero until enginelog dates it from the engine's own timestamp or drops it.
+const AttrUntimed = "untimed"
+
+// AttrStartDerived is on a start marker derived from an end marker's logged duration
+// (PackMarker.StartFromDuration), and on the phase it starts.
+const AttrStartDerived = "start_derived"
 
 // MaxRawBytes caps Event.Raw (DESIGN.md section 4.1).
 const MaxRawBytes = 512

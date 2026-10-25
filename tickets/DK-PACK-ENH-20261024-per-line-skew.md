@@ -2,7 +2,7 @@
 
 **Date Discovered:** 2026-10-24
 **Severity:** MEDIUM
-**Status:** OPEN
+**Status:** CLOSED (2026-10-25)
 **Label:** [ticket]
 **Found by:** the M1a agent, read in `DESIGN.md` section 4.1 while planning clock-skew correction
 **Filed by:** the M1a agent
@@ -31,3 +31,14 @@ there points them at the wrong fix, and the report gives no hint that the clock 
 
 ## Related
 The M1a plan, question Q1 (task files are not committed); `DESIGN.md` sections 4.1 and 5.2; the M1b vLLM pack.
+
+## Resolution (2026-10-25)
+Option 1, implemented in M1b in `internal/collect/enginelog` (`Apply`). With runtime
+timestamps (`kubectl logs --timestamps`) the runtime time is every event's time, so a fast
+engine clock no longer stretches `container-init`; the engine's own in-line time is read with
+the pack's `timestamp` regex and compared line by line, and a difference over 2 s on any line
+is a `log-inline-skew` warning. Without runtime timestamps the in-line time is used, with the
+year from the container start, and a `log-inline-time` warning says so. Measured on the vLLM
+0.32 fixture: 212 lines carry an in-line time, the largest difference is 0.994 s (the 1 s
+resolution of the in-line time), so no warning. The maximum was chosen over the median the
+ticket suggested so a clock that jumps partway through is still reported.
