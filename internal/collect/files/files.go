@@ -71,11 +71,11 @@ func Read(pod, events, log io.Reader) ([]model.Event, []model.Warning, error) {
 	if !hasScheduled(out) {
 		out = append(out, scheduledFallback(&p)...)
 	}
-	logEvents, warnings, err := logLines(log)
+	logEvents, err := logLines(log)
 	if err != nil {
 		return nil, nil, fmt.Errorf("%s: %w", nameOf(log, "log"), err)
 	}
-	return append(out, logEvents...), warnings, nil
+	return append(out, logEvents...), nil, nil
 }
 
 func event(ts time.Time, src model.Source, kind, raw string) model.Event {
@@ -92,6 +92,11 @@ func podEvents(p *corev1.Pod, container string) []model.Event {
 		if c.Name == container {
 			img := event(p.CreationTimestamp.Time, model.SourceManifest, model.KindContainerImage, "container "+container+" image "+c.Image)
 			img.Attrs = map[string]string{model.AttrImage: c.Image}
+			for k, v := range map[string]string{model.AttrNamespace: p.Namespace, model.AttrPod: p.Name, model.AttrNode: p.Spec.NodeName} {
+				if v != "" {
+					img.Attrs[k] = v
+				}
+			}
 			out = append(out, img)
 		}
 	}
@@ -200,11 +205,11 @@ func scheduledFallback(p *corev1.Pod) []model.Event {
 }
 
 // logLines reads `kubectl logs` output. A line counts as timed when it starts with an
-// RFC 3339 timestamp and a space, as `kubectl logs --timestamps` writes it. Untimed lines
-// become no event (their time is unknown) and are counted in one warning.
-func logLines(r io.Reader) ([]model.Event, []model.Warning, error) {
+// RFC 3339 timestamp and a space, as `kubectl logs --timestamps` writes it. An untimed line
+// is kept whole, with a zero time and AttrUntimed, for enginelog to date from the engine's
+// own timestamp or drop; the collector knows no pack, so it cannot tell which.
+func logLines(r io.Reader) ([]model.Event, error) {
 	var out []model.Event
-	total, untimed := 0, 0
 	sc := bufio.NewScanner(r)
 	sc.Buffer(make([]byte, 0, 64*1024), maxLogLine)
 	for sc.Scan() {
@@ -212,27 +217,21 @@ func logLines(r io.Reader) ([]model.Event, []model.Warning, error) {
 		if line == "" {
 			continue
 		}
-		total++
 		prefix, rest, ok := strings.Cut(line, " ")
 		ts, err := time.Parse(time.RFC3339Nano, prefix)
 		if !ok || err != nil {
-			untimed++
+			e := event(time.Time{}, model.SourceEngineLog, model.KindLogLine, line)
+			e.Attrs = map[string]string{model.AttrUntimed: "true"}
+			out = append(out, e)
 			continue
 		}
 		out = append(out, event(ts, model.SourceEngineLog, model.KindLogLine, rest))
 	}
 	if err := sc.Err(); err != nil {
 		if errors.Is(err, bufio.ErrTooLong) {
-			return nil, nil, fmt.Errorf("a log line is longer than %d bytes", maxLogLine)
+			return nil, fmt.Errorf("a log line is longer than %d bytes", maxLogLine)
 		}
-		return nil, nil, err
+		return nil, err
 	}
-	var warnings []model.Warning
-	if untimed > 0 {
-		warnings = append(warnings, model.Warning{
-			Code: "log-untimed",
-			Text: fmt.Sprintf("%d of %d log lines have no timestamp and were skipped; capture logs with kubectl logs --timestamps", untimed, total),
-		})
-	}
-	return out, warnings, nil
+	return out, nil
 }

@@ -38,7 +38,7 @@ When to add the co-author trailer, and when to leave it out, is also written the
 
 - `make build` · `make test` · `make lint` · `make gate` (build + lint + test)
 - `make e2e` (kind, CPU engines; added to the gate at M2)
-- `go run ./cmd/doriki --from-files packs/vllm/testdata/0.28/{pod.json,events.json,container.log}`
+- `go run ./cmd/doriki --from-files packs/vllm/testdata/0.32/{pod.json,events.json,container.log}`
   is the fastest manual check once M1 lands.
 
 ## Checkpoints (from METHOD.md section 3)

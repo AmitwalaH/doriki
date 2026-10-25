@@ -8,7 +8,7 @@ import (
 // The fixed order is DESIGN.md section 4.2's table, top to bottom.
 func TestPhasesOrder(t *testing.T) {
 	want := []PhaseName{
-		"scheduling", "node-provision", "image-pull", "container-init", "weight-fetch",
+		"scheduling", "node-provision", "image-pull", "container-init", "engine-init", "weight-fetch",
 		"weight-load", "compile", "graph-capture", "kv-alloc", "server-ready", "first-token",
 	}
 	if got := Phases(); !slices.Equal(got, want) {

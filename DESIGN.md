@@ -110,6 +110,7 @@ Phases are a fixed ordered set. Each is defined by a start marker and an end mar
 | `node-provision` | `Scheduled` on a node whose `Ready` condition is newer than the pod | Node `Ready` | k8s-event (optional) |
 | `image-pull` | Event `Pulling` | Event `Pulled` | k8s-event, cri |
 | `container-init` | Container `started` | first engine log line | container-status, engine-log |
+| `engine-init` | first engine log line | marker `*.engine.init.end` (decision 0006) | engine-log |
 | `weight-fetch` | marker `*.weights.fetch.start` | marker `*.weights.fetch.end` | engine-log |
 | `weight-load` | marker `*.weights.load.start` | marker `*.weights.load.end` | engine-log |
 | `compile` | marker `*.compile.start` | marker `*.compile.end` | engine-log |
@@ -223,7 +224,7 @@ Every pack ships with at least one fixture under `packs/<engine>/testdata/<versi
 
 | Pack | Versions | Fixture source |
 | --- | --- | --- |
-| `vllm` | 0.27–0.29 | Kaggle/Colab free GPU run, plus community donations |
+| `vllm` | 0.32.0 (CPU fixture; widened as GPU fixtures arrive) | CPU run in `kind` (M1b); Kaggle/Colab GPU runs and community donations |
 | `sglang` | 0.5.x | same |
 | `llamacpp` | server b4xxx+ | CPU run in `kind`, used for e2e |
 | `ollama` | 0.6+ | CPU run in `kind` |
@@ -355,8 +356,8 @@ doriki/
 │   ├── render/                   # text, json, html
 │   └── diff/                     # report comparison (v0.2)
 ├── packs/                        # embedded parser packs + fixtures
-│   ├── vllm/0.28.yaml
-│   ├── vllm/testdata/0.28/{pod.json,events.json,container.log,expected.json}
+│   ├── vllm/0.32.yaml
+│   ├── vllm/testdata/0.32/{pod.json,events.json,container.log,expected.json}
 │   └── ...
 ├── schema/                       # report.v1.json, manifest.v1.json, pack.v1.json (JSON Schema)
 ├── test/e2e/                     # kind-based end-to-end (CPU engines)

@@ -30,7 +30,7 @@ tested from fixtures.
 | What | Command |
 |---|---|
 | Install | `go install ./cmd/doriki` (local); users: krew / Homebrew / GitHub Releases |
-| Run locally | `go run ./cmd/doriki --from-files packs/vllm/testdata/0.28/{pod.json,events.json,container.log}` |
+| Run locally | `go run ./cmd/doriki --from-files packs/vllm/testdata/0.32/{pod.json,events.json,container.log}` |
 | Types | `go build ./... && go vet ./...` |
 | Lint | `make lint` (golangci-lint with gofmt, govet, staticcheck, errcheck, gosec, depguard) |
 | Tests | `make test` (unit + golden + schema) |

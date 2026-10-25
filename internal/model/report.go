@@ -46,9 +46,38 @@ type Totals struct {
 	PendingToFirstTokenSeconds *float64 `json:"pending_to_first_token_seconds,omitempty"`
 }
 
-// Manifest is the deployment manifest (DESIGN.md section 4.3). Its fields land in M3; until
-// then a report carries none and the key is omitted.
-type Manifest struct{}
+// ManifestVersion is the manifest schema version; like the report, it is append-only.
+const ManifestVersion = 1
+
+// Manifest is the deployment manifest (DESIGN.md section 4.3). Every field is optional and
+// omitted when unknown. M1b fills the pod and node names from the pod object and the engine
+// and model from the selected pack and the engine log; the rest lands in M3.
+type Manifest struct {
+	ManifestVersion int             `json:"manifest_version"`
+	Pod             *ManifestPod    `json:"pod,omitempty"`
+	Node            *ManifestNode   `json:"node,omitempty"`
+	Engine          *ManifestEngine `json:"engine,omitempty"`
+	Model           *ManifestModel  `json:"model,omitempty"`
+}
+
+type ManifestPod struct {
+	Namespace string `json:"namespace,omitempty"`
+	Name      string `json:"name,omitempty"`
+}
+
+type ManifestNode struct {
+	Name string `json:"name,omitempty"`
+}
+
+type ManifestEngine struct {
+	Name       string `json:"name,omitempty"`
+	Version    string `json:"version,omitempty"`
+	ParserPack string `json:"parser_pack,omitempty"`
+}
+
+type ManifestModel struct {
+	Ref string `json:"ref,omitempty"`
+}
 
 // Advice is one rule's finding (DESIGN.md section 6.2). No rules run until M3.
 type Advice struct {
@@ -58,8 +87,15 @@ type Advice struct {
 	Evidence map[string]any `json:"evidence,omitempty"`
 }
 
+// WarnPhaseUnobserved is the warning code for an expected engine phase still absent once the
+// pod is Ready (decision 0005). The phase engine writes it; the exit code reads it, so a
+// warned phase does not hold a booted pod at exit 1.
+const WarnPhaseUnobserved = "phase-unobserved"
+
 // Warning is something the user should know about the inputs, such as clock skew.
 type Warning struct {
 	Code string `json:"code"`
 	Text string `json:"text"`
+	// Phase names the phase the warning is about, when it is about one.
+	Phase PhaseName `json:"phase,omitempty"`
 }
