@@ -38,6 +38,7 @@ type Options struct {
 type matcher struct {
 	kind         string       // matches Event.Kind, when set
 	source       model.Source // with kind set, empty means any source
+	attr         string       // with kind set, the event must also have this attribute "true"
 	markerSuffix string       // matches Event.Marker ending in this, when set
 }
 
@@ -46,7 +47,7 @@ func (m matcher) match(e model.Event) bool {
 	case m.markerSuffix != "":
 		return e.Source == model.SourceEngineLog && strings.HasSuffix(e.Marker, m.markerSuffix)
 	case m.kind != "":
-		return e.Kind == m.kind && (m.source == "" || e.Source == m.source)
+		return e.Kind == m.kind && (m.source == "" || e.Source == m.source) && (m.attr == "" || e.Attrs[m.attr] == "true")
 	default: // any event from the source
 		return m.source != "" && e.Source == m.source
 	}
@@ -62,6 +63,10 @@ func (m matcher) observable(markers []string) bool {
 
 // spec is one row of DESIGN.md section 4.2's table. A zero start matcher never matches.
 type spec struct{ start, end matcher }
+
+// phaseAttrs are the event attributes a phase takes from its start event. Collector
+// bookkeeping such as the restart count stays on the event.
+var phaseAttrs = []string{model.AttrCached}
 
 // optional phases only happen in some boots (a node created for the pod), so their absence
 // is normal and never makes a report incomplete.
@@ -111,6 +116,17 @@ var specs = map[model.PhaseName]spec{
 	model.PhaseServerReady:  {matcher{markerSuffix: ".server.listening"}, podReady},
 	// --probe will be a second way to end first-token (M3).
 	model.PhaseFirstToken: {podReady, matcher{markerSuffix: ".request.first_token"}},
+}
+
+// altStarts are second events that can start a phase. An image already on the node has no
+// Pulling, only a cached Pulled: a complete 0 s pull that starts and ends at that event
+// (decision 0004).
+var altStarts = map[model.PhaseName]matcher{
+	model.PhaseImagePull: {kind: model.KindPulled, source: model.SourceK8sEvent, attr: model.AttrCached},
+}
+
+func startsAt(name model.PhaseName, s spec, e model.Event) bool {
+	return s.start.match(e) || altStarts[name].match(e)
 }
 
 // Assign turns events into phases, gaps and totals for one boot attempt (DESIGN.md section
@@ -232,12 +248,20 @@ func assignPhase(name model.PhaseName, s spec, events []model.Event, markers []s
 	if !s.producible(markers) {
 		return absent
 	}
-	startIdx := slices.IndexFunc(events, func(e model.Event) bool { return !e.TS.Before(cursor) && s.start.match(e) })
+	startIdx := slices.IndexFunc(events, func(e model.Event) bool { return !e.TS.Before(cursor) && startsAt(name, s, e) })
 	if startIdx < 0 {
 		return absent
 	}
 	start := events[startIdx]
 	p := model.Phase{Name: name, Start: start.TS, State: model.StateOpen, Sources: []model.Source{start.Source}}
+	for _, k := range phaseAttrs {
+		if v, ok := start.Attrs[k]; ok {
+			if p.Attrs == nil {
+				p.Attrs = map[string]string{}
+			}
+			p.Attrs[k] = v
+		}
+	}
 
 	endIdx := slices.IndexFunc(events, func(e model.Event) bool { return !e.TS.Before(start.TS) && s.end.match(e) })
 	if endIdx < 0 {

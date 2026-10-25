@@ -66,6 +66,10 @@ func TruncateRaw(s string) string {
 	return s[:cut]
 }
 
+// AttrCached is "true" on a KindPulled event whose image was already on the node, and on the
+// image-pull phase that event makes (decision 0004).
+const AttrCached = "cached"
+
 // AttrRestartCount on a KindContainerStarted event is the container's restartCount at that
 // start, which is also its attempt number.
 const AttrRestartCount = "restart_count"

@@ -207,3 +207,22 @@ func TestExit(t *testing.T) {
 		}
 	}
 }
+
+// DK-PHASE-ENH-20261024-cached-image-pull: a pod that booted on a node already holding its
+// image exits 0, with image-pull complete and cached (decision 0004), not 1 as if booting.
+func TestWarmNodeExitsZero(t *testing.T) {
+	warm := "../../packs/generic/testdata/kind-nginx-warm/"
+	out, err := run(t, "--from-files", "-o", "json", warm+"pod.json", warm+"events.json", warm+"container.log")
+	if code, msg := Exit(err); code != 0 || msg != "" {
+		t.Errorf("Exit = %d %q, want 0", code, msg)
+	}
+	var r model.Report
+	if err := json.Unmarshal([]byte(out), &r); err != nil {
+		t.Fatal(err)
+	}
+	for _, p := range r.Phases {
+		if p.Name == model.PhaseImagePull && (p.State != model.StateComplete || p.Attrs[model.AttrCached] != "true") {
+			t.Errorf("image-pull = %+v, want complete and cached", p)
+		}
+	}
+}
