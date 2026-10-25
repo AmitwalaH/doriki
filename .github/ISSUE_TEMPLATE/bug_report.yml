@@ -1,0 +1,60 @@
+name: Bug report
+description: doriki crashed, or printed a number or a phase that is wrong for your pod.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting. doriki measures and advises; it never changes the cluster, so a
+        bug here is a wrong reading, not a changed workload. Please remove secrets (tokens, API
+        keys, passwords) from anything you paste; see the README's capture section for how.
+  - type: input
+    id: doriki-version
+    attributes:
+      label: doriki version
+      description: The output of `doriki version` (or `kubectl doriki version`).
+      placeholder: "version: v0.1.0, commit: abc1234"
+    validations:
+      required: true
+  - type: input
+    id: kubernetes-version
+    attributes:
+      label: Kubernetes version
+      description: The server version from `kubectl version`, and the distribution if any (EKS, GKE, AKS, kind, k3s).
+      placeholder: "v1.31.2 (EKS)"
+    validations:
+      required: true
+  - type: input
+    id: engine
+    attributes:
+      label: Inference engine and version
+      description: The engine in the pod and its version, with the image if you can share it.
+      placeholder: "vLLM 0.32.0, vllm/vllm-openai:v0.32.0, 1x A100"
+    validations:
+      required: true
+  - type: textarea
+    id: command
+    attributes:
+      label: Command
+      description: The exact doriki command you ran.
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: output
+    attributes:
+      label: Output
+      description: What doriki printed, in full, and what you expected instead.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: report-json
+    attributes:
+      label: Report with events (if shareable)
+      description: |
+        The same command with `-o json --include-events`. This lets us trace every number to the
+        event behind it. Redact secrets first; leave timestamps as they are.
+      render: json
+    validations:
+      required: false

@@ -26,7 +26,7 @@ down a dead end, and an agent may build on a name that never existed.
 1. A CI check (a small Go test or script) that extracts backticked tokens shaped like a repo path,
    a `--flag`, a `make` target or an `internal/` package from `DESIGN.md` and `PROJECT.md`, and
    fails when one does not exist, with an explicit allowlist for illustrative names (such as the
-   example output in `DESIGN.md` section 2). Recommended, after v0.1: mechanical, and the
+   example manifest in `DESIGN.md` section 4.3). Recommended, after v0.1: mechanical, and the
    allowlist makes every exception a reviewed decision.
 2. A review checklist item. No tooling, but relies on the reader who already missed five.
 
