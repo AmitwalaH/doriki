@@ -71,9 +71,13 @@ force-push, never merge, rebase or open a PR, only when all of these hold:
 2. The change touches at most 2 files, not counting test files the agent wrote itself.
 3. `make gate` is green and its output is pasted in the report.
 4. No frozen artifact (golden, fixture, schema) was re-recorded.
-5. No `[decision]` was raised in the task.
+5. No open `[decision]` affects the files in this commit.
 6. The branch is `task/*`.
 Any condition unmet or unclear: report at Step 12, do not commit or push.
+
+**Co-author trailer:** a commit the agent makes under this policy ends with
+`Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`. A commit message the agent proposes
+for the owner to commit has no trailer.
 
 **Open decisions, so don't decide them:**
 - `--probe` request shape and prompt (decide before M3).

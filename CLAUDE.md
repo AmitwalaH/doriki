@@ -32,6 +32,7 @@ The single exception to METHOD.md rule 1 is written in `PROJECT.md` section 5. Y
 `git add`, `git commit` and `git push origin task/<branch>` only when every condition there
 holds. If any condition fails, or you are unsure, do not commit or push: report at Step 12 and
 stop. You never push to `main`, never force-push, never merge, rebase, or open a pull request.
+When to add the co-author trailer, and when to leave it out, is also written there, once.
 
 ## Commands (also in PROJECT.md section 3)
 
