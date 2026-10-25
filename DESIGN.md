@@ -326,7 +326,7 @@ Terminal output fits 100 columns, no color when not a TTY or `NO_COLOR` is set, 
 | Image digests | `google/go-containerregistry` | resolve tag → digest, read manifest size without pulling |
 | YAML | `go.yaml.in/yaml/v3` | packs |
 | Semver | `Masterminds/semver/v3` | pack version ranges |
-| Terminal | `charmbracelet/lipgloss` | bars and tables; no TUI framework |
+| Terminal | `charm.land/lipgloss/v2` | bars and tables; no TUI framework |
 | HTML | stdlib `html/template` | single-file report, no JS |
 | Metrics | `prometheus/client_golang` | exporter (v0.3) |
 | Traces | `go.opentelemetry.io/otel` | consume engine spans when present (v0.2) |
