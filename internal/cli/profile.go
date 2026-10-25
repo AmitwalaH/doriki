@@ -3,6 +3,8 @@ package cli
 import (
 	"errors"
 	"fmt"
+	"io"
+	"os"
 	"slices"
 	"time"
 
@@ -15,6 +17,7 @@ import (
 	"github.com/AmitwalaH/doriki/internal/normalize"
 	"github.com/AmitwalaH/doriki/internal/phase"
 	renderjson "github.com/AmitwalaH/doriki/internal/render/json"
+	rendertext "github.com/AmitwalaH/doriki/internal/render/text"
 	"github.com/AmitwalaH/doriki/packs"
 )
 
@@ -30,7 +33,7 @@ type profileFlags struct {
 
 func addProfileFlags(cmd *cobra.Command, f *profileFlags) {
 	cmd.Flags().BoolVar(&f.fromFiles, "from-files", false, "build the report from saved files: pod.json events.json container.log")
-	cmd.Flags().StringVarP(&f.output, "output", "o", "text", "output format: text or json")
+	cmd.Flags().StringVarP(&f.output, "output", "o", "text", "output format: text (the waterfall) or json (the report)")
 	cmd.Flags().BoolVar(&f.includeEvents, "include-events", false, "add every input event to the JSON report")
 }
 
@@ -41,19 +44,21 @@ func runProfile(cmd *cobra.Command, args []string, f *profileFlags) error {
 	if len(args) != 3 {
 		return fmt.Errorf("--from-files takes 3 files (pod.json events.json container.log), got %d", len(args))
 	}
-	switch f.output {
-	case "json":
-	case "text":
-		return errors.New("text output is not implemented yet; use -o json")
-	default:
-		return fmt.Errorf("unknown output %q; use -o json", f.output)
+	if f.output != "text" && f.output != "json" {
+		return fmt.Errorf("unknown output %q; use -o text or -o json", f.output)
 	}
 
 	r, pack, err := reportFromFiles(args[0], args[1], args[2], f.includeEvents, now())
 	if err != nil {
 		return err
 	}
-	if err := renderjson.Write(cmd.OutOrStdout(), r); err != nil {
+	out := cmd.OutOrStdout()
+	if f.output == "json" {
+		err = renderjson.Write(out, r)
+	} else {
+		err = rendertext.Write(out, r, rendertext.Options{Color: colorFor(out)})
+	}
+	if err != nil {
 		return err
 	}
 	if code := exitCode(r, phase.Expected(markerIDs(pack))); code != 0 {
@@ -153,4 +158,19 @@ func exitCode(r model.Report, expected []model.PhaseName) int {
 		}
 	}
 	return 0
+}
+
+// colorFor reports whether text output to w is coloured: only for a terminal (a character
+// device), and never when NO_COLOR is set to anything non-empty (DESIGN.md section 7.5,
+// no-color.org). cli decides this so the renderer reads no environment.
+func colorFor(w io.Writer) bool {
+	if os.Getenv("NO_COLOR") != "" {
+		return false
+	}
+	f, ok := w.(*os.File)
+	if !ok {
+		return false
+	}
+	info, err := f.Stat()
+	return err == nil && info.Mode()&os.ModeCharDevice != 0
 }
