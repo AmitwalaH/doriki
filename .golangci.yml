@@ -1,5 +1,8 @@
 version: "2"
 
+run:
+  build-tags: [e2e] # lint test/e2e too, which only compiles with this tag
+
 linters:
   # Exactly the linters PROJECT.md section 3 names; nothing a golangci-lint upgrade adds.
   default: none

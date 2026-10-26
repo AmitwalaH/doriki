@@ -26,3 +26,42 @@ jobs:
       - run: bash .claude/hooks/git-gate_test.sh
       # The same target developers run, so CI and a local gate cannot drift apart.
       - run: make gate
+
+  # The live path end to end on a CPU kind cluster (DESIGN.md section 9.1). Not in gate, so
+  # gate stays fast; only on pull requests to main.
+  e2e:
+    name: e2e
+    if: github.event_name == 'pull_request' && github.base_ref == 'main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    concurrency:
+      group: e2e-${{ github.event.pull_request.number }}
+      cancel-in-progress: true
+    env:
+      KIND_VERSION: v0.33.0
+      # sha256 of kind-linux-amd64 v0.33.0, checked against the release's .sha256sum on 2026-10-26.
+      KIND_SHA256: aee6151561422756b764a4ae28e7f44cda5af5a9eead3cc9985112b1de8d8e0d
+      # A missing kind or Docker fails the job instead of skipping the test.
+      DORIKI_E2E_REQUIRED: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+      # Pinned and checksummed; no third-party action. The node pulls the llama.cpp image from
+      # ghcr itself (no kind load), so the e2e's image-pull is a real pull.
+      - name: Install kind
+        run: |
+          curl -fsSLo kind "https://github.com/kubernetes-sigs/kind/releases/download/${KIND_VERSION}/kind-linux-amd64"
+          echo "${KIND_SHA256}  kind" | sha256sum -c -
+          sudo install -m 0755 kind /usr/local/bin/kind
+      - run: make e2e
+      - name: Export kind logs
+        if: failure()
+        run: kind export logs ./kind-logs --name doriki || true
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: failure()
+        with:
+          name: kind-logs
+          path: kind-logs
+          retention-days: 7
