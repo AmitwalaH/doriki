@@ -52,11 +52,8 @@ func nameOf(r io.Reader, fallback string) string {
 
 // Read turns a pod object (`kubectl get pod -o json`), its events (`kubectl get events -o
 // json`, an EventList or a List) and the container's log (`kubectl logs`, timestamps
-// optional) into events. Only the pod's first spec container is profiled.
-//
-// previousLog, at most one, is the previous container's log (`kubectl logs --previous`). Its
-// lines are tagged with that container's attempt (AttrRestartCount) so normalize and phase
-// keep them in it; the current log's lines stay untagged.
+// optional) into events, through FromObjects. previousLog, at most one, is the previous
+// container's log (`kubectl logs --previous`).
 func Read(pod, events, log io.Reader, previousLog ...io.Reader) ([]model.Event, []model.Warning, error) {
 	if len(previousLog) > 1 {
 		return nil, nil, fmt.Errorf("one previous log at most, got %d", len(previousLog))
@@ -65,35 +62,62 @@ func Read(pod, events, log io.Reader, previousLog ...io.Reader) ([]model.Event, 
 	if err := json.NewDecoder(pod).Decode(&p); err != nil {
 		return nil, nil, fmt.Errorf("%s: %w", nameOf(pod, "pod"), err)
 	}
-	if len(p.Spec.Containers) == 0 {
-		return nil, nil, fmt.Errorf("%s: pod %s has no containers", nameOf(pod, "pod"), p.Name)
-	}
-	container := p.Spec.Containers[0].Name
-
 	var list corev1.EventList
 	if err := json.NewDecoder(events).Decode(&list); err != nil {
 		return nil, nil, fmt.Errorf("%s: %w", nameOf(events, "events"), err)
 	}
-
-	out := podEvents(&p, container)
-	out = append(out, k8sEvents(&p, container, list.Items)...)
-	if !hasScheduled(out) {
-		out = append(out, scheduledFallback(&p)...)
+	o := Objects{Pod: &p, Events: list.Items, Log: namedReader{log, nameOf(log, "log")}}
+	if len(previousLog) == 1 {
+		o.PreviousLog = namedReader{previousLog[0], nameOf(previousLog[0], "previous log")}
 	}
-	logEvents, err := logLines(log, "")
+	if len(p.Spec.Containers) == 0 {
+		return nil, nil, fmt.Errorf("%s: pod %s has no containers", nameOf(pod, "pod"), p.Name)
+	}
+	return FromObjects(o)
+}
+
+// Objects are the Kubernetes objects and logs of one pod, read from files or from the API.
+// Node and PreviousLog are optional.
+type Objects struct {
+	Pod         *corev1.Pod
+	Events      []corev1.Event
+	Node        *corev1.Node
+	Log         io.Reader
+	PreviousLog io.Reader
+}
+
+// FromObjects turns one pod's objects into events. It is the only conversion from Kubernetes
+// objects to events, so saved files and a live cluster give the same events (DESIGN.md
+// section 3). Only the pod's first spec container is profiled. A previous log's lines are
+// tagged with that container's attempt (AttrRestartCount) so normalize and phase keep them in
+// it; the current log's lines stay untagged.
+func FromObjects(o Objects) ([]model.Event, []model.Warning, error) {
+	p := o.Pod
+	if len(p.Spec.Containers) == 0 {
+		return nil, nil, fmt.Errorf("pod %s has no containers", p.Name)
+	}
+	container := p.Spec.Containers[0].Name
+
+	out := podEvents(p, container)
+	out = append(out, objectFacts(p, container, o.Node)...)
+	out = append(out, k8sEvents(p, container, o.Events)...)
+	if !hasScheduled(out) {
+		out = append(out, scheduledFallback(p)...)
+	}
+	logEvents, err := logLines(o.Log, "")
 	if err != nil {
-		return nil, nil, fmt.Errorf("%s: %w", nameOf(log, "log"), err)
+		return nil, nil, fmt.Errorf("%s: %w", nameOf(o.Log, "log"), err)
 	}
 	out = append(out, logEvents...)
 
-	if len(previousLog) == 1 {
-		restarts := restartCount(&p, container)
+	if o.PreviousLog != nil {
+		restarts := restartCount(p, container)
 		if restarts < 1 {
-			return nil, nil, fmt.Errorf("%s: container %s has not restarted, so it has no previous log", nameOf(previousLog[0], "previous log"), container)
+			return nil, nil, fmt.Errorf("%s: container %s has not restarted, so it has no previous log", nameOf(o.PreviousLog, "previous log"), container)
 		}
-		prev, err := logLines(previousLog[0], strconv.Itoa(int(restarts-1)))
+		prev, err := logLines(o.PreviousLog, strconv.Itoa(int(restarts-1)))
 		if err != nil {
-			return nil, nil, fmt.Errorf("%s: %w", nameOf(previousLog[0], "previous log"), err)
+			return nil, nil, fmt.Errorf("%s: %w", nameOf(o.PreviousLog, "previous log"), err)
 		}
 		out = append(out, prev...)
 	}

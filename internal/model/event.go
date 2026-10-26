@@ -73,10 +73,29 @@ const (
 	AttrNode      = "node"
 )
 
-// Attributes of a KindFact event: the pack fact's key and the value read from the log.
+// Attributes of a KindFact event: the fact's key and its value. A pack fact is read from the
+// engine log; the collector also reads facts from the Kubernetes objects, under these keys.
 const (
 	AttrFactKey   = "key"
 	AttrFactValue = "value"
+)
+
+// Fact keys the collector reads from the pod, its node and its owner (DESIGN.md section 4.3).
+// manifest maps each to its field. Env facts are one per variable, FactEnvPrefix and the
+// name; Args is a JSON array. Values are as written in the objects: manifest.Sanitize keeps
+// only allowlisted env and redacts secrets before anything else reads them.
+const (
+	FactPodUID             = "pod.uid"
+	FactPodOwner           = "pod.owner"
+	FactPodOwnerRef        = "pod.owner_ref"
+	FactImageDigest        = "container.image_digest"
+	FactArgs               = "container.args"
+	FactEnvPrefix          = "container.env."
+	FactNodeInstanceType   = "node.instance_type"
+	FactNodeZone           = "node.zone"
+	FactAcceleratorVendor  = "accelerator.vendor"
+	FactAcceleratorProduct = "accelerator.product"
+	FactAcceleratorCount   = "accelerator.count"
 )
 
 // AttrUntimed is "true" on a KindLogLine event whose line had no runtime timestamp; its TS is
