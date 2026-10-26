@@ -2,7 +2,7 @@
 
 **Date Discovered:** 2026-10-24
 **Severity:** HIGH (raised from MEDIUM on 2026-10-25 by the owner, after the M1b spike findings below)
-**Status:** OPEN, scheduled for M2 (live collector)
+**Status:** CLOSED (2026-10-26)
 **Label:** [ticket]
 **Found by:** the owner, reviewing the M1a slice 3 report; read in code
 **Filed by:** the M1a agent
@@ -50,3 +50,18 @@ events had one `Pulled` with `count: 3`, `firstTimestamp` 08:55:55 and `lastTime
 (`internal/collect/files/files.go`, `k8sEvents`), so for a restarted pod it sees the first
 restart's time, not the latest one's. Option 1 above should take the time from
 `lastTimestamp` (or the series) when choosing the event for a later attempt.
+
+## Resolution (2026-10-26, M2 slice 2)
+Option 1, with the M1b update. The collector emits `ContainerTerminated` at
+`lastState.terminated.finishedAt`, tagged with the attempt it ends; `phase.splitAttempts` starts
+attempt N there, falling back to N's own start. Tagged events (starts, ends, a previous
+container's log lines and their markers) go to their attempt; other events go by time, and a
+boundary owns its whole second, because termination, re-pull and restart often share one. A
+merged `Pulling` or `Pulled` with `count > 1` is also emitted at its `lastTimestamp`. The
+previous container's log is an optional fourth `--from-files` input. Pod-level phases are shown
+on every attempt (decision 0007). Real fixture: `packs/generic/testdata/kind-restart/`.
+
+Known limitation: when the kubelet merged repeated events, only the first and the last
+occurrence have a time. With more than one restart, the attempts between them get no pull of
+their own, so their pull times are approximate. The pod object keeps only the previous
+container's end, so for older attempts the boundary falls back to their start.

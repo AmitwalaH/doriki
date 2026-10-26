@@ -32,7 +32,7 @@ type profileFlags struct {
 }
 
 func addProfileFlags(cmd *cobra.Command, f *profileFlags) {
-	cmd.Flags().BoolVar(&f.fromFiles, "from-files", false, "build the report from saved files: pod.json events.json container.log")
+	cmd.Flags().BoolVar(&f.fromFiles, "from-files", false, "build the report from saved files: pod.json events.json container.log [container-previous.log]")
 	cmd.Flags().StringVarP(&f.output, "output", "o", "text", "output format: text (the waterfall) or json (the report)")
 	cmd.Flags().BoolVar(&f.includeEvents, "include-events", false, "add every input event to the JSON report")
 }
@@ -41,14 +41,18 @@ func runProfile(cmd *cobra.Command, args []string, f *profileFlags) error {
 	if !f.fromFiles {
 		return errors.New("live collection from a cluster is not implemented yet; use --from-files pod.json events.json container.log")
 	}
-	if len(args) != 3 {
-		return fmt.Errorf("--from-files takes 3 files (pod.json events.json container.log), got %d", len(args))
+	if len(args) != 3 && len(args) != 4 {
+		return fmt.Errorf("--from-files takes 3 files (pod.json events.json container.log) and, after a restart, optionally container-previous.log; got %d", len(args))
 	}
 	if f.output != "text" && f.output != "json" {
 		return fmt.Errorf("unknown output %q; use -o text or -o json", f.output)
 	}
 
-	r, pack, err := reportFromFiles(args[0], args[1], args[2], f.includeEvents, now())
+	previous := ""
+	if len(args) == 4 {
+		previous = args[3]
+	}
+	r, pack, err := reportFromFiles(args[0], args[1], args[2], previous, f.includeEvents, now())
 	if err != nil {
 		return err
 	}
@@ -69,14 +73,19 @@ func runProfile(cmd *cobra.Command, args []string, f *profileFlags) error {
 
 // ReportFromFiles runs the offline pipeline on saved files (DESIGN.md section 3): collect,
 // select a pack by image and log, apply it to the log, normalize, assign phases, build the
-// manifest. now becomes generated_at. Live mode will share every step after collection.
-func ReportFromFiles(podPath, eventsPath, logPath string, includeEvents bool, now time.Time) (model.Report, error) {
-	r, _, err := reportFromFiles(podPath, eventsPath, logPath, includeEvents, now)
+// manifest. previousLogPath, when not empty, is the previous container's log. now becomes
+// generated_at. Live mode will share every step after collection.
+func ReportFromFiles(podPath, eventsPath, logPath, previousLogPath string, includeEvents bool, now time.Time) (model.Report, error) {
+	r, _, err := reportFromFiles(podPath, eventsPath, logPath, previousLogPath, includeEvents, now)
 	return r, err
 }
 
-func reportFromFiles(podPath, eventsPath, logPath string, includeEvents bool, now time.Time) (model.Report, model.Pack, error) {
-	collected, collectWarnings, err := files.Load(podPath, eventsPath, logPath)
+func reportFromFiles(podPath, eventsPath, logPath, previousLogPath string, includeEvents bool, now time.Time) (model.Report, model.Pack, error) {
+	var previous []string
+	if previousLogPath != "" {
+		previous = append(previous, previousLogPath)
+	}
+	collected, collectWarnings, err := files.Load(podPath, eventsPath, logPath, previous...)
 	if err != nil {
 		return model.Report{}, model.Pack{}, err
 	}

@@ -1,0 +1,205 @@
+{
+    "apiVersion": "v1",
+    "items": [
+        {
+            "apiVersion": "v1",
+            "count": 1,
+            "eventTime": null,
+            "firstTimestamp": "2026-10-26T11:50:42Z",
+            "involvedObject": {
+                "apiVersion": "v1",
+                "kind": "Pod",
+                "name": "restart-once",
+                "namespace": "default",
+                "resourceVersion": "578",
+                "uid": "744cd3ba-f82d-4e5f-beed-3ab06ea533aa"
+            },
+            "kind": "Event",
+            "lastTimestamp": "2026-10-26T11:50:42Z",
+            "message": "Successfully assigned default/restart-once to doriki-control-plane",
+            "metadata": {
+                "creationTimestamp": "2026-10-26T11:50:42Z",
+                "name": "restart-once.18e2120b861dd3a0",
+                "namespace": "default",
+                "resourceVersion": "580",
+                "uid": "939f3d8a-b261-43ae-aa7b-9d3e5a343068"
+            },
+            "reason": "Scheduled",
+            "reportingComponent": "default-scheduler",
+            "reportingInstance": "",
+            "source": {
+                "component": "default-scheduler"
+            },
+            "type": "Normal"
+        },
+        {
+            "apiVersion": "v1",
+            "count": 2,
+            "eventTime": null,
+            "firstTimestamp": "2026-10-26T11:50:42Z",
+            "involvedObject": {
+                "apiVersion": "v1",
+                "fieldPath": "spec.containers{main}",
+                "kind": "Pod",
+                "name": "restart-once",
+                "namespace": "default",
+                "resourceVersion": "579",
+                "uid": "744cd3ba-f82d-4e5f-beed-3ab06ea533aa"
+            },
+            "kind": "Event",
+            "lastTimestamp": "2026-10-26T11:50:45Z",
+            "message": "Container image \"busybox:1.37.0@sha256:bdf57e528e45e4433820e045b29b4597825a1c9e38353532d90a01445013f82e\" already present on machine and can be accessed by the pod",
+            "metadata": {
+                "creationTimestamp": "2026-10-26T11:50:42Z",
+                "name": "restart-once.18e2120ba5c18a15",
+                "namespace": "default",
+                "resourceVersion": "593",
+                "uid": "2be995db-9f2f-4fcf-bdd2-c7e68144bc92"
+            },
+            "reason": "Pulled",
+            "reportingComponent": "kubelet",
+            "reportingInstance": "doriki-control-plane",
+            "source": {
+                "component": "kubelet",
+                "host": "doriki-control-plane"
+            },
+            "type": "Normal"
+        },
+        {
+            "apiVersion": "v1",
+            "count": 2,
+            "eventTime": null,
+            "firstTimestamp": "2026-10-26T11:50:42Z",
+            "involvedObject": {
+                "apiVersion": "v1",
+                "fieldPath": "spec.containers{main}",
+                "kind": "Pod",
+                "name": "restart-once",
+                "namespace": "default",
+                "resourceVersion": "579",
+                "uid": "744cd3ba-f82d-4e5f-beed-3ab06ea533aa"
+            },
+            "kind": "Event",
+            "lastTimestamp": "2026-10-26T11:50:45Z",
+            "message": "Container created",
+            "metadata": {
+                "creationTimestamp": "2026-10-26T11:50:42Z",
+                "name": "restart-once.18e2120ba860f9fa",
+                "namespace": "default",
+                "resourceVersion": "595",
+                "uid": "ab5639c4-28a2-4b86-9453-ea10bde050d4"
+            },
+            "reason": "Created",
+            "reportingComponent": "kubelet",
+            "reportingInstance": "doriki-control-plane",
+            "source": {
+                "component": "kubelet",
+                "host": "doriki-control-plane"
+            },
+            "type": "Normal"
+        },
+        {
+            "apiVersion": "v1",
+            "count": 2,
+            "eventTime": null,
+            "firstTimestamp": "2026-10-26T11:50:43Z",
+            "involvedObject": {
+                "apiVersion": "v1",
+                "fieldPath": "spec.containers{main}",
+                "kind": "Pod",
+                "name": "restart-once",
+                "namespace": "default",
+                "resourceVersion": "579",
+                "uid": "744cd3ba-f82d-4e5f-beed-3ab06ea533aa"
+            },
+            "kind": "Event",
+            "lastTimestamp": "2026-10-26T11:50:45Z",
+            "message": "Container started",
+            "metadata": {
+                "creationTimestamp": "2026-10-26T11:50:43Z",
+                "name": "restart-once.18e2120bb365f3a5",
+                "namespace": "default",
+                "resourceVersion": "598",
+                "uid": "04d5a960-6f7c-444e-974f-9aacf6e13102"
+            },
+            "reason": "Started",
+            "reportingComponent": "kubelet",
+            "reportingInstance": "doriki-control-plane",
+            "source": {
+                "component": "kubelet",
+                "host": "doriki-control-plane"
+            },
+            "type": "Normal"
+        },
+        {
+            "apiVersion": "v1",
+            "count": 2,
+            "eventTime": null,
+            "firstTimestamp": "2026-10-26T11:50:43Z",
+            "involvedObject": {
+                "apiVersion": "v1",
+                "fieldPath": "spec.containers{main}",
+                "kind": "Pod",
+                "name": "restart-once",
+                "namespace": "default",
+                "resourceVersion": "579",
+                "uid": "744cd3ba-f82d-4e5f-beed-3ab06ea533aa"
+            },
+            "kind": "Event",
+            "lastTimestamp": "2026-10-26T11:50:43Z",
+            "message": "Readiness probe failed: cat: can't open '/tmp/ready': No such file or directory\n",
+            "metadata": {
+                "creationTimestamp": "2026-10-26T11:50:43Z",
+                "name": "restart-once.18e2120bb88743fd",
+                "namespace": "default",
+                "resourceVersion": "588",
+                "uid": "6440e191-422a-4a29-b278-138284f0ba12"
+            },
+            "reason": "Unhealthy",
+            "reportingComponent": "kubelet",
+            "reportingInstance": "doriki-control-plane",
+            "source": {
+                "component": "kubelet",
+                "host": "doriki-control-plane"
+            },
+            "type": "Warning"
+        },
+        {
+            "apiVersion": "v1",
+            "count": 1,
+            "eventTime": null,
+            "firstTimestamp": "2026-10-26T11:50:45Z",
+            "involvedObject": {
+                "apiVersion": "v1",
+                "fieldPath": "spec.containers{main}",
+                "kind": "Pod",
+                "name": "restart-once",
+                "namespace": "default",
+                "resourceVersion": "579",
+                "uid": "744cd3ba-f82d-4e5f-beed-3ab06ea533aa"
+            },
+            "kind": "Event",
+            "lastTimestamp": "2026-10-26T11:50:45Z",
+            "message": "Readiness probe errored and resulted in unknown state: rpc error: code = Unknown desc = failed to exec in container: container is in CONTAINER_EXITED state",
+            "metadata": {
+                "creationTimestamp": "2026-10-26T11:50:45Z",
+                "name": "restart-once.18e2120c4807abde",
+                "namespace": "default",
+                "resourceVersion": "592",
+                "uid": "6a71ee7f-6845-4c9d-a301-80c0aaff3a8a"
+            },
+            "reason": "Unhealthy",
+            "reportingComponent": "kubelet",
+            "reportingInstance": "doriki-control-plane",
+            "source": {
+                "component": "kubelet",
+                "host": "doriki-control-plane"
+            },
+            "type": "Warning"
+        }
+    ],
+    "kind": "List",
+    "metadata": {
+        "resourceVersion": ""
+    }
+}
