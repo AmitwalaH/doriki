@@ -163,11 +163,21 @@
         "node": {
           "$ref": "#/$defs/ManifestNode"
         },
+        "container": {
+          "$ref": "#/$defs/ManifestContainer"
+        },
         "engine": {
           "$ref": "#/$defs/ManifestEngine"
         },
         "model": {
           "$ref": "#/$defs/ManifestModel"
+        },
+        "accelerator": {
+          "$ref": "#/$defs/ManifestAccelerator"
+        },
+        "fingerprint": {
+          "type": "string",
+          "description": "Fingerprint is \"sha256:\" and the hash of every other field except the pod's name and\nUID, so two boots of the same deployment share it (DESIGN.md section 4.3)."
         }
       },
       "additionalProperties": false,
@@ -176,6 +186,47 @@
         "manifest_version"
       ],
       "description": "Manifest is the deployment manifest (DESIGN.md section 4.3)."
+    },
+    "ManifestAccelerator": {
+      "properties": {
+        "vendor": {
+          "type": "string"
+        },
+        "product": {
+          "type": "string"
+        },
+        "count": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "description": "ManifestAccelerator comes from node labels and container limits only; doriki reads no GPU."
+    },
+    "ManifestContainer": {
+      "properties": {
+        "image": {
+          "type": "string"
+        },
+        "image_digest": {
+          "type": "string"
+        },
+        "args": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "env_allowlist": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "type": "object"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "description": "ManifestContainer is the profiled container."
     },
     "ManifestEngine": {
       "properties": {
@@ -205,6 +256,12 @@
       "properties": {
         "name": {
           "type": "string"
+        },
+        "instance_type": {
+          "type": "string"
+        },
+        "zone": {
+          "type": "string"
         }
       },
       "additionalProperties": false,
@@ -217,6 +274,17 @@
         },
         "name": {
           "type": "string"
+        },
+        "uid": {
+          "type": "string"
+        },
+        "owner": {
+          "type": "string",
+          "description": "Owner is the workload, Kind/name: a ReplicaSet's Deployment when known."
+        },
+        "owner_ref": {
+          "type": "string",
+          "description": "OwnerRef is the pod's own ownerReferences entry, Kind/name, as written on the pod."
         }
       },
       "additionalProperties": false,

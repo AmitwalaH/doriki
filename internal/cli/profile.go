@@ -89,6 +89,9 @@ func reportFromFiles(podPath, eventsPath, logPath, previousLogPath string, inclu
 	if err != nil {
 		return model.Report{}, model.Pack{}, err
 	}
+	// Env capture rules apply before anything else reads the events, so no secret reaches
+	// a report, --include-events or a warning (DESIGN.md section 10.3).
+	collected = manifest.Sanitize(collected)
 	pack, packWarnings, err := packs.Select(image(collected), logText(collected)...)
 	if err != nil {
 		return model.Report{}, model.Pack{}, err
@@ -107,6 +110,7 @@ func reportFromFiles(podPath, eventsPath, logPath, previousLogPath string, inclu
 	r.GeneratedAt = now.UTC()
 	r.DorikiVersion = version
 	r.Manifest = manifest.Build(events, pack)
+	r.Manifest.Fingerprint = manifest.Fingerprint(r.Manifest)
 	r.Warnings = slices.Concat(collectWarnings, packWarnings, logWarnings, normalizeWarnings, r.Warnings)
 	if includeEvents {
 		r.Events = events

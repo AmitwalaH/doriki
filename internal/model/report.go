@@ -50,23 +50,44 @@ type Totals struct {
 const ManifestVersion = 1
 
 // Manifest is the deployment manifest (DESIGN.md section 4.3). Every field is optional and
-// omitted when unknown. M1b fills the pod and node names from the pod object and the engine
-// and model from the selected pack and the engine log; the rest lands in M3.
+// omitted when unknown. Pod, node, container and accelerator come from the Kubernetes objects,
+// engine and model from the selected pack and the engine log.
 type Manifest struct {
-	ManifestVersion int             `json:"manifest_version"`
-	Pod             *ManifestPod    `json:"pod,omitempty"`
-	Node            *ManifestNode   `json:"node,omitempty"`
-	Engine          *ManifestEngine `json:"engine,omitempty"`
-	Model           *ManifestModel  `json:"model,omitempty"`
+	ManifestVersion int                  `json:"manifest_version"`
+	Pod             *ManifestPod         `json:"pod,omitempty"`
+	Node            *ManifestNode        `json:"node,omitempty"`
+	Container       *ManifestContainer   `json:"container,omitempty"`
+	Engine          *ManifestEngine      `json:"engine,omitempty"`
+	Model           *ManifestModel       `json:"model,omitempty"`
+	Accelerator     *ManifestAccelerator `json:"accelerator,omitempty"`
+	// Fingerprint is "sha256:" and the hash of every other field except the pod's name and
+	// UID, so two boots of the same deployment share it (DESIGN.md section 4.3).
+	Fingerprint string `json:"fingerprint,omitempty"`
 }
 
 type ManifestPod struct {
 	Namespace string `json:"namespace,omitempty"`
 	Name      string `json:"name,omitempty"`
+	UID       string `json:"uid,omitempty"`
+	// Owner is the workload, Kind/name: a ReplicaSet's Deployment when known.
+	Owner string `json:"owner,omitempty"`
+	// OwnerRef is the pod's own ownerReferences entry, Kind/name, as written on the pod.
+	OwnerRef string `json:"owner_ref,omitempty"`
 }
 
 type ManifestNode struct {
-	Name string `json:"name,omitempty"`
+	Name         string `json:"name,omitempty"`
+	InstanceType string `json:"instance_type,omitempty"`
+	Zone         string `json:"zone,omitempty"`
+}
+
+// ManifestContainer is the profiled container. EnvAllowlist holds allowlisted variables only,
+// with secret values redacted; Args are redacted the same way.
+type ManifestContainer struct {
+	Image        string            `json:"image,omitempty"`
+	ImageDigest  string            `json:"image_digest,omitempty"`
+	Args         []string          `json:"args,omitempty"`
+	EnvAllowlist map[string]string `json:"env_allowlist,omitempty"`
 }
 
 type ManifestEngine struct {
@@ -77,6 +98,13 @@ type ManifestEngine struct {
 
 type ManifestModel struct {
 	Ref string `json:"ref,omitempty"`
+}
+
+// ManifestAccelerator comes from node labels and container limits only; doriki reads no GPU.
+type ManifestAccelerator struct {
+	Vendor  string `json:"vendor,omitempty"`
+	Product string `json:"product,omitempty"`
+	Count   int    `json:"count,omitempty"`
 }
 
 // Advice is one rule's finding (DESIGN.md section 6.2). No rules run until M3.

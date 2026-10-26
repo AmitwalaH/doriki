@@ -70,15 +70,15 @@ func TestFromFilesJSON(t *testing.T) {
 	}
 }
 
-// --include-events adds every normalized input event: 41 from the capture plus the image
-// fact (counted in the collector test).
+// --include-events adds every normalized input event: 41 from the capture, the image fact
+// and four pod facts (counted in the collector tests).
 func TestFromFilesIncludeEvents(t *testing.T) {
 	out, err := run(t, append([]string{"--from-files", "-o", "json", "--include-events"}, fixtureArgs...)...)
 	if err != nil {
 		t.Fatalf("error: %v", err)
 	}
-	if events, _ := decodeReport(t, out)["events"].([]any); len(events) != 42 {
-		t.Errorf("events = %d, want 42", len(events))
+	if events, _ := decodeReport(t, out)["events"].([]any); len(events) != 46 {
+		t.Errorf("events = %d, want 46", len(events))
 	}
 }
 

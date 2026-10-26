@@ -35,6 +35,7 @@ func TestBuild(t *testing.T) {
 		ManifestVersion: model.ManifestVersion,
 		Pod:             &model.ManifestPod{Namespace: "default", Name: "vllm-1"},
 		Node:            &model.ManifestNode{Name: "n1"},
+		Container:       &model.ManifestContainer{Image: "img"},
 		Engine:          &model.ManifestEngine{Name: "vllm", Version: "0.32.0", ParserPack: "vllm/0.32"},
 		Model:           &model.ManifestModel{Ref: "facebook/opt-125m"},
 	}
@@ -51,6 +52,7 @@ func TestBuildGeneric(t *testing.T) {
 	want := &model.Manifest{
 		ManifestVersion: model.ManifestVersion,
 		Pod:             &model.ManifestPod{Namespace: "default", Name: "p"},
+		Container:       &model.ManifestContainer{Image: "nginx"},
 		Engine:          &model.ManifestEngine{ParserPack: "generic"},
 	}
 	if !reflect.DeepEqual(got, want) {
