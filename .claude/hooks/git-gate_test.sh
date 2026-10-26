@@ -43,6 +43,22 @@ for c in "git commit -a -m x" "git commit --all -m x" "git commit -am x" "git co
 run "git commit -m 'plain staged commit still allowed'" 0
 for c in "bash -c 'git push origin main'" "sh -c 'git checkout main'" "env git push origin main" "eval git stash" "xargs git rm" "sudo git reset --hard" "cd /tmp && git commit -m x" "cd .. ; git push origin main" "echo \$(git stash)" "echo \`git checkout main\`"; do run "$c" 2; done
 run "echo 'no git here' && ls" 0
+# v3 cases: heredoc commits, redirections, read-only stash/archive (26 Oct)
+git reset -q; touch .gate-ok; echo h > h.go; git add h.go
+run "git commit -q -F - <<'EOF'
+fix(x): heredoc message
+
+body line mentioning git push origin main as prose
+EOF" 0
+run "git commit -F - <<EOF
+feat: unquoted heredoc marker
+EOF" 0
+run "git log --oneline -3 > /tmp/log.txt 2>&1" 0
+run "git stash list" 0
+run "git stash show -p" 0
+run "git stash" 2
+run "git stash pop" 2
+run "git archive --format=tar HEAD > /tmp/x.tar" 0
 run "bash .claude/hooks/git-gate_test.sh" 0
 run "python3 .claude/hooks/git-gate.py --version" 0
 run "cat docs/git-workflow.md" 0

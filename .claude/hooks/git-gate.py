@@ -45,7 +45,7 @@ WRAPPERS = {
 READ_ONLY_GIT = {
     "status", "log", "diff", "show", "grep", "rev-parse", "ls-files", "blame",
     "describe", "check-ignore", "remote", "fetch", "cat-file", "name-rev",
-    "shortlog", "reflog", "config", "var", "help", "version", "worktree",
+    "shortlog", "reflog", "config", "var", "help", "version", "worktree", "archive",
 }
 FORBIDDEN_GIT = {
     "checkout", "switch", "reset", "restore", "stash", "clean", "rebase", "merge",
@@ -71,7 +71,15 @@ def current_branch(cwd):
 
 
 def split_commands(cmd):
-    """Split on shell separators so chained commands are judged one by one."""
+    """Split on shell separators so chained commands are judged one by one.
+
+    A heredoc body (everything after a line containing <<WORD) is data, not commands, so it
+    is dropped before splitting; the line that opens the heredoc is still judged."""
+    m = re.search(r"<<-?\s*['\"]?(\w+)['\"]?", cmd)
+    if m:
+        first_nl = cmd.find("\n", m.end())
+        if first_nl != -1:
+            cmd = cmd[:first_nl]
     parts = re.split(r"\s*(?:&&|\|\||;|\|)\s*|\n", cmd)
     return [p.strip() for p in parts if p and p.strip()]
 
@@ -92,6 +100,8 @@ def judge_git(toks, cwd):
     verb = args[0]
     rest = args[1:]
 
+    if verb == "stash" and rest and rest[0] in ("list", "show"):
+        return  # read-only stash queries are allowed
     if verb in FORBIDDEN_GIT:
         block(f"`git {verb}` moves or discards work; METHOD.md rule 1 allows read-only "
               "version control only. Ask the owner to run it.")
@@ -151,6 +161,8 @@ def judge_git(toks, cwd):
                 continue
             if a.startswith("-"):
                 continue
+            if a.startswith(("<", ">", "&", "|")) or re.match(r"^\d*[<>]", a):
+                continue  # shell redirection (<<EOF, >file, 2>&1), not a path
             pathspec.append(a)
         if pathspec:
             block("`git commit <path>` commits files that were not staged with `git add`; "
