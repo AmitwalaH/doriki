@@ -6,14 +6,22 @@
     "manifest_version": 1,
     "pod": {
       "namespace": "default",
-      "name": "nginx-89d46f4b4-ffrkt"
+      "name": "nginx-89d46f4b4-ffrkt",
+      "uid": "8d9f36b9-249b-4ef2-baf7-34a040534198",
+      "owner": "Deployment/nginx",
+      "owner_ref": "ReplicaSet/nginx-89d46f4b4"
     },
     "node": {
       "name": "doriki-control-plane"
     },
+    "container": {
+      "image": "nginx:1.29.3-alpine",
+      "image_digest": "sha256:b3c656d55d7ad751196f21b7fd2e8d4da9cb430e32f646adcf92441b72f82b14"
+    },
     "engine": {
       "parser_pack": "generic"
-    }
+    },
+    "fingerprint": "sha256:30fc6dba04b352bdb144dc1a23d88bbeaf07734ddca9be5ced724037a84c6e15"
   },
   "attempt": 0,
   "attempts_total": 1,

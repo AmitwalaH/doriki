@@ -251,3 +251,34 @@ func TestDurationIsReportSeconds(t *testing.T) {
 		t.Errorf("server-ready row %q, want 0.0s", r)
 	}
 }
+
+// A gap with a reason is labelled with it instead of "gap" (decision 0007), and gaps after the
+// same phase are drawn one after the other, so a split interval is not drawn twice over.
+func TestGapReason(t *testing.T) {
+	r := model.Report{
+		Phases: []model.Phase{
+			complete(model.PhaseScheduling, 0, 0),
+			complete(model.PhaseImagePull, 44, 88),
+		},
+		Gaps: []model.Gap{
+			{After: model.PhaseScheduling, Before: model.PhaseImagePull, Seconds: 22, Reason: model.GapEarlierAttempts},
+			{After: model.PhaseScheduling, Before: model.PhaseImagePull, Seconds: 22},
+		},
+	}
+	out := render(t, r, false)
+	// The label fills the name column, so its row is found by prefix alone.
+	var earlier string
+	for _, l := range strings.Split(out, "\n") {
+		if strings.HasPrefix(l, model.GapEarlierAttempts) {
+			earlier = l
+		}
+	}
+	if earlier == "" {
+		t.Fatalf("no %q row in:\n%s", model.GapEarlierAttempts, out)
+	}
+	ef, el := bar(t, earlier)
+	gf, gl := bar(t, row(t, out, "gap"))
+	if ef != 0 || el != 10 || gf != 11 || gl != 21 {
+		t.Errorf("earlier attempts cells %d-%d, gap %d-%d; want 0-10 then 11-21:\n%s", ef, el, gf, gl, out)
+	}
+}

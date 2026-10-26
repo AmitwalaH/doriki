@@ -34,21 +34,23 @@ tested from fixtures.
 | Types | `go build ./... && go vet ./...` |
 | Lint | `make lint` (golangci-lint with gofmt, govet, staticcheck, errcheck, gosec, depguard) |
 | Tests | `make test` (unit + golden + schema) |
-| The full gate | `make gate` (= build, lint, test; `make e2e` is added to the gate at M2) |
+| The full gate | `make gate` (= build, lint, test). Not `make e2e`: that is its own CI job, `e2e`, on pull requests to `main` |
+| End to end | `make e2e` (kind + llama.cpp, about 5 min from a new cluster, 35 s on a reused one) |
 | Regenerate anything generated | goldens: `go test ./... -update` (approval required first); JSON schemas: `make schema` |
 
 **Anything with a flag that matters**, and what goes wrong without it:
 `-update` on `go test` rewrites golden files silently. Never run it without approval under
-`METHOD.md` Step 11. `make e2e` needs a running `kind` cluster; without one it must skip with a
-clear message, never fail.
+`METHOD.md` Step 11; the approval marker is consumed when the hook approves the command, so run
+the `-update` command alone. `make e2e` needs `kind` and a running Docker and creates the kind
+cluster `doriki` when it is absent; without them it skips with a clear message, and with
+`DORIKI_E2E_REQUIRED=1` (set in CI) it fails instead.
 
 ## 4. What is failing on purpose
 
-| Check | Why it is red | Who owns it | When it goes green |
-|---|---|---|---|
-| `make e2e` | Not implemented until M2 | owner | M2 (3–9 Nov 2026) |
+None. (`make e2e` was red on purpose until M2; it has run since 2026-10-26, and skips with a
+message where kind or Docker is missing.)
 
-Anything red and not on this list is ours.
+Anything red is ours.
 
 ## 5. Off-limits
 
@@ -129,8 +131,11 @@ for the owner to commit has no trailer.
 
 ## 9. Checking it by hand
 
-- **How to get to it:** `kind create cluster --name doriki && make e2e-up` deploys a CPU-only
-  llama.cpp server with a tiny GGUF model; then `go run ./cmd/doriki deploy/llamacpp -n doriki`.
+- **How to get to it:** `make e2e-up` creates the kind cluster `doriki` when it is absent and
+  deploys a CPU-only llama.cpp server with a tiny GGUF model; then
+  `go run ./cmd/doriki deploy/llamacpp -n doriki --kubeconfig bin/kind-doriki.kubeconfig`.
+  `make e2e-up` writes the cluster's kubeconfig to `bin/kind-doriki.kubeconfig` and leaves
+  yours untouched.
 - **How to reset to a clean state:** `kind delete cluster --name doriki`.
 - **Anything that needs credentials, a tunnel or a VPN:** none.
 - **What cannot be checked by hand here, and who can check it:** GPU timing accuracy for vLLM

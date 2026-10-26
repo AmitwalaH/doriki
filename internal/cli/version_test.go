@@ -22,7 +22,7 @@ func runVersion(t *testing.T) string {
 // A clean `go build` or `go run` has no -ldflags, so the defaults must show. The generic
 // fallback pack is always embedded.
 func TestVersionDefaults(t *testing.T) {
-	want := "version: dev\ncommit: none\ndate: unknown\npacks: generic, vllm/0.32\n"
+	want := "version: dev\ncommit: none\ndate: unknown\npacks: generic, llamacpp/11889, vllm/0.32\n"
 	if got := runVersion(t); got != want {
 		t.Errorf("got:\n%s\nwant:\n%s", got, want)
 	}

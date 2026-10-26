@@ -51,3 +51,12 @@ kind delete cluster --name doriki --kubeconfig "$KUBECONFIG"
 - Pod, node and IP names are kind defaults on a local cluster (`doriki-control-plane`,
   `10.244.0.0/16`). No tokens: the only `token` in `pod.json` is the projected service-account
   volume's file name, and the container has no environment variables.
+
+## Checksums
+
+The sha256 of each captured file as committed. `packs/fixtures_test.go` recomputes them, so a
+file rewritten by an editor or a tool fails the gate.
+
+- `container.log`: `sha256:683f1a2718fced06ea4a3f027032aea4097e5ec1481c47253712ca7b456f24d2`
+- `events.json`: `sha256:f44ac3d1227872c3fc4f57418ffd2023ce3bd1c0a713b2005de76d58e0303c90`
+- `pod.json`: `sha256:fa999ef7fea8ff55face552e25ae4cee888905cf591b519a79135dd8daf72cde`

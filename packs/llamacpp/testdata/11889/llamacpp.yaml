@@ -1,0 +1,53 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: doriki
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: llamacpp
+  namespace: doriki
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: llamacpp
+  template:
+    metadata:
+      labels:
+        app: llamacpp
+    spec:
+      containers:
+        - name: llamacpp
+          image: ghcr.io/ggml-org/llama.cpp:server@sha256:5741ab30aae42af23ca57d9b98a6d4544cb09c21f372f92c5ee55312fa8b8b0c
+          # The server downloads the model itself, so the fetch is in its own log.
+          args:
+            - --hf-repo
+            - ggml-org/models
+            - --hf-file
+            - tinyllamas/stories15M-q4_0.gguf
+            - --host
+            - 0.0.0.0
+            - --port
+            - "8080"
+          env:
+            - name: LLAMA_CACHE
+              value: /cache
+          ports:
+            - containerPort: 8080
+          # /health answers 503 until the model is loaded, so Ready marks the moment it serves.
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            periodSeconds: 2
+          resources:
+            limits:
+              memory: 1Gi
+          volumeMounts:
+            - name: cache
+              mountPath: /cache
+      volumes:
+        - name: cache
+          emptyDir: {}

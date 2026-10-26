@@ -1,0 +1,15 @@
+2026-10-26T13:21:10.309482346Z warn: LLAMA_ARG_HOST environment variable is set, but will be overwritten by command line argument --host
+2026-10-26T13:21:10.309741623Z warn: LLAMA_ARG_PORT environment variable is set, but will be overwritten by command line argument --port
+2026-10-26T13:21:10.312923555Z 0.00.008.378 I srv  llama_server: initializing ...
+2026-10-26T13:21:11.878264684Z 0.01.573.449 I cmn  common_param: common_params_print_info: verbosity = 3 (adjust with the `-lv N` CLI arg)
+2026-10-26T13:21:22.741732726Z 0.12.437.395 W srv  server_setup: security: no API key is set and CORS allows all origins (see https://github.com/ggml-org/llama.cpp/pull/25655)
+2026-10-26T13:21:22.744553822Z 0.12.440.283 I srv    load_model: loading model 'ggml-org/models'
+2026-10-26T13:21:22.794700274Z 0.12.490.252 W load: empty token at index 30143
+2026-10-26T13:21:22.794965373Z 0.12.490.737 W load: bad special token: 'tokenizer.ggml.seperator_token_id' = 4294967295, using default id -1
+2026-10-26T13:21:22.794979866Z 0.12.490.764 W load: bad special token: 'tokenizer.ggml.padding_token_id' = 4294967295, using default id -1
+2026-10-26T13:21:22.837412417Z 0.12.533.126 W llama_context: n_ctx_seq (256) > n_ctx_train (128) -- possible training context overflow
+2026-10-26T13:21:22.841494319Z 0.12.536.938 I cmn          init: llama threadpool init, n_threads = 6
+2026-10-26T13:21:22.847767964Z 0.12.542.384 W srv    load_model: the slot context (256) exceeds the training context of the model (128) - capping
+2026-10-26T13:21:22.850854022Z 0.12.545.979 I srv    load_model: initializing, n_slots = 4, n_ctx_slot = 128, kv_unified = 'true'
+2026-10-26T13:21:22.861609284Z 0.12.556.871 I srv  server_run_i: model loaded
+2026-10-26T13:21:22.861683792Z 0.12.556.959 I srv  server_on_li: listening on http://0.0.0.0:8080

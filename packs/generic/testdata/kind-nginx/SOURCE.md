@@ -71,3 +71,12 @@ spec:
 - Pod, node and IP names are kind defaults on a local cluster (`doriki-control-plane`,
   `10.244.0.0/16`, `172.19.0.0/16`). No tokens: the only `token` in `pod.json` is the projected
   service-account volume's file name.
+
+## Checksums
+
+The sha256 of each captured file as committed. `packs/fixtures_test.go` recomputes them, so a
+file rewritten by an editor or a tool fails the gate.
+
+- `container.log`: `sha256:7f5ad045cba0fbe69b48b7bf84ba49d3181236b0f0d8d9cb5927d711fb13951e`
+- `events.json`: `sha256:d8bac249dff715ee5f498155042d7c2a8521d1a629600290071526d4ff1b5b62`
+- `pod.json`: `sha256:422b02ed7ac665d32c0056e88224efd9cfc9dce38c0ceee015f2bb9fc7bc35a6`

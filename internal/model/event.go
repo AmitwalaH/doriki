@@ -30,6 +30,18 @@ type Event struct {
 	Attrs      map[string]string `json:"attrs,omitempty"`  // raw key/values from the source
 	Raw        string            `json:"raw,omitempty"`    // original line or message, at most 512 bytes
 	Confidence float32           `json:"confidence"`       // 1.0 for K8s and CRI; packs may set lower
+	// Line is the whole log line on a KindLogLine event, for packs to match: the 512-byte cap
+	// is a storage rule for Raw, not a limit on what packs read. It is never written out.
+	Line string `json:"-"`
+}
+
+// Text is what a pack reads from a log line: the whole line when the collector kept it, else
+// Raw. Raw is cut to 512 bytes for storage, so reading it would miss anything past the cut.
+func (e Event) Text() string {
+	if e.Line != "" {
+		return e.Line
+	}
+	return e.Raw
 }
 
 // Event kinds the phase engine reads (DESIGN.md section 4.2). Collectors emit them; facts
@@ -46,6 +58,10 @@ const (
 	KindLogMarker        = "log.marker"       // a log line a pack matched; Marker holds its id
 	KindContainerImage   = "ContainerImage"   // SourceManifest; AttrImage holds the image reference
 	KindFact             = "Fact"             // SourceManifest; a pack fact read from the engine log
+
+	// KindContainerTerminated is the previous container's end (lastState.terminated.finishedAt).
+	// It carries the AttrRestartCount of the attempt it ends; the next attempt starts there.
+	KindContainerTerminated = "ContainerTerminated"
 )
 
 // Attributes of a KindContainerImage event: the profiled container's image as written in the
@@ -57,15 +73,38 @@ const (
 	AttrNode      = "node"
 )
 
-// Attributes of a KindFact event: the pack fact's key and the value read from the log.
+// Attributes of a KindFact event: the fact's key and its value. A pack fact is read from the
+// engine log; the collector also reads facts from the Kubernetes objects, under these keys.
 const (
 	AttrFactKey   = "key"
 	AttrFactValue = "value"
 )
 
+// Fact keys the collector reads from the pod, its node and its owner (DESIGN.md section 4.3).
+// manifest maps each to its field. Env facts are one per variable, FactEnvPrefix and the
+// name; Args is a JSON array. Values are as written in the objects: manifest.Sanitize keeps
+// only allowlisted env and redacts secrets before anything else reads them.
+const (
+	FactPodUID             = "pod.uid"
+	FactPodOwner           = "pod.owner"
+	FactPodOwnerRef        = "pod.owner_ref"
+	FactImageDigest        = "container.image_digest"
+	FactArgs               = "container.args"
+	FactEnvPrefix          = "container.env."
+	FactNodeInstanceType   = "node.instance_type"
+	FactNodeZone           = "node.zone"
+	FactAcceleratorVendor  = "accelerator.vendor"
+	FactAcceleratorProduct = "accelerator.product"
+	FactAcceleratorCount   = "accelerator.count"
+)
+
 // AttrUntimed is "true" on a KindLogLine event whose line had no runtime timestamp; its TS is
 // zero until enginelog dates it from the engine's own timestamp or drops it.
 const AttrUntimed = "untimed"
+
+// AttrNotApplicable is "true" on a skipped phase the pack says this engine never has
+// (decision 0008), as opposed to one the engine said it skipped.
+const AttrNotApplicable = "not_applicable"
 
 // AttrStartDerived is on a start marker derived from an end marker's logged duration
 // (PackMarker.StartFromDuration), and on the phase it starts.
@@ -91,7 +130,9 @@ func TruncateRaw(s string) string {
 const AttrCached = "cached"
 
 // AttrRestartCount on a KindContainerStarted event is the container's restartCount at that
-// start, which is also its attempt number.
+// start, which is also its attempt number. On a KindContainerTerminated event it is the
+// attempt that ended. On an engine log line or marker it is the attempt of the container that
+// logged it, set only for a previous container's log; an untagged line is the current one's.
 const AttrRestartCount = "restart_count"
 
 // sourcePriority breaks timestamp ties (DESIGN.md section 6.1 step 2). Sources it does not

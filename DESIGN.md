@@ -43,16 +43,16 @@ As of 24 Oct 2026 · maintained by the repository owner
 ```text
 Pod default/vllm-785fb8997d-bvsz4   engine vllm 0.32.0   node doriki-control-plane   total 7:36
 
-scheduling      │                                               0.0s
-image-pull      ██████████████████████████                      4:28
-container-init                            █                     0.4s
-engine-init                               ███████               1:11  facebook/opt-125m
-gap                                              ░              0:01
-weight-fetch                                     ██████████    ~1:48  facebook/opt-125m
-weight-load                                                █   ~0.5s
-kv-alloc                                                   █    0.0s  1.0 GiB, 29,056 tokens
-gap                                                        ░    0:05
-server-ready                                               │    0.0s
+scheduling       │                                               0.0s
+image-pull       ██████████████████████████                      4:28
+container-init                             █                     0.4s
+engine-init                                ███████               1:11  facebook/opt-125m
+gap                                               ░              0:01
+weight-fetch                                      ██████████    ~1:48  facebook/opt-125m
+weight-load                                                 █   ~0.5s
+kv-alloc                                                    █    0.0s  1.0 GiB, 29,056 tokens
+gap                                                         ░    0:05
+server-ready                                                │    0.0s
 
 skipped: compile, graph-capture (the engine said it skips them)
 absent: node-provision, first-token (not seen in the events or the log; pack vllm/0.32)
@@ -308,7 +308,7 @@ Exit 4 is what lets `diff` sit in a CI job as a startup-time gate without any ot
 
 ### 7.4 RBAC
 
-Read-only: `get`/`list` on `pods`, `pods/log`, `events`, `nodes`, and the owner kinds (`deployments`, `statefulsets`, `inferenceservices` if present). The README ships a minimal ClusterRole. `nodes` is optional; without it the manifest omits node fields and a warning says so.
+Read-only: `get`/`list` on `pods`, `pods/log`, `events`, `nodes`, and the owner kinds (`deployments`, `replicasets` to walk a pod to its Deployment, `statefulsets`, `inferenceservices` if present). The README ships a minimal ClusterRole. `nodes` is optional; without it the manifest omits node fields and a warning says so.
 
 ### 7.5 Output rules
 

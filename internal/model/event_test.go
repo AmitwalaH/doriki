@@ -95,3 +95,13 @@ func TestTruncateRaw(t *testing.T) {
 		}
 	}
 }
+
+// Text is the whole line when the collector kept it, and Raw for events that have no Line.
+func TestText(t *testing.T) {
+	if got := (Event{Raw: "cut", Line: "cut and the rest"}).Text(); got != "cut and the rest" {
+		t.Errorf("with Line: %q", got)
+	}
+	if got := (Event{Raw: "message"}).Text(); got != "message" {
+		t.Errorf("without Line: %q", got)
+	}
+}

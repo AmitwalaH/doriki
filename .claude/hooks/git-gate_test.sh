@@ -38,11 +38,44 @@ run "go test ./packs/ -run TestFixtures -update" 0
 if [ -e .doriki-approve-update ]; then fail=$((fail+1)); echo "FAIL marker not consumed"; else pass=$((pass+1)); fi
 run "go test ./packs/ -run TestFixtures -update" 2
 # v2 cases: bypasses found in review on 26 Oct
-touch .gate-ok; echo q > q.go; git add q.go
+echo q > q.go; git add q.go; sleep 0.2; touch .gate-ok
 for c in "git commit -a -m x" "git commit --all -m x" "git commit -am x" "git commit --include q.go -m x" "git commit --only q.go -m x" "git commit -p -m x" "git commit -m x q.go" "git commit -m x -- q.go"; do run "$c" 2; done
 run "git commit -m 'plain staged commit still allowed'" 0
 for c in "bash -c 'git push origin main'" "sh -c 'git checkout main'" "env git push origin main" "eval git stash" "xargs git rm" "sudo git reset --hard" "cd /tmp && git commit -m x" "cd .. ; git push origin main" "echo \$(git stash)" "echo \`git checkout main\`"; do run "$c" 2; done
 run "echo 'no git here' && ls" 0
+# v3 cases: heredoc commits, redirections, read-only stash/archive (26 Oct)
+git reset -q; echo h > h.go; git add h.go; sleep 0.2; touch .gate-ok
+run "git commit -q -F - <<'EOF'
+fix(x): heredoc message
+
+body line mentioning git push origin main as prose
+EOF" 0
+run "git commit -F - <<EOF
+feat: unquoted heredoc marker
+EOF" 0
+run "git log --oneline -3 > /tmp/log.txt 2>&1" 0
+run "git stash list" 0
+run "git stash show -p" 0
+run "git stash" 2
+run "git stash pop" 2
+run "git archive --format=tar HEAD > /tmp/x.tar" 0
+# v4 cases: commands after a heredoc body must still be judged (bypass found 26 Oct)
+run "python3 - x.go <<'EOF'
+print('hello')
+EOF
+git rm -q --cached a.go 2>/dev/null; rm -f a.go; echo done" 2
+run "cat <<EOF > /tmp/note.txt
+git push origin main is just text here
+EOF
+git push origin main" 2
+run "cat <<EOF > /tmp/note.txt
+some text
+EOF
+git status" 0
+run "cat <<-EOF
+	tab-indented terminator
+	EOF
+git stash" 2
 run "bash .claude/hooks/git-gate_test.sh" 0
 run "python3 .claude/hooks/git-gate.py --version" 0
 run "cat docs/git-workflow.md" 0

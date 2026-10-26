@@ -18,10 +18,11 @@ import (
 )
 
 // Layout, in terminal columns. A row is the name, the bar track, a space, the duration right
-// aligned, two spaces and the attributes: 16 + 44 + 1 + 7 + 2 + 30 = Width.
+// aligned, two spaces and the attributes: 17 + 44 + 1 + 7 + 2 + 29 = Width. The name column
+// is one wider than the longest label, "earlier attempts", so no label touches its bar.
 const (
 	Width      = 100
-	nameWidth  = 16
+	nameWidth  = 17
 	trackWidth = 44
 	durWidth   = 7
 	attrWidth  = Width - nameWidth - trackWidth - 1 - durWidth - 2
@@ -64,11 +65,15 @@ func Write(w io.Writer, r model.Report, opts Options) error {
 
 	add(st.header.Render(header(r)))
 	add("")
-	var skipped, absent []string
+	var skipped, notApplicable, absent []string
 	estimated := false
 	for _, p := range r.Phases {
 		switch p.State {
 		case model.StateSkipped:
+			if p.Attrs[model.AttrNotApplicable] == "true" {
+				notApplicable = append(notApplicable, string(p.Name))
+				continue
+			}
 			skipped = append(skipped, string(p.Name))
 			continue
 		case model.StateAbsent:
@@ -79,18 +84,25 @@ func Write(w io.Writer, r model.Report, opts Options) error {
 		if p.Confidence != nil && *p.Confidence < 1 {
 			estimated = true
 		}
+		// Gaps after one phase are consecutive pieces of one interval (earlier attempts, then
+		// unattributed time), so each is drawn from where the previous one ended.
+		from := p.End
 		for _, g := range r.Gaps {
 			if g.After == p.Name && !p.End.IsZero() {
-				add(gapRow(g, p.End, tr, st))
+				add(gapRow(g, from, tr, st))
+				from = from.Add(time.Duration(g.Seconds * float64(time.Second)))
 			}
 		}
 	}
 
-	if len(skipped) > 0 || len(absent) > 0 {
+	if len(skipped) > 0 || len(notApplicable) > 0 || len(absent) > 0 {
 		add("")
 	}
 	if len(skipped) > 0 {
 		lines = append(lines, wrap(st.dim, "skipped: "+strings.Join(skipped, ", ")+" (the engine said it skips them)", "  ")...)
+	}
+	if len(notApplicable) > 0 {
+		lines = append(lines, wrap(st.dim, "skipped: "+strings.Join(notApplicable, ", ")+" (not applicable to this engine)", "  ")...)
 	}
 	if len(absent) > 0 {
 		why := "not seen in the events or the log"
@@ -251,7 +263,11 @@ func phaseRow(p model.Phase, tr track, st styles) string {
 
 func gapRow(g model.Gap, from time.Time, tr track, st styles) string {
 	to := from.Add(time.Duration(g.Seconds * float64(time.Second)))
-	line := fmt.Sprintf("%-*s%s %*s", nameWidth, "gap", st.gap.Render(tr.cells(from, to, '░')), durWidth, duration(g.Seconds))
+	label := "gap"
+	if g.Reason != "" {
+		label = g.Reason
+	}
+	line := fmt.Sprintf("%-*s%s %*s", nameWidth, label, st.gap.Render(tr.cells(from, to, '░')), durWidth, duration(g.Seconds))
 	return strings.TrimRight(line, " ")
 }
 

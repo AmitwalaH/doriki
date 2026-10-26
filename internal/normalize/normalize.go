@@ -42,28 +42,45 @@ func Normalize(in []model.Event) ([]model.Event, []model.Warning) {
 	return events, warnings
 }
 
-// engineLogSkew returns how far the first engine log line is stamped before the latest
-// container start, or 0 if it is not earlier or either is missing. A line before its
-// container started is impossible, so that difference is clock skew. A line after the start
-// is left alone: that time is real container-init and a log clock running ahead cannot be
-// told apart from it with this anchor. The latest start is used because logs come from the
-// current container; revisit when previous-container logs are collected.
+// engineLogSkew returns how far an engine log line is stamped before its own container's start,
+// at most, or 0 if none is earlier or either is missing. A line before its container started
+// is impossible, so that difference is clock skew. A line after the start is left alone: that
+// time is real container-init and a log clock running ahead cannot be told apart from it with
+// this anchor. A line from a previous container carries that attempt (AttrRestartCount) and is
+// measured against that attempt's start; an untagged line comes from the current container,
+// the latest start. All lines come from one node's clock, so the largest skew moves them all.
 func engineLogSkew(events []model.Event) time.Duration {
-	var start, firstLog time.Time
+	starts := map[string]time.Time{} // attempt -> start
+	var latest time.Time
 	for _, e := range events {
-		switch {
-		case e.Source == model.SourceContainerStatus && e.Kind == model.KindContainerStarted:
-			if e.TS.After(start) {
-				start = e.TS
+		if e.Source == model.SourceContainerStatus && e.Kind == model.KindContainerStarted {
+			if a := e.Attrs[model.AttrRestartCount]; a != "" {
+				starts[a] = e.TS
 			}
-		case e.Source == model.SourceEngineLog:
-			if firstLog.IsZero() || e.TS.Before(firstLog) {
-				firstLog = e.TS
+			if e.TS.After(latest) {
+				latest = e.TS
 			}
 		}
 	}
-	if start.IsZero() || firstLog.IsZero() || !firstLog.Before(start) {
-		return 0
+	firstLog := map[string]time.Time{}
+	for _, e := range events {
+		if e.Source != model.SourceEngineLog {
+			continue
+		}
+		a := e.Attrs[model.AttrRestartCount]
+		if t, ok := firstLog[a]; !ok || e.TS.Before(t) {
+			firstLog[a] = e.TS
+		}
 	}
-	return start.Sub(firstLog)
+	var skew time.Duration
+	for a, first := range firstLog {
+		start := latest
+		if a != "" {
+			start = starts[a]
+		}
+		if !start.IsZero() && first.Before(start) {
+			skew = max(skew, start.Sub(first))
+		}
+	}
+	return skew
 }

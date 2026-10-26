@@ -70,15 +70,15 @@ func TestFromFilesJSON(t *testing.T) {
 	}
 }
 
-// --include-events adds every normalized input event: 41 from the capture plus the image
-// fact (counted in the collector test).
+// --include-events adds every normalized input event: 41 from the capture, the image fact
+// and four pod facts (counted in the collector tests).
 func TestFromFilesIncludeEvents(t *testing.T) {
 	out, err := run(t, append([]string{"--from-files", "-o", "json", "--include-events"}, fixtureArgs...)...)
 	if err != nil {
 		t.Fatalf("error: %v", err)
 	}
-	if events, _ := decodeReport(t, out)["events"].([]any); len(events) != 42 {
-		t.Errorf("events = %d, want 42", len(events))
+	if events, _ := decodeReport(t, out)["events"].([]any); len(events) != 46 {
+		t.Errorf("events = %d, want 46", len(events))
 	}
 }
 
@@ -87,7 +87,7 @@ func TestUsageErrors(t *testing.T) {
 		args []string
 		want string
 	}{
-		"live mode":      {[]string{"-o", "json", "pod/x"}, "--from-files"},
+		"live mode":      {[]string{"-o", "json", "svc/x"}, "svc"},
 		"two files":      {[]string{"--from-files", "-o", "json", "a", "b"}, "3 files"},
 		"unknown output": {append([]string{"--from-files", "-o", "yaml"}, fixtureArgs...), `"yaml"`},
 		"missing file":   {[]string{"--from-files", "-o", "json", "nope.json", fixtureArgs[1], fixtureArgs[2]}, "nope.json"},
@@ -106,8 +106,8 @@ func TestUsageErrors(t *testing.T) {
 // pack list reads the same pack list as version; a sentinel list must show up.
 func TestPackList(t *testing.T) {
 	out, err := run(t, "pack", "list")
-	if err != nil || out != "generic\nvllm/0.32\n" {
-		t.Errorf("pack list = %q, %v; want generic and vllm/0.32", out, err)
+	if err != nil || out != "generic\nllamacpp/11889\nvllm/0.32\n" {
+		t.Errorf("pack list = %q, %v; want generic, llamacpp/11889 and vllm/0.32", out, err)
 	}
 	saved := packNames
 	t.Cleanup(func() { packNames = saved })
@@ -266,5 +266,40 @@ func TestMarkerIDsIncludeDerivedStart(t *testing.T) {
 	}}
 	if got, want := markerIDs(p), []string{"x.weights.fetch.end", "x.weights.fetch.start", "x.kv.end"}; !slices.Equal(got, want) {
 		t.Errorf("markerIDs = %v, want %v", got, want)
+	}
+}
+
+// Pack selection reads the whole log line, like markers do: a version past byte 512 of the
+// line still picks the pack without a pack-version-unknown warning
+// (DK-CLI-BUG-20261026-select-on-full-line). Through the real command and files collector.
+func TestSelectionReadsFullLine(t *testing.T) {
+	dir := t.TempDir()
+	line := "(EngineCore pid=139) INFO 10-25 09:29:06 [core.py:133] " + strings.Repeat(" ", 600) +
+		"Initializing a V1 LLM engine (v0.32.0) with config: model='facebook/opt-125m'"
+	files := map[string]string{
+		"pod.json":      `{"metadata": {"name": "p", "namespace": "default"}, "spec": {"containers": [{"name": "c", "image": "vllm/vllm-openai:v0.32.0"}]}}`,
+		"events.json":   `{"items": []}`,
+		"container.log": "2026-10-25T09:29:06Z " + line + "\n",
+	}
+	var args []string
+	for _, name := range []string{"pod.json", "events.json", "container.log"} {
+		path := filepath.Join(dir, name)
+		if err := os.WriteFile(path, []byte(files[name]), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		args = append(args, path)
+	}
+	out, _ := run(t, append([]string{"--from-files", "-o", "json"}, args...)...)
+	var r model.Report
+	if err := json.Unmarshal([]byte(out), &r); err != nil {
+		t.Fatalf("not a report: %v\n%s", err, out)
+	}
+	if r.Manifest == nil || r.Manifest.Engine == nil || r.Manifest.Engine.ParserPack != "vllm/0.32" {
+		t.Fatalf("manifest = %+v, want parser pack vllm/0.32", r.Manifest)
+	}
+	for _, w := range r.Warnings {
+		if w.Code == "pack-version-unknown" || w.Code == "no-pack" {
+			t.Errorf("warning %s: %s; want the version read from past byte 512", w.Code, w.Text)
+		}
 	}
 }

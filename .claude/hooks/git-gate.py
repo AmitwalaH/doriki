@@ -15,6 +15,8 @@ message shown to the agent) when the command would:
     proven by a .gate-ok marker that the Makefile writes on success);
   - regenerate goldens with -update without the owner's one-time approval marker
     (.doriki-approve-update in the repo root; consumed on use).
+    The marker is consumed when the hook approves the command, before the command runs, so
+    run the -update command alone: a check for the marker in the same command finds it gone.
 
 Everything else passes. Allowed git verbs: status, log, diff, show, grep, add, commit
 (under the conditions above), push to task/* without force, fetch, remote -v, rev-parse,
@@ -45,7 +47,7 @@ WRAPPERS = {
 READ_ONLY_GIT = {
     "status", "log", "diff", "show", "grep", "rev-parse", "ls-files", "blame",
     "describe", "check-ignore", "remote", "fetch", "cat-file", "name-rev",
-    "shortlog", "reflog", "config", "var", "help", "version", "worktree",
+    "shortlog", "reflog", "config", "var", "help", "version", "worktree", "archive",
 }
 FORBIDDEN_GIT = {
     "checkout", "switch", "reset", "restore", "stash", "clean", "rebase", "merge",
@@ -70,8 +72,37 @@ def current_branch(cwd):
     return r.stdout.strip()
 
 
+def strip_heredocs(cmd):
+    """Remove heredoc bodies (data) but keep every command line before and after them.
+
+    For each line containing <<WORD or <<'WORD' or <<-WORD, the lines after it up to and
+    including the terminator line (a line equal to WORD, ignoring leading tabs) are dropped.
+    The opening line itself stays, so the command that reads the heredoc is still judged.
+    Lines after the terminator are commands and stay."""
+    lines = cmd.split("\n")
+    out = []
+    i = 0
+    while i < len(lines):
+        line = lines[i]
+        out.append(line)
+        m = re.search(r"<<-?\s*['\"]?(\w+)['\"]?", line)
+        if m:
+            word = m.group(1)
+            i += 1
+            while i < len(lines) and lines[i].lstrip("\t") != word:
+                i += 1
+            i += 1  # skip the terminator line
+            continue
+        i += 1
+    return "\n".join(out)
+
+
 def split_commands(cmd):
-    """Split on shell separators so chained commands are judged one by one."""
+    """Split on shell separators so chained commands are judged one by one.
+
+    Heredoc bodies are data, not commands, and are removed first; everything else,
+    including commands on lines after a heredoc, is judged."""
+    cmd = strip_heredocs(cmd)
     parts = re.split(r"\s*(?:&&|\|\||;|\|)\s*|\n", cmd)
     return [p.strip() for p in parts if p and p.strip()]
 
@@ -92,6 +123,8 @@ def judge_git(toks, cwd):
     verb = args[0]
     rest = args[1:]
 
+    if verb == "stash" and rest and rest[0] in ("list", "show"):
+        return  # read-only stash queries are allowed
     if verb in FORBIDDEN_GIT:
         block(f"`git {verb}` moves or discards work; METHOD.md rule 1 allows read-only "
               "version control only. Ask the owner to run it.")
@@ -151,6 +184,8 @@ def judge_git(toks, cwd):
                 continue
             if a.startswith("-"):
                 continue
+            if a.startswith(("<", ">", "&", "|")) or re.match(r"^\d*[<>]", a):
+                continue  # shell redirection (<<EOF, >file, 2>&1), not a path
             pathspec.append(a)
         if pathspec:
             block("`git commit <path>` commits files that were not staged with `git add`; "

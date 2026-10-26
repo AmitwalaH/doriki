@@ -34,6 +34,8 @@ type Options struct {
 	AllAttempts bool
 	// Pack names the selected pack in warnings.
 	Pack string
+	// NotApplicable are the pack's phases this engine never has (decision 0008).
+	NotApplicable []model.PhaseName
 }
 
 // matcher recognises the events that start or end a phase.
@@ -67,9 +69,16 @@ func (m matcher) observable(markers []string) bool {
 type spec struct{ start, end matcher }
 
 // phaseAttrs are the attributes a phase takes from a start event of any source. A phase
-// takes every attribute of its engine markers (named groups from the pack); collector
-// bookkeeping such as the restart count stays on the event.
-var phaseAttrs = []string{model.AttrCached}
+// takes every attribute of its engine markers (named groups from the pack) except
+// collectorAttrs: collector bookkeeping such as the restart count stays on the event.
+var (
+	phaseAttrs     = []string{model.AttrCached}
+	collectorAttrs = []string{model.AttrRestartCount}
+)
+
+// podLevel phases happen once per pod, not once per container start, so every attempt shows
+// the pod's own (decision 0007).
+var podLevel = []model.PhaseName{model.PhaseScheduling, model.PhaseNodeProvision}
 
 // engine reports whether the phase is bounded by a pack marker. Once the pod is Ready, an
 // absent engine phase was skipped or not recognised, not pending (decision 0005).
@@ -167,9 +176,10 @@ func Assign(events []model.Event, opts Options) (model.Report, error) {
 	}
 
 	created, hasCreated := first(sorted, podCreated)
+	pod := podPhases(sorted, opts.Markers)
 	report := model.Report{ReportVersion: model.ReportVersion, AttemptsTotal: attemptsTotal(attempts)}
 	for i, a := range attempts {
-		phases, gaps, warnings := assignAttempt(a.events, opts.Markers, opts.Pack)
+		phases, gaps, warnings := assignAttempt(a.events, opts.Markers, opts.Pack, pod, a.from, opts.NotApplicable)
 		totals := attemptTotals(a.events, phases, created, hasCreated)
 		if i == chosen {
 			report.Attempt = a.number
@@ -184,38 +194,80 @@ func Assign(events []model.Event, opts Options) (model.Report, error) {
 
 type attempt struct {
 	number int
+	from   time.Time // where the attempt begins; zero for the first
 	events []model.Event
 }
 
-// splitAttempts cuts the sorted events at each container start (DESIGN.md section 6.1 step
-// 7). The first observed attempt also keeps everything before its start (scheduling, image
-// pull); a later attempt runs from its own start to the next one. With no container start
-// there is one attempt, number 0, holding every event.
+// splitAttempts cuts the sorted events into boot attempts, one per container start (DESIGN.md
+// section 6.1 step 7). Attempt N begins where the previous container ended, a
+// ContainerTerminated carrying N-1's restart count, so a re-pull before a restart belongs to
+// the restart (DK-PHASE-BUG-20261024-attempt-boundary-repull); without that end it begins at
+// its own start. An event tagged with an attempt (AttrRestartCount: starts, ends, a previous
+// container's log) goes to that attempt. Any other event goes by time, and a boundary owns
+// its whole second: Kubernetes times have 1 s resolution, so a re-pull and the end it follows
+// often share one. The first attempt also keeps everything before its start. With no
+// container start there is one attempt, number 0, holding every event.
 func splitAttempts(sorted []model.Event) []attempt {
-	var starts []int
-	for i, e := range sorted {
-		if e.Source == model.SourceContainerStatus && e.Kind == model.KindContainerStarted {
-			starts = append(starts, i)
-		}
-	}
-	if len(starts) == 0 {
-		return []attempt{{number: 0, events: sorted}}
-	}
-	out := make([]attempt, len(starts))
-	for i, s := range starts {
-		from, to := s, len(sorted)
-		if i == 0 {
-			from = 0
-		}
-		if i+1 < len(starts) {
-			to = starts[i+1]
+	var out []attempt
+	byNumber := map[int]int{}
+	for _, e := range sorted {
+		if e.Source != model.SourceContainerStatus || e.Kind != model.KindContainerStarted {
+			continue
 		}
 		// A start without a readable restart count is numbered by its position.
-		n, err := strconv.Atoi(sorted[s].Attrs[model.AttrRestartCount])
+		n, err := strconv.Atoi(e.Attrs[model.AttrRestartCount])
 		if err != nil {
-			n = i
+			n = len(out)
 		}
-		out[i] = attempt{number: n, events: sorted[from:to]}
+		byNumber[n] = len(out)
+		out = append(out, attempt{number: n, from: e.TS})
+	}
+	if len(out) == 0 {
+		return []attempt{{number: 0, events: sorted}}
+	}
+	out[0].from = time.Time{}
+	for _, e := range sorted {
+		if e.Source != model.SourceContainerStatus || e.Kind != model.KindContainerTerminated {
+			continue
+		}
+		n, err := strconv.Atoi(e.Attrs[model.AttrRestartCount])
+		if next, ok := byNumber[n+1]; err == nil && ok && next > 0 && !e.TS.After(out[next].from) {
+			out[next].from = e.TS
+		}
+	}
+	for _, e := range sorted {
+		i := -1
+		if n, err := strconv.Atoi(e.Attrs[model.AttrRestartCount]); err == nil {
+			if j, ok := byNumber[n]; ok {
+				i = j
+			}
+		}
+		if i < 0 {
+			i = 0
+			for j := 1; j < len(out); j++ {
+				if !e.TS.Before(out[j].from) {
+					i = j
+				}
+			}
+		}
+		out[i].events = append(out[i].events, e)
+	}
+	return out
+}
+
+// podPhases assigns the pod-level phases once, over every event.
+func podPhases(sorted []model.Event, markers []string) map[model.PhaseName]model.Phase {
+	out := map[model.PhaseName]model.Phase{}
+	var cursor time.Time
+	for _, name := range phaseOrder() {
+		if !slices.Contains(podLevel, name) {
+			continue
+		}
+		p := assignPhase(name, specs[name], sorted, markers, cursor)
+		if p.State != model.StateAbsent && p.State != model.StateSkipped {
+			cursor = p.Start
+		}
+		out[name] = p
 	}
 	return out
 }
@@ -238,14 +290,21 @@ func attemptNumbers(attempts []attempt) string {
 	return strings.Join(s, ", ")
 }
 
-func assignAttempt(events []model.Event, markers []string, pack string) ([]model.Phase, []model.Gap, []model.Warning) {
+func assignAttempt(events []model.Event, markers []string, pack string, pod map[model.PhaseName]model.Phase, from time.Time, notApplicable []model.PhaseName) ([]model.Phase, []model.Gap, []model.Warning) {
 	var (
 		phases   []model.Phase
 		warnings []model.Warning
 		cursor   time.Time // the start of the last phase found; later phases start at or after it
 	)
 	for _, name := range phaseOrder() {
-		p := assignPhase(name, specs[name], events, markers, cursor)
+		p, ok := pod[name]
+		if !ok {
+			p = assignPhase(name, specs[name], events, markers, cursor)
+		}
+		// A phase the engine never has is skipped, not absent: a label only (decision 0008).
+		if p.State == model.StateAbsent && slices.Contains(notApplicable, name) {
+			p = model.Phase{Name: name, State: model.StateSkipped, Attrs: map[string]string{model.AttrNotApplicable: "true"}}
+		}
 		if p.State != model.StateAbsent && p.State != model.StateSkipped {
 			cursor = p.Start
 		}
@@ -257,7 +316,7 @@ func assignAttempt(events []model.Event, markers []string, pack string) ([]model
 		}
 		phases = append(phases, p)
 	}
-	return phases, gaps(phases), append(warnings, unobserved(phases, events, markers, pack)...)
+	return phases, gaps(phases, from), append(warnings, unobserved(phases, events, markers, pack)...)
 }
 
 // unobserved warns about each expected engine phase still absent once the pod is Ready
@@ -308,9 +367,7 @@ func assignPhase(name model.PhaseName, s spec, events []model.Event, markers []s
 		}
 	}
 	if s.start.markerSuffix != "" {
-		for k, v := range start.Attrs {
-			p.Attrs = setAttr(p.Attrs, k, v)
-		}
+		p.Attrs = takeAttrs(p.Attrs, start.Attrs)
 	}
 
 	endIdx := slices.IndexFunc(events, func(e model.Event) bool { return !e.TS.Before(start.TS) && s.end.match(e) })
@@ -327,9 +384,7 @@ func assignPhase(name model.PhaseName, s spec, events []model.Event, markers []s
 	end := events[endIdx]
 	p.End = end.TS
 	if s.end.markerSuffix != "" {
-		for k, v := range end.Attrs {
-			p.Attrs = setAttr(p.Attrs, k, v)
-		}
+		p.Attrs = takeAttrs(p.Attrs, end.Attrs)
 	}
 	if end.Confidence < start.Confidence {
 		p.Confidence = below1(end.Confidence)
@@ -360,6 +415,16 @@ func below1(c float32) *float32 {
 	return &c
 }
 
+// takeAttrs copies an engine marker's attributes onto a phase, leaving out collectorAttrs.
+func takeAttrs(attrs, from map[string]string) map[string]string {
+	for k, v := range from {
+		if !slices.Contains(collectorAttrs, k) {
+			attrs = setAttr(attrs, k, v)
+		}
+	}
+	return attrs
+}
+
 func setAttr(attrs map[string]string, k, v string) map[string]string {
 	if attrs == nil {
 		attrs = map[string]string{}
@@ -368,9 +433,12 @@ func setAttr(attrs map[string]string, k, v string) map[string]string {
 	return attrs
 }
 
-// gaps reports unattributed time over 1 s between consecutive complete phases (DESIGN.md
-// section 6.1 step 5). Overlapping phases leave no gap.
-func gaps(phases []model.Phase) []model.Gap {
+// gaps reports time over 1 s between consecutive complete phases (DESIGN.md section 6.1
+// step 5). Overlapping phases leave no gap. from is a later attempt's boundary (zero for the
+// first attempt): time before it, after a pod-level phase, was spent by the earlier attempts,
+// so that part is a gap with reason "earlier attempts" (decision 0007); the rest is
+// unattributed.
+func gaps(phases []model.Phase, from time.Time) []model.Gap {
 	var out []model.Gap
 	var prev *model.Phase
 	for i := range phases {
@@ -379,7 +447,18 @@ func gaps(phases []model.Phase) []model.Gap {
 			continue
 		}
 		if prev != nil {
-			if d := p.Start.Sub(prev.End); d > gapOver {
+			start := prev.End
+			if from.After(start) {
+				end := from
+				if p.Start.Before(end) {
+					end = p.Start
+				}
+				if d := end.Sub(start); d > gapOver {
+					out = append(out, model.Gap{After: prev.Name, Before: p.Name, Seconds: d.Seconds(), Reason: model.GapEarlierAttempts})
+				}
+				start = end
+			}
+			if d := p.Start.Sub(start); d > gapOver {
 				out = append(out, model.Gap{After: prev.Name, Before: p.Name, Seconds: d.Seconds()})
 			}
 		}
