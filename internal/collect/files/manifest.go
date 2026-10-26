@@ -29,9 +29,11 @@ const (
 // objectFacts reads the manifest facts of the pod, its profiled container and, when given, its
 // node: one fact event each, stamped with pod creation. Env facts hold literal values only
 // (a valueFrom reference has none), unfiltered; manifest.Sanitize decides what is kept. Env
-// and args values are never put in Raw.
-func objectFacts(p *corev1.Pod, container string, node *corev1.Node) []model.Event {
+// and args values are never put in Raw. walked is the owner a live collector found by walking
+// the ReplicaSet; it wins over the inferred one, with a warning when they differ.
+func objectFacts(p *corev1.Pod, container string, node *corev1.Node, walked string) ([]model.Event, []model.Warning) {
 	var out []model.Event
+	var warnings []model.Warning
 	add := func(key, value, raw string) {
 		if value == "" {
 			return
@@ -45,6 +47,11 @@ func objectFacts(p *corev1.Pod, container string, node *corev1.Node) []model.Eve
 	if ref, ok := ownerRef(p); ok {
 		add(model.FactPodOwnerRef, ref.Kind+"/"+ref.Name, "owner reference "+ref.Kind+"/"+ref.Name)
 		owner := inferOwner(p, ref)
+		if walked != "" && walked != owner {
+			warnings = append(warnings, model.Warning{Code: "owner-mismatch",
+				Text: "the owner inferred from the ReplicaSet's name is " + owner + ", but the ReplicaSet belongs to " + walked + "; using " + walked})
+			owner = walked
+		}
 		add(model.FactPodOwner, owner, "owner "+owner)
 	}
 
@@ -86,7 +93,7 @@ func objectFacts(p *corev1.Pod, container string, node *corev1.Node) []model.Eve
 			add(model.FactAcceleratorCount, n, "container limit "+string(nvidiaGPU)+" "+n)
 		}
 	}
-	return out
+	return out, warnings
 }
 
 // ownerRef is the pod's controller owner reference, or its first one.

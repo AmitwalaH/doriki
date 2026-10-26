@@ -1,0 +1,25 @@
+# Read-only access for doriki (DESIGN.md section 7.4): get and list, nothing else. doriki never
+# writes to the cluster. Bind it to the user or service account that runs doriki, for example:
+#
+#   kubectl create clusterrolebinding doriki-reader --clusterrole=doriki-reader --user=<you>
+#
+# nodes is optional: without it the manifest has no instance type, zone or GPU product, and a
+# warning says so. replicasets lets doriki walk a pod's ReplicaSet to its Deployment; without
+# it the owner is inferred from the ReplicaSet's name, with a warning.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: doriki-reader
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "pods/log", "events"]
+    verbs: ["get", "list"]
+  - apiGroups: [""]
+    resources: ["nodes"]
+    verbs: ["get", "list"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "replicasets", "statefulsets"]
+    verbs: ["get", "list"]
+  - apiGroups: ["serving.kserve.io"]
+    resources: ["inferenceservices"]
+    verbs: ["get", "list"]

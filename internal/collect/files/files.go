@@ -82,6 +82,7 @@ type Objects struct {
 	Pod         *corev1.Pod
 	Events      []corev1.Event
 	Node        *corev1.Node
+	Owner       string // the workload a live collector walked to, Kind/name; "" offline
 	Log         io.Reader
 	PreviousLog io.Reader
 }
@@ -99,7 +100,8 @@ func FromObjects(o Objects) ([]model.Event, []model.Warning, error) {
 	container := p.Spec.Containers[0].Name
 
 	out := podEvents(p, container)
-	out = append(out, objectFacts(p, container, o.Node)...)
+	facts, warnings := objectFacts(p, container, o.Node, o.Owner)
+	out = append(out, facts...)
 	out = append(out, k8sEvents(p, container, o.Events)...)
 	if !hasScheduled(out) {
 		out = append(out, scheduledFallback(p)...)
@@ -121,7 +123,7 @@ func FromObjects(o Objects) ([]model.Event, []model.Warning, error) {
 		}
 		out = append(out, prev...)
 	}
-	return out, nil, nil
+	return out, warnings, nil
 }
 
 // restartCount is the profiled container's restartCount, or 0 without a status.

@@ -184,3 +184,34 @@ func TestArgsAsJSON(t *testing.T) {
 		t.Errorf("args = %v (%v)", args, err)
 	}
 }
+
+// A live collector that walked the ReplicaSet to its Deployment is the authority: its owner is
+// used, and a disagreement with the name inferred from pod-template-hash is a warning. When
+// they agree, or nothing was walked, there is no warning.
+func TestWalkedOwner(t *testing.T) {
+	for walked, want := range map[string]struct {
+		owner string
+		warn  bool
+	}{
+		"":                       {"Deployment/vllm", false},
+		"Deployment/vllm":        {"Deployment/vllm", false},
+		"Deployment/vllm-canary": {"Deployment/vllm-canary", true},
+	} {
+		events, warnings, err := FromObjects(Objects{Pod: manifestPod(), Owner: walked, Log: strings.NewReader("")})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := facts(t, events)[model.FactPodOwner].Attrs[model.AttrFactValue]; got != want.owner {
+			t.Errorf("walked %q: owner %q, want %q", walked, got, want.owner)
+		}
+		warned := false
+		for _, w := range warnings {
+			if w.Code == "owner-mismatch" && strings.Contains(w.Text, "Deployment/vllm") && strings.Contains(w.Text, walked) {
+				warned = true
+			}
+		}
+		if warned != want.warn {
+			t.Errorf("walked %q: warnings %v, want an owner-mismatch warning: %v", walked, warnings, want.warn)
+		}
+	}
+}

@@ -308,7 +308,7 @@ Exit 4 is what lets `diff` sit in a CI job as a startup-time gate without any ot
 
 ### 7.4 RBAC
 
-Read-only: `get`/`list` on `pods`, `pods/log`, `events`, `nodes`, and the owner kinds (`deployments`, `statefulsets`, `inferenceservices` if present). The README ships a minimal ClusterRole. `nodes` is optional; without it the manifest omits node fields and a warning says so.
+Read-only: `get`/`list` on `pods`, `pods/log`, `events`, `nodes`, and the owner kinds (`deployments`, `replicasets` to walk a pod to its Deployment, `statefulsets`, `inferenceservices` if present). The README ships a minimal ClusterRole. `nodes` is optional; without it the manifest omits node fields and a warning says so.
 
 ### 7.5 Output rules
 
