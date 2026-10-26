@@ -74,6 +74,8 @@ force-push, never merge, rebase or open a PR, only when all of these hold:
 5. No open `[decision]` affects the files in this commit.
 6. The branch is `task/*`.
 Any condition unmet or unclear: report at Step 12, do not commit or push.
+Enforced mechanically by `.claude/hooks/git-gate.py`; the prose is the specification, the hook
+is the judge.
 
 **Co-author trailer:** a commit the agent makes under this policy ends with
 `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`. A commit message the agent proposes

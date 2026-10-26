@@ -3,6 +3,10 @@
 *.test
 *.out
 
+# Markers read by the git-gate hook: written by `make gate`, and by the owner to approve -update.
+/.gate-ok
+/.doriki-approve-update
+
 # The owner's method and task files are provided outside version control.
 /METHOD.md
 /tasks/
