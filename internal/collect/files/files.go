@@ -222,10 +222,13 @@ func logLines(r io.Reader) ([]model.Event, error) {
 		if !ok || err != nil {
 			e := event(time.Time{}, model.SourceEngineLog, model.KindLogLine, line)
 			e.Attrs = map[string]string{model.AttrUntimed: "true"}
+			e.Line = line
 			out = append(out, e)
 			continue
 		}
-		out = append(out, event(ts, model.SourceEngineLog, model.KindLogLine, rest))
+		e := event(ts, model.SourceEngineLog, model.KindLogLine, rest)
+		e.Line = rest
+		out = append(out, e)
 	}
 	if err := sc.Err(); err != nil {
 		if errors.Is(err, bufio.ErrTooLong) {

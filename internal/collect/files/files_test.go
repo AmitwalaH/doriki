@@ -274,6 +274,22 @@ func TestRawTruncated(t *testing.T) {
 	}
 }
 
+// Line keeps the whole log line, timed or untimed, so packs match past Raw's cut
+// (DK-COLLECT-BUG-20261025-match-full-log-line).
+func TestFullLineKept(t *testing.T) {
+	long := strings.Repeat("a", 600) + " end"
+	events, _ := read(t, pod("True", 0, runningMain, `{}`), `{"items": []}`, "2026-10-24T10:00:41Z "+long+"\n"+long+"\n")
+	lines := find(events, model.SourceEngineLog, model.KindLogLine)
+	if len(lines) != 2 {
+		t.Fatalf("log events = %+v, want 2", lines)
+	}
+	for i, l := range lines {
+		if l.Line != long || l.Raw != strings.Repeat("a", 512) {
+			t.Errorf("line %d: Line has %d bytes, Raw %d; want the whole %d-byte line and Raw cut to 512", i, len(l.Line), len(l.Raw), len(long))
+		}
+	}
+}
+
 func TestReadErrors(t *testing.T) {
 	cases := map[string][3]string{
 		"bad pod json":    {`{`, `{"items": []}`, ""},

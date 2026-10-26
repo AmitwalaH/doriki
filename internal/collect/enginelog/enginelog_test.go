@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/AmitwalaH/doriki/internal/collect/files"
 	"github.com/AmitwalaH/doriki/internal/model"
 )
 
@@ -251,6 +252,49 @@ func TestFacts(t *testing.T) {
 	if len(facts) != 1 || facts[0].Source != model.SourceManifest || !maps.Equal(facts[0].Attrs, want) ||
 		!facts[0].TS.Equal(ts("2026-10-25T09:29:06.893981150Z")) {
 		t.Errorf("facts = %+v, want one engine.version 0.32.0", facts)
+	}
+}
+
+// A marker or fact past byte 512 of a line is still found: the collector cuts only the stored
+// Raw, and Apply matches the whole line (DK-COLLECT-BUG-20261025-match-full-log-line). The log
+// goes through the real files collector, so a fix on either side alone fails here.
+func TestMatchPastRawCap(t *testing.T) {
+	pad := func(prefix, rest string) string { return prefix + strings.Repeat(" ", 600-len(prefix)) + rest }
+	loadPrefix, _, _ := strings.Cut(loadLine, "Loading")
+	versionPrefix, _, _ := strings.Cut(versionLine, "Initializing")
+	long := []string{
+		pad(loadPrefix, "Loading weights took 0.49 seconds"),
+		pad(versionPrefix, "Initializing a V1 LLM engine (v0.32.0) with config"),
+	}
+	if i := strings.Index(long[0], "Loading"); i != 600 {
+		t.Fatalf("marker text at byte %d, want 600", i)
+	}
+	pod := `{"metadata": {"name": "p"}, "spec": {"containers": [{"name": "c", "image": "i"}]}}`
+	log := "2026-10-25T09:31:10Z " + long[0] + "\n" + "2026-10-25T09:29:06Z " + long[1] + "\n"
+	collected, _, err := files.Read(strings.NewReader(pod), strings.NewReader(`{"items": []}`), strings.NewReader(log))
+	if err != nil {
+		t.Fatal(err)
+	}
+	out, _ := mustApply(t, testPack, collected)
+
+	got := markers(out, "vllm.weights.load.end")
+	if len(got) != 1 || got[0].Attrs["seconds"] != "0.49" {
+		t.Fatalf("load markers = %+v, want one with seconds 0.49", got)
+	}
+	if got[0].Raw != model.TruncateRaw(long[0]) {
+		t.Errorf("marker Raw has %d bytes, want the line cut to %d", len(got[0].Raw), model.MaxRawBytes)
+	}
+	var version string
+	for _, e := range out {
+		if e.Kind == model.KindFact && e.Attrs[model.AttrFactKey] == "engine.version" {
+			version = e.Attrs[model.AttrFactValue]
+			if len(e.Raw) > model.MaxRawBytes {
+				t.Errorf("fact Raw has %d bytes, want at most %d", len(e.Raw), model.MaxRawBytes)
+			}
+		}
+	}
+	if version != "0.32.0" {
+		t.Errorf("engine.version = %q, want 0.32.0", version)
 	}
 }
 
