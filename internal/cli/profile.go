@@ -114,12 +114,12 @@ func image(events []model.Event) string {
 	return ""
 }
 
-// logText is the engine log lines in file order, for pack selection by log_regex.
+// logText is the engine log lines in file order, whole, for pack selection by log_regex.
 func logText(events []model.Event) []string {
 	var out []string
 	for _, e := range events {
 		if e.Source == model.SourceEngineLog && e.Kind == model.KindLogLine {
-			out = append(out, e.Raw)
+			out = append(out, e.Text())
 		}
 	}
 	return out
