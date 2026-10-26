@@ -22,5 +22,7 @@ jobs:
         with:
           version: v2.15.0
           install-only: true
+      # The git-gate hook is a judge; a later edit that narrows it must fail CI.
+      - run: bash .claude/hooks/git-gate_test.sh
       # The same target developers run, so CI and a local gate cannot drift apart.
       - run: make gate
