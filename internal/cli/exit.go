@@ -5,11 +5,11 @@ import (
 	"strconv"
 )
 
-// Exit codes from DESIGN.md section 7.3. 2 and 3 arrive with live collection and
-// --require-pack.
+// Exit codes from DESIGN.md section 7.3. 3 arrives with --require-pack.
 const (
-	ExitIncomplete = 1  // report produced with an expected phase open or absent (decision 0003)
-	ExitUsage      = 64 // any error that carries no code of its own
+	ExitIncomplete  = 1  // report produced with an expected phase open or absent (decision 0003)
+	ExitUnavailable = 2  // pod not found, no permission, or the cluster cannot be reached
+	ExitUsage       = 64 // any error that carries no code of its own
 )
 
 // ExitError ends the command with a specific exit code. Err, when set, is printed; an

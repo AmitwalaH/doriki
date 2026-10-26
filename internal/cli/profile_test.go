@@ -87,7 +87,7 @@ func TestUsageErrors(t *testing.T) {
 		args []string
 		want string
 	}{
-		"live mode":      {[]string{"-o", "json", "pod/x"}, "--from-files"},
+		"live mode":      {[]string{"-o", "json", "svc/x"}, "svc"},
 		"two files":      {[]string{"--from-files", "-o", "json", "a", "b"}, "3 files"},
 		"unknown output": {append([]string{"--from-files", "-o", "yaml"}, fixtureArgs...), `"yaml"`},
 		"missing file":   {[]string{"--from-files", "-o", "json", "nope.json", fixtureArgs[1], fixtureArgs[2]}, "nope.json"},

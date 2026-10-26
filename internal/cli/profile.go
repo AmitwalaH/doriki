@@ -1,7 +1,6 @@
 package cli
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -9,6 +8,7 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
 
 	"github.com/AmitwalaH/doriki/internal/collect/enginelog"
 	"github.com/AmitwalaH/doriki/internal/collect/files"
@@ -29,38 +29,85 @@ type profileFlags struct {
 	fromFiles     bool
 	output        string
 	includeEvents bool
+	since         time.Duration
+	attempt       int
+	allAttempts   bool
+	kube          *genericclioptions.ConfigFlags // --kubeconfig, --context, -n and the rest of kubectl's
 }
 
 func addProfileFlags(cmd *cobra.Command, f *profileFlags) {
 	cmd.Flags().BoolVar(&f.fromFiles, "from-files", false, "build the report from saved files: pod.json events.json container.log [container-previous.log]")
 	cmd.Flags().StringVarP(&f.output, "output", "o", "text", "output format: text (the waterfall) or json (the report)")
 	cmd.Flags().BoolVar(&f.includeEvents, "include-events", false, "add every input event to the JSON report")
+	cmd.Flags().DurationVar(&f.since, "since", 0, "only use events last seen within this long, e.g. 24h (default: every event the cluster still keeps)")
+	cmd.Flags().IntVar(&f.attempt, "attempt", 0, "report this boot attempt (the container's restart count) instead of the latest")
+	cmd.Flags().BoolVar(&f.allAttempts, "all-attempts", false, "also report every observed boot attempt")
+	f.kube = genericclioptions.NewConfigFlags(true)
+	f.kube.AddFlags(cmd.Flags())
+}
+
+// reportOptions are the flags that shape the report rather than the collection.
+type reportOptions struct {
+	includeEvents bool
+	attempt       *int
+	allAttempts   bool
 }
 
 func runProfile(cmd *cobra.Command, args []string, f *profileFlags) error {
-	if !f.fromFiles {
-		return errors.New("live collection from a cluster is not implemented yet; use --from-files pod.json events.json container.log")
-	}
-	if len(args) != 3 && len(args) != 4 {
-		return fmt.Errorf("--from-files takes 3 files (pod.json events.json container.log) and, after a restart, optionally container-previous.log; got %d", len(args))
-	}
 	if f.output != "text" && f.output != "json" {
 		return fmt.Errorf("unknown output %q; use -o text or -o json", f.output)
 	}
-
-	previous := ""
-	if len(args) == 4 {
-		previous = args[3]
+	if f.since < 0 {
+		return fmt.Errorf("--since must be a positive duration, got %s", f.since)
 	}
-	r, pack, err := reportFromFiles(args[0], args[1], args[2], previous, f.includeEvents, now())
+	opts := reportOptions{includeEvents: f.includeEvents, allAttempts: f.allAttempts}
+	if cmd.Flags().Changed("attempt") {
+		opts.attempt = &f.attempt
+	}
+	at := now()
+
+	var collected []model.Event
+	var collectWarnings []model.Warning
+	var err error
+	switch {
+	case f.fromFiles:
+		if len(args) != 3 && len(args) != 4 {
+			return fmt.Errorf("--from-files takes 3 files (pod.json events.json container.log) and, after a restart, optionally container-previous.log; got %d", len(args))
+		}
+		previous := ""
+		if len(args) == 4 {
+			previous = args[3]
+		}
+		collected, collectWarnings, err = loadFiles(args[0], args[1], args[2], previous)
+	case len(args) == 0:
+		return fmt.Errorf("name the pod to profile: %s (or --from-files pod.json events.json container.log)", targetUsage)
+	case len(args) > 1:
+		return fmt.Errorf("doriki profiles one pod at a time; got %d names", len(args))
+	default:
+		collected, collectWarnings, err = collectLive(cmd.Context(), f, args[0], at)
+	}
+	if err != nil {
+		return err
+	}
+
+	r, pack, err := buildReport(collected, collectWarnings, opts, at)
 	if err != nil {
 		return err
 	}
 	out := cmd.OutOrStdout()
-	if f.output == "json" {
-		err = renderjson.Write(out, r)
-	} else {
-		err = rendertext.Write(out, r, rendertext.Options{Color: colorFor(out)})
+	write := func(w io.Writer, r model.Report) error {
+		if f.output == "json" {
+			return renderjson.Write(w, r)
+		}
+		return rendertext.Write(w, r, rendertext.Options{Color: colorFor(out)})
+	}
+	switch {
+	case f.output == "text" && opts.allAttempts:
+		err = writeAttempts(out, r, write)
+	case f.output == "text" && opts.attempt != nil:
+		err = writeAttempt(out, r, write)
+	default:
+		err = write(out, r)
 	}
 	if err != nil {
 		return err
@@ -74,21 +121,26 @@ func runProfile(cmd *cobra.Command, args []string, f *profileFlags) error {
 // ReportFromFiles runs the offline pipeline on saved files (DESIGN.md section 3): collect,
 // select a pack by image and log, apply it to the log, normalize, assign phases, build the
 // manifest. previousLogPath, when not empty, is the previous container's log. now becomes
-// generated_at. Live mode will share every step after collection.
+// generated_at. Live mode shares every step after collection.
 func ReportFromFiles(podPath, eventsPath, logPath, previousLogPath string, includeEvents bool, now time.Time) (model.Report, error) {
-	r, _, err := reportFromFiles(podPath, eventsPath, logPath, previousLogPath, includeEvents, now)
+	collected, warnings, err := loadFiles(podPath, eventsPath, logPath, previousLogPath)
+	if err != nil {
+		return model.Report{}, err
+	}
+	r, _, err := buildReport(collected, warnings, reportOptions{includeEvents: includeEvents}, now)
 	return r, err
 }
 
-func reportFromFiles(podPath, eventsPath, logPath, previousLogPath string, includeEvents bool, now time.Time) (model.Report, model.Pack, error) {
+func loadFiles(podPath, eventsPath, logPath, previousLogPath string) ([]model.Event, []model.Warning, error) {
 	var previous []string
 	if previousLogPath != "" {
 		previous = append(previous, previousLogPath)
 	}
-	collected, collectWarnings, err := files.Load(podPath, eventsPath, logPath, previous...)
-	if err != nil {
-		return model.Report{}, model.Pack{}, err
-	}
+	return files.Load(podPath, eventsPath, logPath, previous...)
+}
+
+// buildReport is every step after collection, the same for files and a live cluster.
+func buildReport(collected []model.Event, collectWarnings []model.Warning, opts reportOptions, now time.Time) (model.Report, model.Pack, error) {
 	// Env capture rules apply before anything else reads the events, so no secret reaches
 	// a report, --include-events or a warning (DESIGN.md section 10.3).
 	collected = manifest.Sanitize(collected)
@@ -102,7 +154,7 @@ func reportFromFiles(podPath, eventsPath, logPath, previousLogPath string, inclu
 	}
 	events, normalizeWarnings := normalize.Normalize(applied)
 
-	r, err := phase.Assign(events, phase.Options{Markers: markerIDs(pack), Pack: pack.Name})
+	r, err := phase.Assign(events, phase.Options{Markers: markerIDs(pack), Pack: pack.Name, Attempt: opts.attempt, AllAttempts: opts.allAttempts})
 	if err != nil {
 		return model.Report{}, model.Pack{}, err
 	}
@@ -112,7 +164,7 @@ func reportFromFiles(podPath, eventsPath, logPath, previousLogPath string, inclu
 	r.Manifest = manifest.Build(events, pack)
 	r.Manifest.Fingerprint = manifest.Fingerprint(r.Manifest)
 	r.Warnings = slices.Concat(collectWarnings, packWarnings, logWarnings, normalizeWarnings, r.Warnings)
-	if includeEvents {
+	if opts.includeEvents {
 		r.Events = events
 	}
 	return r, pack, nil
