@@ -18,10 +18,11 @@ import (
 )
 
 // Layout, in terminal columns. A row is the name, the bar track, a space, the duration right
-// aligned, two spaces and the attributes: 16 + 44 + 1 + 7 + 2 + 30 = Width.
+// aligned, two spaces and the attributes: 17 + 44 + 1 + 7 + 2 + 29 = Width. The name column
+// is one wider than the longest label, "earlier attempts", so no label touches its bar.
 const (
 	Width      = 100
-	nameWidth  = 16
+	nameWidth  = 17
 	trackWidth = 44
 	durWidth   = 7
 	attrWidth  = Width - nameWidth - trackWidth - 1 - durWidth - 2

@@ -1,8 +1,8 @@
 Pod default/nginx-89d46f4b4-ndl9f   pack generic   node doriki-control-plane   total 0:02
 
-scheduling      │                                               0.0s
-image-pull                            │                         0.0s  image already on node
-container-init                        ████████████              0.6s
+scheduling       │                                               0.0s
+image-pull                             │                         0.0s  image already on node
+container-init                         ████████████              0.6s
 
 absent: node-provision, engine-init, weight-fetch, weight-load, compile, graph-capture, kv-alloc,
   server-ready, first-token (not seen in the events or the log; pack generic)
