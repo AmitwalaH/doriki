@@ -10,9 +10,9 @@ no SaaS and sends no telemetry.
 
 **doriki measures and advises; it never changes the cluster.**
 
-**Status:** pre-release. Today doriki builds the report from saved files (`--from-files`);
-profiling a live pod (`kubectl doriki pod/<name>`) and the advice rules arrive before v0.1.0,
-planned for 18 Nov 2026.
+**Status:** pre-release. doriki profiles a live pod, Deployment or StatefulSet, once or with
+`--follow` while it boots, and builds the same report from saved files (`--from-files`). The
+advice rules and the `capture` command arrive before v0.1.0, planned for 18 Nov 2026.
 
 ## What it shows
 
@@ -50,6 +50,40 @@ To reproduce it from a clone:
 go run ./cmd/doriki --from-files packs/vllm/testdata/0.32/{pod.json,events.json,container.log}
 ```
 
+## Usage
+
+```sh
+doriki pod/vllm-7c9f -n serving          # one pod; a bare name is a pod too
+doriki deploy/vllm -n serving            # the newest pod of a Deployment (sts/<name>: StatefulSet)
+doriki deploy/vllm -n serving --follow   # watch it boot; redraws as phases complete
+doriki pod/vllm-7c9f -o json             # the report as JSON (--include-events adds every event)
+```
+
+- **Cluster access** uses kubectl's own flags: `--kubeconfig`, `--context`, `-n`, `--as` and
+  the rest. doriki only reads (see [Requirements](#requirements)).
+- **`--follow`** streams the container log and reads the pod and its events every 2 s. It stops
+  when the pod is Ready and every phase the engine's pack can see is complete, or at `--timeout`
+  (default 15m) with the report as it stands. On a terminal it redraws in place; otherwise it
+  prints the final report once. Started right after `kubectl apply`, it waits for the first pod.
+- **Restarts:** the latest boot attempt is reported. `--attempt N` picks another (N is the
+  container's restart count) and `--all-attempts` shows every attempt the pod object still has;
+  time the earlier attempts used appears as an `earlier attempts` row.
+- **`--since 24h`** uses only events last seen in that window. Kubernetes keeps events for about
+  an hour by default, so profile a pod soon after it starts.
+- **Exit codes:** `0` the report is complete; `1` a phase doriki expected is still open or not
+  seen (the pod is still booting, or its events expired); `2` the pod cannot be read (not found,
+  no permission, cluster unreachable), with the API's message; `64` a usage error.
+
+### As a kubectl plugin
+
+kubectl runs any `kubectl-<name>` binary on your `PATH` as `kubectl <name>`. Put doriki there
+under that name, or link it:
+
+```sh
+ln -s "$PWD/bin/doriki" ~/.local/bin/kubectl-doriki   # any directory on your PATH
+kubectl doriki pod/vllm-7c9f -n serving
+```
+
 ## What is validated
 
 doriki is only as good as the captures its parsers are tested against, so this is the whole list
@@ -66,8 +100,15 @@ today:
   lower confidence, but no capture has exercised them.
 - **GPU vLLM images (`vllm/vllm-openai`) are matched by the pack's image pattern but unverified.**
   On a GPU pod doriki will try, and the waterfall may miss or misplace phases.
-- Engines without a pack (anything other than vLLM 0.32.0 today) get the Kubernetes phases only,
-  with a warning naming the image.
+- **llama.cpp server build 11889 on CPU, at its default log level.** One real capture in `kind`
+  ([`SOURCE.md`](packs/llamacpp/testdata/11889/SOURCE.md)): engine start-up, weight download,
+  weight load and server ready are observed. llama-server prints nothing while it downloads a
+  model, so the download is the silent interval before it starts loading, marked `~` (measured:
+  10.86 s with the model not cached, 0 s cached). Compile and graph capture are shown as not
+  applicable to this engine. The server prints its build only at `-lv 4`, so the report warns
+  that the version was not read.
+- Engines without a pack (anything other than vLLM 0.32.0 and llama.cpp today) get the
+  Kubernetes phases only, with a warning naming the image.
 
 ### Please send a capture from a GPU vLLM pod
 
@@ -97,8 +138,18 @@ Then open an issue with the files attached and the vLLM version, GPU model and i
 ## Requirements
 
 - Kubernetes **1.29** or newer.
-- Read-only access to pods, pod logs and events in the namespaces you profile. doriki asks for
-  no write permission and makes no write call.
+- Read-only access: `get` and `list` on pods, pod logs and events in the namespaces you
+  profile, and on Deployments, ReplicaSets and StatefulSets to resolve `deploy/` and `sts/` and
+  name a pod's owner. Nodes are optional: without them the report omits instance type, zone and
+  GPU product, and says so. doriki asks for no write permission and makes no write call.
+
+[`deploy/rbac.yaml`](deploy/rbac.yaml) is that ClusterRole, `doriki-reader`; bind it to whoever
+runs doriki:
+
+```sh
+kubectl apply -f deploy/rbac.yaml
+kubectl create clusterrolebinding doriki-reader --clusterrole=doriki-reader --user=<you>
+```
 
 ## Install
 
@@ -122,9 +173,10 @@ make build
 
 ## Roadmap
 
-v0.1.0 is planned for **18 Nov 2026**: live profiling of a pod or Deployment, `--follow`, the
-`capture` command for shareable redacted bundles, the first five advice rules, and the
-llama.cpp and Ollama packs. Everything cut from v0.1, and why, is in
+v0.1.0 is planned for **18 Nov 2026**: what is above, plus the `capture` command for shareable
+redacted bundles and the first five advice rules. The Ollama pack is cut from v0.1: Ollama loads
+its model on the first request, after the pod is Ready, which the fixed phase order cannot show
+yet ([`DK-PHASE-ENH-20261026-lazy-load-phase-order`](tickets/DK-PHASE-ENH-20261026-lazy-load-phase-order.md)). Everything cut from v0.1, and why, is in
 [`docs/v0.2-backlog.md`](docs/v0.2-backlog.md): `diff` with a CI exit code, the Prometheus
 exporter, the SGLang pack and the HTML report lead its default order, which v0.1 feedback will
 settle.

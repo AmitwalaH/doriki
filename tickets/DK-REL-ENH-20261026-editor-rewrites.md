@@ -2,7 +2,7 @@
 
 **Date Discovered:** 2026-10-26
 **Severity:** LOW
-**Status:** OPEN, scheduled for M2 slice 8
+**Status:** CLOSED (2026-10-26)
 **Label:** [ticket]
 **Found by:** the owner, walked: their editor rewrote the quotes in `packs/llamacpp/11889.yaml`
 on save, after the agent wrote it (2026-10-26)
@@ -28,3 +28,13 @@ is indistinguishable from a hand edit.
 
 ## Related
 `DESIGN.md` section 9.2; `packs/*/testdata/*/SOURCE.md`; M2 slice 8.
+
+## Resolution (2026-10-26, M2 slice 8)
+Both options. `.vscode/settings.json` turns off format-on-save, trailing-whitespace trimming and
+final-newline insertion for this repository. `packs/fixtures_test.go` (`TestFixtureChecksums`)
+recomputes the sha256 of every captured file in every `packs/*/testdata/*/` and compares it with
+the `## Checksums` section appended to that fixture's `SOURCE.md` (computed from the committed
+files; no capture file was touched); it also fails on a captured file with no entry, or an entry
+with no file. `.gitattributes` marks the fixtures `-text`, so no checkout converts their line
+endings and the hashes hold on every platform. Pack YAML files are not hashed: they are code,
+and their own tests check what they match.

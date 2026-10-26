@@ -1,3 +1,6 @@
 # Captured fixtures are data, not source: keep them out of GitHub's language bar and collapse
 # them in pull request diffs.
 packs/**/testdata/** linguist-generated=true
+# Byte for byte: no line-ending conversion on checkout, so a capture's sha256 in its SOURCE.md
+# (checked by packs/fixtures_test.go) holds on every platform.
+packs/**/testdata/** -text
