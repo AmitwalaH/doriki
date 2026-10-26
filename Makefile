@@ -23,7 +23,12 @@ test:
 lint:
 	golangci-lint run ./...
 
-gate: build lint test
+# .gate-ok is the proof .claude/hooks/git-gate.py checks before an agent commit. Remove it first
+# and recreate it only after every check passes, so a failed gate never leaves a marker.
+gate:
+	@rm -f .gate-ok
+	@$(MAKE) --no-print-directory build lint test
+	@touch .gate-ok
 
 # JSON Schemas from the Go types in internal/model; commit the result. The schema test fails
 # when they are stale.
