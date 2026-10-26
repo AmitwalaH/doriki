@@ -268,3 +268,38 @@ func TestMarkerIDsIncludeDerivedStart(t *testing.T) {
 		t.Errorf("markerIDs = %v, want %v", got, want)
 	}
 }
+
+// Pack selection reads the whole log line, like markers do: a version past byte 512 of the
+// line still picks the pack without a pack-version-unknown warning
+// (DK-CLI-BUG-20261026-select-on-full-line). Through the real command and files collector.
+func TestSelectionReadsFullLine(t *testing.T) {
+	dir := t.TempDir()
+	line := "(EngineCore pid=139) INFO 10-25 09:29:06 [core.py:133] " + strings.Repeat(" ", 600) +
+		"Initializing a V1 LLM engine (v0.32.0) with config: model='facebook/opt-125m'"
+	files := map[string]string{
+		"pod.json":      `{"metadata": {"name": "p", "namespace": "default"}, "spec": {"containers": [{"name": "c", "image": "vllm/vllm-openai:v0.32.0"}]}}`,
+		"events.json":   `{"items": []}`,
+		"container.log": "2026-10-25T09:29:06Z " + line + "\n",
+	}
+	var args []string
+	for _, name := range []string{"pod.json", "events.json", "container.log"} {
+		path := filepath.Join(dir, name)
+		if err := os.WriteFile(path, []byte(files[name]), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		args = append(args, path)
+	}
+	out, _ := run(t, append([]string{"--from-files", "-o", "json"}, args...)...)
+	var r model.Report
+	if err := json.Unmarshal([]byte(out), &r); err != nil {
+		t.Fatalf("not a report: %v\n%s", err, out)
+	}
+	if r.Manifest == nil || r.Manifest.Engine == nil || r.Manifest.Engine.ParserPack != "vllm/0.32" {
+		t.Fatalf("manifest = %+v, want parser pack vllm/0.32", r.Manifest)
+	}
+	for _, w := range r.Warnings {
+		if w.Code == "pack-version-unknown" || w.Code == "no-pack" {
+			t.Errorf("warning %s: %s; want the version read from past byte 512", w.Code, w.Text)
+		}
+	}
+}

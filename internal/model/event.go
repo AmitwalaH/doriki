@@ -35,6 +35,15 @@ type Event struct {
 	Line string `json:"-"`
 }
 
+// Text is what a pack reads from a log line: the whole line when the collector kept it, else
+// Raw. Raw is cut to 512 bytes for storage, so reading it would miss anything past the cut.
+func (e Event) Text() string {
+	if e.Line != "" {
+		return e.Line
+	}
+	return e.Raw
+}
+
 // Event kinds the phase engine reads (DESIGN.md section 4.2). Collectors emit them; facts
 // read from the pod object (creation, container starts, the Ready condition) come from
 // SourceContainerStatus, Kubernetes Event objects from SourceK8sEvent.
