@@ -33,6 +33,8 @@ The single exception to METHOD.md rule 1 is written in `PROJECT.md` section 5. Y
 holds. If any condition fails, or you are unsure, do not commit or push: report at Step 12 and
 stop. You never push to `main`, never force-push, never merge, rebase, or open a pull request.
 When to add the co-author trailer, and when to leave it out, is also written there, once.
+The hook `.claude/hooks/git-gate.py` enforces this policy; a `git-gate: BLOCKED` message means
+stop and report, never work around it.
 
 ## Commands (also in PROJECT.md section 3)
 
