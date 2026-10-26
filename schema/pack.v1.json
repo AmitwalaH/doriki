@@ -32,6 +32,27 @@
             "$ref": "#/$defs/PackFact"
           },
           "type": "array"
+        },
+        "not_applicable": {
+          "items": {
+            "type": "string",
+            "enum": [
+              "scheduling",
+              "node-provision",
+              "image-pull",
+              "container-init",
+              "engine-init",
+              "weight-fetch",
+              "weight-load",
+              "compile",
+              "graph-capture",
+              "kv-alloc",
+              "server-ready",
+              "first-token"
+            ]
+          },
+          "type": "array",
+          "description": "NotApplicable lists phases this engine never has (decision 0008). One the log does not\nshow is reported as skipped, \"not applicable to this engine\", instead of absent. It is\na label: such phases are not expected anyway, since the pack declares no markers for\nthem (decision 0003)."
         }
       },
       "additionalProperties": false,
@@ -50,6 +71,10 @@
         },
         "log_regex": {
           "type": "string"
+        },
+        "version_note": {
+          "type": "string",
+          "description": "VersionNote is added to the warning when log_regex finds no version, to say why: for\nexample, that the engine prints its version only at a higher log level."
         }
       },
       "additionalProperties": false,

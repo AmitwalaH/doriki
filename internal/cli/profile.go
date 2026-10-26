@@ -167,7 +167,8 @@ func buildReport(collected []model.Event, collectWarnings []model.Warning, opts 
 	}
 	events, normalizeWarnings := normalize.Normalize(applied)
 
-	r, err := phase.Assign(events, phase.Options{Markers: markerIDs(pack), Pack: pack.Name, Attempt: opts.attempt, AllAttempts: opts.allAttempts})
+	r, err := phase.Assign(events, phase.Options{Markers: markerIDs(pack), Pack: pack.Name, NotApplicable: pack.NotApplicable,
+		Attempt: opts.attempt, AllAttempts: opts.allAttempts})
 	if err != nil {
 		return model.Report{}, model.Pack{}, err
 	}

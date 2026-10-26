@@ -102,6 +102,10 @@ const (
 // zero until enginelog dates it from the engine's own timestamp or drops it.
 const AttrUntimed = "untimed"
 
+// AttrNotApplicable is "true" on a skipped phase the pack says this engine never has
+// (decision 0008), as opposed to one the engine said it skipped.
+const AttrNotApplicable = "not_applicable"
+
 // AttrStartDerived is on a start marker derived from an end marker's logged duration
 // (PackMarker.StartFromDuration), and on the phase it starts.
 const AttrStartDerived = "start_derived"

@@ -1,0 +1,62 @@
+# llama.cpp server, build 11889 (DESIGN.md section 5). Written from the real capture in
+# testdata/11889 (ghcr.io/ggml-org/llama.cpp:server, CPU, in kind, the default log level) and
+# nothing else: every marker matches a line of that capture, and packs/llamacpp_test.go checks
+# it. Line numbers below are the capture's.
+#
+# At the default level (verbosity 3) llama-server logs 15 lines. It prints no version, no
+# tensor or KV cache lines, and nothing while it downloads a model; those appear only at -lv 4,
+# except the download, which no level prints (DK-PACK-ENH-20261026-llamacpp-verbose).
+pack_version: 1
+engine: llamacpp
+# The captured build only; widen it with a fixture from each new build.
+versions: "11889"
+detect:
+  # ghcr.io/ggml-org/llama.cpp and its tags (server, server-b11889, ...).
+  image_regex: 'llama\.cpp'
+  # Printed only at -lv 4 or above: "common_params_print_info: build 11889 (d854d98ba) with
+  # GNU 14.2.0 for Linux x86_64". The default-level capture has no such line.
+  log_regex: 'common_params_print_info: build (?P<version>[0-9]+) \('
+  version_note: llama.cpp prints its build only at -lv 4 or above
+# No timestamp block: the in-line times ("0.12.437.395") count from the process start, not a
+# wall clock, so the runtime timestamps (kubectl logs --timestamps) are the only times.
+markers:
+  # engine-init runs from the first log line to here (decision 0006): the CPU backend is
+  # loaded and the parameters are printed. Line 4, 1.57 s after the first line.
+  - id: llamacpp.engine.init.end
+    regex: "common_params_print_info: verbosity = [0-9]+"
+
+  # weight-fetch: llama-server downloads an --hf-repo model without printing anything, so the
+  # fetch is the silent interval between line 4 and line 6. Measured on this pod: 10.86 s
+  # with the model not yet in LLAMA_CACHE (this capture), 0.00 s after a container restart
+  # with the model cached (same pod, same emptyDir). That difference is what attributes the
+  # interval to the download; confidence 0.8 because no line says so, and with a local model
+  # path the same interval is only server setup.
+  - id: llamacpp.weights.fetch.start
+    regex: "common_params_print_info: verbosity = [0-9]+"
+    confidence: 0.8
+  - id: llamacpp.weights.fetch.end
+    regex: "load_model: loading model '(?P<model>[^']+)'"
+    confidence: 0.8
+
+  # weight-load: from "loading model" (line 6) to "model loaded" (line 14). At the default
+  # level this also covers tokenizer, context and KV cache setup, which print nothing separate.
+  - id: llamacpp.weights.load.start
+    regex: "load_model: loading model '(?P<model>[^']+)'"
+  - id: llamacpp.weights.load.end
+    regex: ": model loaded$"
+
+  # server-ready starts here and ends at the pod's Ready condition (/health answers 503 until
+  # the model is loaded). Line 15, printed after "model loaded"; this build prints no earlier
+  # listening line.
+  - id: llamacpp.server.listening
+    regex: ": listening on https?://"
+
+# No kv.* markers: kv-alloc prints nothing separate at the default level, so it is absent
+# without a warning (decision 0003).
+facts:
+  # Line 6: the --hf-repo, or the model path.
+  - key: model.ref
+    regex: "load_model: loading model '(?P<v>[^']+)'"
+
+# llama.cpp has no torch.compile and no CUDA graph capture step, and says nothing about them.
+not_applicable: [compile, graph-capture]

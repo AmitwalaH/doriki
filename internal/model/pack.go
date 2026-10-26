@@ -14,12 +14,20 @@ type Pack struct {
 	Timestamp   *PackTimestamp `yaml:"timestamp,omitempty"`
 	Markers     []PackMarker   `yaml:"markers,omitempty"`
 	Facts       []PackFact     `yaml:"facts,omitempty"`
+	// NotApplicable lists phases this engine never has (decision 0008). One the log does not
+	// show is reported as skipped, "not applicable to this engine", instead of absent. It is
+	// a label: such phases are not expected anyway, since the pack declares no markers for
+	// them (decision 0003).
+	NotApplicable []PhaseName `yaml:"not_applicable,omitempty"`
 }
 
 // PackDetect says how a pack is chosen for a pod (DESIGN.md section 5.3).
 type PackDetect struct {
 	ImageRegex string `yaml:"image_regex,omitempty"`
 	LogRegex   string `yaml:"log_regex,omitempty"`
+	// VersionNote is added to the warning when log_regex finds no version, to say why: for
+	// example, that the engine prints its version only at a higher log level.
+	VersionNote string `yaml:"version_note,omitempty"`
 }
 
 // PackTimestamp parses the engine's own timestamp from a log line: Regex has a named group

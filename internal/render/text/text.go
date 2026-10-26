@@ -65,11 +65,15 @@ func Write(w io.Writer, r model.Report, opts Options) error {
 
 	add(st.header.Render(header(r)))
 	add("")
-	var skipped, absent []string
+	var skipped, notApplicable, absent []string
 	estimated := false
 	for _, p := range r.Phases {
 		switch p.State {
 		case model.StateSkipped:
+			if p.Attrs[model.AttrNotApplicable] == "true" {
+				notApplicable = append(notApplicable, string(p.Name))
+				continue
+			}
 			skipped = append(skipped, string(p.Name))
 			continue
 		case model.StateAbsent:
@@ -91,11 +95,14 @@ func Write(w io.Writer, r model.Report, opts Options) error {
 		}
 	}
 
-	if len(skipped) > 0 || len(absent) > 0 {
+	if len(skipped) > 0 || len(notApplicable) > 0 || len(absent) > 0 {
 		add("")
 	}
 	if len(skipped) > 0 {
 		lines = append(lines, wrap(st.dim, "skipped: "+strings.Join(skipped, ", ")+" (the engine said it skips them)", "  ")...)
+	}
+	if len(notApplicable) > 0 {
+		lines = append(lines, wrap(st.dim, "skipped: "+strings.Join(notApplicable, ", ")+" (not applicable to this engine)", "  ")...)
 	}
 	if len(absent) > 0 {
 		why := "not seen in the events or the log"
