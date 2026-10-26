@@ -6,10 +6,22 @@
     "manifest_version": 1,
     "pod": {
       "namespace": "default",
-      "name": "vllm-785fb8997d-bvsz4"
+      "name": "vllm-785fb8997d-bvsz4",
+      "uid": "545cae50-e8b9-4a82-9c4c-b71840b1919a",
+      "owner": "Deployment/vllm",
+      "owner_ref": "ReplicaSet/vllm-785fb8997d"
     },
     "node": {
       "name": "doriki-control-plane"
+    },
+    "container": {
+      "image": "ghcr.io/mekayelanik/vllm-cpu@sha256:8ef8561070bd1bd06e15420b76cc55834086e8bcf6dc860dd65b793f2ff8bf5b",
+      "image_digest": "sha256:8ef8561070bd1bd06e15420b76cc55834086e8bcf6dc860dd65b793f2ff8bf5b",
+      "env_allowlist": {
+        "VLLM_CPU_KVCACHE_SPACE": "1",
+        "VLLM_EXTRA_ARGS": "--enforce-eager",
+        "VLLM_MODEL": "facebook/opt-125m"
+      }
     },
     "engine": {
       "name": "vllm",
@@ -18,7 +30,8 @@
     },
     "model": {
       "ref": "facebook/opt-125m"
-    }
+    },
+    "fingerprint": "sha256:746f34a35268fbc808d5222deb5b3cd5bff558291c9c0041abb80b50638160fb"
   },
   "attempt": 0,
   "attempts_total": 1,
