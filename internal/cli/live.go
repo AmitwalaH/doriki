@@ -3,6 +3,7 @@ package cli
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"strings"
@@ -85,6 +86,11 @@ func collectLive(ctx context.Context, f *profileFlags, arg string, now time.Time
 	if err != nil {
 		return nil, nil, &ExitError{Code: ExitUnavailable, Err: err}
 	}
+	return fromLive(o)
+}
+
+// fromLive turns live objects into events through the one conversion --from-files also uses.
+func fromLive(o k8s.Objects) ([]model.Event, []model.Warning, error) {
 	objs := files.Objects{Pod: o.Pod, Events: o.Events, Node: o.Node, Owner: o.Owner, Log: bytes.NewReader(o.Log)}
 	if o.PreviousLog != nil {
 		objs.PreviousLog = bytes.NewReader(o.PreviousLog)
@@ -95,6 +101,92 @@ func collectLive(ctx context.Context, f *profileFlags, arg string, now time.Time
 	}
 	return events, append(o.Warnings, warnings...), nil
 }
+
+// runFollow is --follow (DESIGN.md sections 2 and 3): it builds the report again each time the
+// pod, its events or its log change, redraws it in place on a terminal, and stops once the pod
+// has booted, or at --timeout with the report as it stands. Off a terminal it
+// prints only that final report. Exit codes are the one-shot ones.
+func runFollow(ctx context.Context, f *profileFlags, args []string, opts reportOptions, out io.Writer, write func(io.Writer, model.Report) error) error {
+	switch {
+	case f.fromFiles:
+		return fmt.Errorf("--follow watches a live pod; it does not take --from-files")
+	case f.timeout <= 0:
+		return fmt.Errorf("--timeout must be a positive duration, got %s", f.timeout)
+	case len(args) != 1:
+		return fmt.Errorf("--follow watches one pod: %s", targetUsage)
+	}
+	t, err := parseTarget(args[0])
+	if err != nil {
+		return err
+	}
+	client, ns, err := liveClient(f.kube)
+	if err != nil {
+		return &ExitError{Code: ExitUnavailable, Err: err}
+	}
+	t.Namespace = ns
+	var notBefore time.Time
+	if f.since > 0 {
+		notBefore = now().Add(-f.since)
+	}
+
+	ctx, cancel := context.WithTimeout(ctx, f.timeout)
+	defer cancel()
+	tty := isTerminal(out)
+	var (
+		last     model.Report
+		lastPack model.Pack
+		have     bool
+		frame    string
+		failed   error
+	)
+	err = follow(ctx, client, t, notBefore, followEvery, func(o k8s.Objects) bool {
+		events, warnings, err := fromLive(o)
+		if err == nil {
+			last, lastPack, err = buildReport(events, warnings, opts, now())
+		}
+		if err != nil {
+			failed = err
+			return true
+		}
+		have = true
+		if tty {
+			var b strings.Builder
+			if err := write(&b, last); err != nil {
+				failed = err
+				return true
+			}
+			if s := b.String(); s != frame {
+				frame = s
+				fmt.Fprint(out, clearScreen+s) //nolint:errcheck // a failed redraw shows in the next one
+			}
+		}
+		return booted(last, lastPack)
+	})
+	switch {
+	case failed != nil:
+		return failed
+	case err != nil && !errors.Is(err, context.DeadlineExceeded):
+		return &ExitError{Code: ExitUnavailable, Err: err}
+	case !have:
+		return &ExitError{Code: ExitUnavailable, Err: fmt.Errorf("%s has no pod after %s", args[0], f.timeout)}
+	}
+	if !tty {
+		if err := write(out, last); err != nil {
+			return err
+		}
+	}
+	return exitFor(last, lastPack)
+}
+
+// booted is when --follow stops: the pod is Ready (the report has its total) and a one-shot run
+// would exit 0. Ready alone is not enough while a phase the pack can see is still open, and
+// exit 0 alone is not enough under a pack that expects nothing after container-init.
+func booted(r model.Report, pack model.Pack) bool {
+	return r.Totals.PendingToReadySeconds != nil && exitFor(r, pack) == nil
+}
+
+// follow is a variable for the same reason as collect.
+var follow = k8s.Follow
 
 // writeAttempts prints each boot attempt's waterfall under an "attempt N of M" line; only the
 // reported attempt carries the warnings.
@@ -121,3 +213,9 @@ func writeAttempt(w io.Writer, r model.Report, write func(io.Writer, model.Repor
 	}
 	return write(w, r)
 }
+
+// followEvery is how often --follow reads the pod and its events again (plan choice (c)).
+var followEvery = 2 * time.Second
+
+// clearScreen moves the cursor home and clears the terminal, so --follow redraws in place.
+const clearScreen = "\x1b[H\x1b[2J"
