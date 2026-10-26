@@ -59,6 +59,23 @@ run "git stash show -p" 0
 run "git stash" 2
 run "git stash pop" 2
 run "git archive --format=tar HEAD > /tmp/x.tar" 0
+# v4 cases: commands after a heredoc body must still be judged (bypass found 26 Oct)
+run "python3 - x.go <<'EOF'
+print('hello')
+EOF
+git rm -q --cached a.go 2>/dev/null; rm -f a.go; echo done" 2
+run "cat <<EOF > /tmp/note.txt
+git push origin main is just text here
+EOF
+git push origin main" 2
+run "cat <<EOF > /tmp/note.txt
+some text
+EOF
+git status" 0
+run "cat <<-EOF
+	tab-indented terminator
+	EOF
+git stash" 2
 run "bash .claude/hooks/git-gate_test.sh" 0
 run "python3 .claude/hooks/git-gate.py --version" 0
 run "cat docs/git-workflow.md" 0

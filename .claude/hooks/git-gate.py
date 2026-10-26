@@ -70,16 +70,37 @@ def current_branch(cwd):
     return r.stdout.strip()
 
 
+def strip_heredocs(cmd):
+    """Remove heredoc bodies (data) but keep every command line before and after them.
+
+    For each line containing <<WORD or <<'WORD' or <<-WORD, the lines after it up to and
+    including the terminator line (a line equal to WORD, ignoring leading tabs) are dropped.
+    The opening line itself stays, so the command that reads the heredoc is still judged.
+    Lines after the terminator are commands and stay."""
+    lines = cmd.split("\n")
+    out = []
+    i = 0
+    while i < len(lines):
+        line = lines[i]
+        out.append(line)
+        m = re.search(r"<<-?\s*['\"]?(\w+)['\"]?", line)
+        if m:
+            word = m.group(1)
+            i += 1
+            while i < len(lines) and lines[i].lstrip("\t") != word:
+                i += 1
+            i += 1  # skip the terminator line
+            continue
+        i += 1
+    return "\n".join(out)
+
+
 def split_commands(cmd):
     """Split on shell separators so chained commands are judged one by one.
 
-    A heredoc body (everything after a line containing <<WORD) is data, not commands, so it
-    is dropped before splitting; the line that opens the heredoc is still judged."""
-    m = re.search(r"<<-?\s*['\"]?(\w+)['\"]?", cmd)
-    if m:
-        first_nl = cmd.find("\n", m.end())
-        if first_nl != -1:
-            cmd = cmd[:first_nl]
+    Heredoc bodies are data, not commands, and are removed first; everything else,
+    including commands on lines after a heredoc, is judged."""
+    cmd = strip_heredocs(cmd)
     parts = re.split(r"\s*(?:&&|\|\||;|\|)\s*|\n", cmd)
     return [p.strip() for p in parts if p and p.strip()]
 
