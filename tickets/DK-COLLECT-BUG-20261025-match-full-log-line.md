@@ -2,7 +2,7 @@
 
 **Date Discovered:** 2026-10-25
 **Severity:** MEDIUM
-**Status:** OPEN, scheduled for M2 (live collector)
+**Status:** CLOSED (2026-10-26)
 **Label:** [ticket]
 **Found by:** the M1b agent, read in code while writing the vLLM pack test, then measured on the
 vLLM 0.32 fixture
@@ -37,3 +37,12 @@ it match and gets an absent phase in the report, with nothing pointing at the ca
 
 ## Related
 `DESIGN.md` sections 4.1 and 5.2; decision 0005 (`phase-unobserved`); the M1b vLLM pack.
+
+## Resolution (2026-10-26, M2 slice 1)
+Option 1. A log line event keeps the whole line in `model.Event.Line` (`json:"-"`: never in the
+report, the schema or `--include-events`); `Raw` is still cut to 512 bytes when the collector
+creates the event. `enginelog.Apply` reads markers, facts and the in-line time from the whole
+line; the marker and fact events it emits carry the cut `Raw`. Proved by
+`TestMatchPastRawCap` (a marker and a fact at byte 600, read through the real files collector)
+and `TestFullLineKept`. Not covered here: pack selection by `log_regex` still reads the cut
+text (`DK-CLI-BUG-20261026-select-on-full-line`).

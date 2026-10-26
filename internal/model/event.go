@@ -30,6 +30,9 @@ type Event struct {
 	Attrs      map[string]string `json:"attrs,omitempty"`  // raw key/values from the source
 	Raw        string            `json:"raw,omitempty"`    // original line or message, at most 512 bytes
 	Confidence float32           `json:"confidence"`       // 1.0 for K8s and CRI; packs may set lower
+	// Line is the whole log line on a KindLogLine event, for packs to match: the 512-byte cap
+	// is a storage rule for Raw, not a limit on what packs read. It is never written out.
+	Line string `json:"-"`
 }
 
 // Event kinds the phase engine reads (DESIGN.md section 4.2). Collectors emit them; facts

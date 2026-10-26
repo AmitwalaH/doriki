@@ -15,9 +15,10 @@ import (
 
 const vllmFixture = "vllm/testdata/0.32/"
 
-// fixtureLines is the vLLM capture's log as the pipeline sees it: the kubectl --timestamps
-// prefix removed and each line cut to model.MaxRawBytes, as the collector stores it, so a
-// marker past that cut fails here as it would in a real run.
+// fixtureLines is the vLLM capture's log with the kubectl --timestamps prefix removed and each
+// line cut to model.MaxRawBytes, as the report stores it. The pipeline matches the whole line
+// (DK-COLLECT-BUG-20261025-match-full-log-line), so this is stricter than a real run: a marker
+// past the cut fails here although the pipeline would find it.
 func fixtureLines(t *testing.T) []string {
 	t.Helper()
 	f, err := os.Open(vllmFixture + "container.log")

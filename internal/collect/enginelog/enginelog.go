@@ -106,15 +106,16 @@ func Apply(pack model.Pack, events []model.Event) ([]model.Event, []model.Warnin
 			continue
 		}
 		total++
+		text := fullLine(e)
 		if e.Attrs[model.AttrUntimed] == "true" {
-			inline, ok := c.inlineTime(e.Raw, anchor)
+			inline, ok := c.inlineTime(text, anchor)
 			if !ok {
 				untimed++
 				continue
 			}
 			dated++
 			e.TS, e.Attrs = inline, withoutUntimed(e.Attrs)
-		} else if inline, ok := c.inlineTime(e.Raw, e.TS); ok {
+		} else if inline, ok := c.inlineTime(text, e.TS); ok {
 			maxSkew = max(maxSkew, absDuration(e.TS.Sub(inline)))
 		}
 
@@ -122,7 +123,7 @@ func Apply(pack model.Pack, events []model.Event) ([]model.Event, []model.Warnin
 			if factDone[i] {
 				continue
 			}
-			if v := group(f.re, e.Raw, "v"); v != "" {
+			if v := group(f.re, text, "v"); v != "" {
 				factDone[i] = true
 				out = append(out, model.Event{TS: e.TS, Source: model.SourceManifest, Kind: model.KindFact, Raw: e.Raw, Confidence: 1,
 					Attrs: map[string]string{model.AttrFactKey: f.key, model.AttrFactValue: v}})
@@ -165,8 +166,9 @@ func Apply(pack model.Pack, events []model.Event) ([]model.Event, []model.Warnin
 // derived start of a start_from_duration marker.
 func (c compiled) match(e model.Event) ([]model.Event, error) {
 	var out []model.Event
+	text := fullLine(e)
 	for _, m := range c.markers {
-		sub := m.re.FindStringSubmatch(e.Raw)
+		sub := m.re.FindStringSubmatch(text)
 		if sub == nil {
 			continue
 		}
@@ -237,6 +239,15 @@ func containerStart(events []model.Event) time.Time {
 		}
 	}
 	return start
+}
+
+// fullLine is the text packs match: the whole line when the collector kept it, else Raw. Raw
+// is cut to 512 bytes for storage, so matching it would miss anything past the cut.
+func fullLine(e model.Event) string {
+	if e.Line != "" {
+		return e.Line
+	}
+	return e.Raw
 }
 
 func group(re *regexp.Regexp, s, name string) string {
