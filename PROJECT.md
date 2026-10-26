@@ -44,11 +44,10 @@ clear message, never fail.
 
 ## 4. What is failing on purpose
 
-| Check | Why it is red | Who owns it | When it goes green |
-|---|---|---|---|
-| `make e2e` | Not implemented until M2 | owner | M2 (3–9 Nov 2026) |
+None. (`make e2e` was red on purpose until M2; it has run since 2026-10-26, and skips with a
+message where kind or Docker is missing.)
 
-Anything red and not on this list is ours.
+Anything red is ours.
 
 ## 5. Off-limits
 
