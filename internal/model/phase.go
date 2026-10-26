@@ -71,10 +71,17 @@ type Phase struct {
 	Confidence *float32 `json:"confidence,omitempty"`
 }
 
-// Gap is unattributed time between two consecutive complete phases, reported instead of
-// being folded into a neighbour.
+// Gap is time between two consecutive complete phases, reported instead of being folded into
+// a neighbour. Without a Reason it is unattributed.
 type Gap struct {
 	After   PhaseName `json:"after"`
 	Before  PhaseName `json:"before"`
 	Seconds float64   `json:"seconds"`
+	// Reason says where the time went when the report knows: "earlier attempts"
+	// (GapEarlierAttempts) for time a later boot attempt spends before its boundary, which
+	// the previous containers used (decision 0007).
+	Reason string `json:"reason,omitempty"`
 }
+
+// GapEarlierAttempts is the Gap.Reason for time that belongs to previous boot attempts.
+const GapEarlierAttempts = "earlier attempts"

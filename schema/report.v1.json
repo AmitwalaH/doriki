@@ -137,6 +137,10 @@
         },
         "seconds": {
           "type": "number"
+        },
+        "reason": {
+          "type": "string",
+          "description": "Reason says where the time went when the report knows: \"earlier attempts\"\n(GapEarlierAttempts) for time a later boot attempt spends before its boundary, which\nthe previous containers used (decision 0007)."
         }
       },
       "additionalProperties": false,
@@ -146,7 +150,7 @@
         "before",
         "seconds"
       ],
-      "description": "Gap is unattributed time between two consecutive complete phases, reported instead of being folded into a neighbour."
+      "description": "Gap is time between two consecutive complete phases, reported instead of being folded into a neighbour."
     },
     "Manifest": {
       "properties": {

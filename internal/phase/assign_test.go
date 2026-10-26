@@ -250,7 +250,8 @@ func TestEventsExpired(t *testing.T) {
 
 // DESIGN.md section 9.3, container restart mid-boot. The pod has restarted 3 times; the
 // pod object only shows the last two starts. The latest attempt is reported by default and
-// does not repeat scheduling or image-pull; Ready belongs to it, so it carries the total.
+// does not repeat image-pull; scheduling belongs to the pod and is shown on every attempt
+// (decision 0007). Ready belongs to the latest attempt, so it carries the total.
 func TestAttempts(t *testing.T) {
 	events := []model.Event{
 		status(model.KindPodCreated, 0), k8s(model.KindScheduled, 1),
@@ -264,7 +265,9 @@ func TestAttempts(t *testing.T) {
 	if latest.Attempt != 3 || latest.AttemptsTotal != 4 || latest.Attempts != nil {
 		t.Errorf("attempt %d of %d (list %v), want 3 of 4 and no list", latest.Attempt, latest.AttemptsTotal, latest.Attempts)
 	}
-	assertPhase(t, phaseByName(latest, model.PhaseScheduling), model.Phase{Name: model.PhaseScheduling, State: model.StateAbsent})
+	assertPhase(t, phaseByName(latest, model.PhaseScheduling), model.Phase{
+		Name: model.PhaseScheduling, Start: at(0), End: at(1), Seconds: secs(1), State: model.StateComplete,
+		Sources: []model.Source{model.SourceK8sEvent, model.SourceContainerStatus}})
 	assertPhase(t, phaseByName(latest, model.PhaseContainerInit), model.Phase{
 		Name: model.PhaseContainerInit, Start: at(60), End: at(63), Seconds: secs(3), State: model.StateComplete,
 		Sources: []model.Source{model.SourceContainerStatus, model.SourceEngineLog}})

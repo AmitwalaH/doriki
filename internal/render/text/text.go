@@ -79,9 +79,13 @@ func Write(w io.Writer, r model.Report, opts Options) error {
 		if p.Confidence != nil && *p.Confidence < 1 {
 			estimated = true
 		}
+		// Gaps after one phase are consecutive pieces of one interval (earlier attempts, then
+		// unattributed time), so each is drawn from where the previous one ended.
+		from := p.End
 		for _, g := range r.Gaps {
 			if g.After == p.Name && !p.End.IsZero() {
-				add(gapRow(g, p.End, tr, st))
+				add(gapRow(g, from, tr, st))
+				from = from.Add(time.Duration(g.Seconds * float64(time.Second)))
 			}
 		}
 	}
@@ -251,7 +255,11 @@ func phaseRow(p model.Phase, tr track, st styles) string {
 
 func gapRow(g model.Gap, from time.Time, tr track, st styles) string {
 	to := from.Add(time.Duration(g.Seconds * float64(time.Second)))
-	line := fmt.Sprintf("%-*s%s %*s", nameWidth, "gap", st.gap.Render(tr.cells(from, to, '░')), durWidth, duration(g.Seconds))
+	label := "gap"
+	if g.Reason != "" {
+		label = g.Reason
+	}
+	line := fmt.Sprintf("%-*s%s %*s", nameWidth, label, st.gap.Render(tr.cells(from, to, '░')), durWidth, duration(g.Seconds))
 	return strings.TrimRight(line, " ")
 }
 

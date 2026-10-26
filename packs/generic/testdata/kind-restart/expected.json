@@ -1,0 +1,86 @@
+{
+  "phases": [
+    {
+      "name": "scheduling",
+      "start": "2026-10-26T11:50:42Z",
+      "end": "2026-10-26T11:50:42Z",
+      "seconds": 0,
+      "state": "complete",
+      "sources": [
+        "k8s-event",
+        "container-status"
+      ]
+    },
+    {
+      "name": "node-provision",
+      "state": "absent"
+    },
+    {
+      "name": "image-pull",
+      "start": "2026-10-26T11:50:45Z",
+      "end": "2026-10-26T11:50:45Z",
+      "seconds": 0,
+      "state": "complete",
+      "attrs": {
+        "cached": "true"
+      },
+      "sources": [
+        "k8s-event"
+      ]
+    },
+    {
+      "name": "container-init",
+      "start": "2026-10-26T11:50:45Z",
+      "end": "2026-10-26T11:50:45.852067514Z",
+      "seconds": 0.852067514,
+      "state": "complete",
+      "sources": [
+        "container-status",
+        "engine-log"
+      ]
+    },
+    {
+      "name": "engine-init",
+      "state": "absent"
+    },
+    {
+      "name": "weight-fetch",
+      "state": "absent"
+    },
+    {
+      "name": "weight-load",
+      "state": "absent"
+    },
+    {
+      "name": "compile",
+      "state": "absent"
+    },
+    {
+      "name": "graph-capture",
+      "state": "absent"
+    },
+    {
+      "name": "kv-alloc",
+      "state": "absent"
+    },
+    {
+      "name": "server-ready",
+      "state": "absent"
+    },
+    {
+      "name": "first-token",
+      "state": "absent"
+    }
+  ],
+  "gaps": [
+    {
+      "after": "scheduling",
+      "before": "image-pull",
+      "seconds": 3,
+      "reason": "earlier attempts"
+    }
+  ],
+  "totals": {
+    "pending_to_ready_seconds": 3
+  }
+}

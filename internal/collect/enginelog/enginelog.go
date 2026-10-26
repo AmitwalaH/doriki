@@ -83,7 +83,8 @@ func compile(p model.Pack) (compiled, error) {
 //     start, with a log-inline-time warning; with no in-line time it is dropped, with the
 //     log-untimed warning.
 //   - A line matching markers becomes one log.marker event per matching marker, its named
-//     groups as attributes; a start_from_duration marker also yields the derived start.
+//     groups as attributes, plus the line's attempt tag when it has one; a
+//     start_from_duration marker also yields the derived start.
 //   - Each fact becomes one manifest event, from its first matching line.
 //
 // Events from other sources pass through unchanged.
@@ -106,7 +107,7 @@ func Apply(pack model.Pack, events []model.Event) ([]model.Event, []model.Warnin
 			continue
 		}
 		total++
-		text := fullLine(e)
+		text := e.Text()
 		if e.Attrs[model.AttrUntimed] == "true" {
 			inline, ok := c.inlineTime(text, anchor)
 			if !ok {
@@ -166,7 +167,7 @@ func Apply(pack model.Pack, events []model.Event) ([]model.Event, []model.Warnin
 // derived start of a start_from_duration marker.
 func (c compiled) match(e model.Event) ([]model.Event, error) {
 	var out []model.Event
-	text := fullLine(e)
+	text := e.Text()
 	for _, m := range c.markers {
 		sub := m.re.FindStringSubmatch(text)
 		if sub == nil {
@@ -177,6 +178,10 @@ func (c compiled) match(e model.Event) ([]model.Event, error) {
 			if name != "" && sub[i] != "" {
 				attrs[name] = sub[i]
 			}
+		}
+		// A previous container's line keeps its attempt, so its markers stay in that attempt.
+		if a := e.Attrs[model.AttrRestartCount]; a != "" {
+			attrs[model.AttrRestartCount] = a
 		}
 		marker := model.Event{TS: e.TS, Source: model.SourceEngineLog, Kind: model.KindLogMarker, Marker: m.ID, Raw: e.Raw, Confidence: m.confidence}
 		if len(attrs) > 0 {
@@ -239,15 +244,6 @@ func containerStart(events []model.Event) time.Time {
 		}
 	}
 	return start
-}
-
-// fullLine is the text packs match: the whole line when the collector kept it, else Raw. Raw
-// is cut to 512 bytes for storage, so matching it would miss anything past the cut.
-func fullLine(e model.Event) string {
-	if e.Line != "" {
-		return e.Line
-	}
-	return e.Raw
 }
 
 func group(re *regexp.Regexp, s, name string) string {

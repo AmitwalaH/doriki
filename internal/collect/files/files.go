@@ -21,10 +21,12 @@ import (
 // dump), so this is well above bufio's 64 KiB default.
 const maxLogLine = 1 << 20
 
-// Load opens the three saved files and reads them with Read. Errors name the file.
-func Load(podPath, eventsPath, logPath string) ([]model.Event, []model.Warning, error) {
-	var readers [3]io.Reader
-	for i, path := range []string{podPath, eventsPath, logPath} {
+// Load opens the saved files and reads them with Read: pod, events and log, and optionally the
+// previous container's log. Errors name the file.
+func Load(podPath, eventsPath, logPath string, previousLogPath ...string) ([]model.Event, []model.Warning, error) {
+	paths := append([]string{podPath, eventsPath, logPath}, previousLogPath...)
+	readers := make([]io.Reader, len(paths))
+	for i, path := range paths {
 		f, err := os.Open(path) // #nosec G304 -- the user names these files on the command line
 		if err != nil {
 			return nil, nil, err
@@ -32,7 +34,7 @@ func Load(podPath, eventsPath, logPath string) ([]model.Event, []model.Warning, 
 		defer f.Close() //nolint:errcheck // read-only file
 		readers[i] = namedReader{f, path}
 	}
-	return Read(readers[0], readers[1], readers[2])
+	return Read(readers[0], readers[1], readers[2], readers[3:]...)
 }
 
 // namedReader lets Read name the file in its errors.
@@ -51,7 +53,14 @@ func nameOf(r io.Reader, fallback string) string {
 // Read turns a pod object (`kubectl get pod -o json`), its events (`kubectl get events -o
 // json`, an EventList or a List) and the container's log (`kubectl logs`, timestamps
 // optional) into events. Only the pod's first spec container is profiled.
-func Read(pod, events, log io.Reader) ([]model.Event, []model.Warning, error) {
+//
+// previousLog, at most one, is the previous container's log (`kubectl logs --previous`). Its
+// lines are tagged with that container's attempt (AttrRestartCount) so normalize and phase
+// keep them in it; the current log's lines stay untagged.
+func Read(pod, events, log io.Reader, previousLog ...io.Reader) ([]model.Event, []model.Warning, error) {
+	if len(previousLog) > 1 {
+		return nil, nil, fmt.Errorf("one previous log at most, got %d", len(previousLog))
+	}
 	var p corev1.Pod
 	if err := json.NewDecoder(pod).Decode(&p); err != nil {
 		return nil, nil, fmt.Errorf("%s: %w", nameOf(pod, "pod"), err)
@@ -71,11 +80,34 @@ func Read(pod, events, log io.Reader) ([]model.Event, []model.Warning, error) {
 	if !hasScheduled(out) {
 		out = append(out, scheduledFallback(&p)...)
 	}
-	logEvents, err := logLines(log)
+	logEvents, err := logLines(log, "")
 	if err != nil {
 		return nil, nil, fmt.Errorf("%s: %w", nameOf(log, "log"), err)
 	}
-	return append(out, logEvents...), nil, nil
+	out = append(out, logEvents...)
+
+	if len(previousLog) == 1 {
+		restarts := restartCount(&p, container)
+		if restarts < 1 {
+			return nil, nil, fmt.Errorf("%s: container %s has not restarted, so it has no previous log", nameOf(previousLog[0], "previous log"), container)
+		}
+		prev, err := logLines(previousLog[0], strconv.Itoa(int(restarts-1)))
+		if err != nil {
+			return nil, nil, fmt.Errorf("%s: %w", nameOf(previousLog[0], "previous log"), err)
+		}
+		out = append(out, prev...)
+	}
+	return out, nil, nil
+}
+
+// restartCount is the profiled container's restartCount, or 0 without a status.
+func restartCount(p *corev1.Pod, container string) int32 {
+	for _, cs := range p.Status.ContainerStatuses {
+		if cs.Name == container {
+			return cs.RestartCount
+		}
+	}
+	return 0
 }
 
 func event(ts time.Time, src model.Source, kind, raw string) model.Event {
@@ -120,9 +152,16 @@ func podEvents(p *corev1.Pod, container string) []model.Event {
 		case cs.State.Terminated != nil:
 			start(cs.State.Terminated.StartedAt, cs.RestartCount)
 		}
-		// The pod object keeps only the previous attempt; older ones are gone.
-		if cs.LastTerminationState.Terminated != nil && cs.RestartCount > 0 {
-			start(cs.LastTerminationState.Terminated.StartedAt, cs.RestartCount-1)
+		// The pod object keeps only the previous attempt; older ones are gone. Its end is where
+		// the next attempt starts: a re-pull before the restart belongs to the restart.
+		if last := cs.LastTerminationState.Terminated; last != nil && cs.RestartCount > 0 {
+			start(last.StartedAt, cs.RestartCount-1)
+			if !last.FinishedAt.IsZero() {
+				e := event(last.FinishedAt.Time, model.SourceContainerStatus, model.KindContainerTerminated,
+					fmt.Sprintf("container %s terminated (restartCount %d, exit code %d)", container, cs.RestartCount-1, last.ExitCode))
+				e.Attrs = map[string]string{model.AttrRestartCount: strconv.Itoa(int(cs.RestartCount - 1))}
+				out = append(out, e)
+			}
 		}
 	}
 
@@ -146,6 +185,11 @@ func condition(p *corev1.Pod, t corev1.PodConditionType) *corev1.PodCondition {
 // older pod with the same name is excluded) and, for container-level events, about the
 // profiled container only. An event's time is eventTime when set (microseconds), else
 // firstTimestamp, else lastTimestamp; an event with none is dropped.
+//
+// The kubelet merges repeats of an event into one with a count. For the image-pull events, a
+// merged event is also emitted at its lastTimestamp, so the latest attempt sees its own pull;
+// a pull between the first and the last is not recoverable, so earlier restarts' pulls are
+// approximate. Other merged events keep only their first time.
 func k8sEvents(p *corev1.Pod, container string, items []corev1.Event) []model.Event {
 	var out []model.Event
 	for _, e := range items {
@@ -175,6 +219,11 @@ func k8sEvents(p *corev1.Pod, container string, items []corev1.Event) []model.Ev
 			ev.Attrs = map[string]string{model.AttrCached: "true"}
 		}
 		out = append(out, ev)
+		if (e.Reason == model.KindPulling || e.Reason == model.KindPulled) && e.Count > 1 && e.LastTimestamp.After(ts) {
+			last := ev
+			last.TS = e.LastTimestamp.UTC()
+			out = append(out, last)
+		}
 	}
 	return out
 }
@@ -207,8 +256,9 @@ func scheduledFallback(p *corev1.Pod) []model.Event {
 // logLines reads `kubectl logs` output. A line counts as timed when it starts with an
 // RFC 3339 timestamp and a space, as `kubectl logs --timestamps` writes it. An untimed line
 // is kept whole, with a zero time and AttrUntimed, for enginelog to date from the engine's
-// own timestamp or drop; the collector knows no pack, so it cannot tell which.
-func logLines(r io.Reader) ([]model.Event, error) {
+// own timestamp or drop; the collector knows no pack, so it cannot tell which. A non-empty
+// attempt tags every line with AttrRestartCount.
+func logLines(r io.Reader, attempt string) ([]model.Event, error) {
 	var out []model.Event
 	sc := bufio.NewScanner(r)
 	sc.Buffer(make([]byte, 0, 64*1024), maxLogLine)
@@ -223,12 +273,12 @@ func logLines(r io.Reader) ([]model.Event, error) {
 			e := event(time.Time{}, model.SourceEngineLog, model.KindLogLine, line)
 			e.Attrs = map[string]string{model.AttrUntimed: "true"}
 			e.Line = line
-			out = append(out, e)
+			out = append(out, tagAttempt(e, attempt))
 			continue
 		}
 		e := event(ts, model.SourceEngineLog, model.KindLogLine, rest)
 		e.Line = rest
-		out = append(out, e)
+		out = append(out, tagAttempt(e, attempt))
 	}
 	if err := sc.Err(); err != nil {
 		if errors.Is(err, bufio.ErrTooLong) {
@@ -237,4 +287,15 @@ func logLines(r io.Reader) ([]model.Event, error) {
 		return nil, err
 	}
 	return out, nil
+}
+
+func tagAttempt(e model.Event, attempt string) model.Event {
+	if attempt == "" {
+		return e
+	}
+	if e.Attrs == nil {
+		e.Attrs = map[string]string{}
+	}
+	e.Attrs[model.AttrRestartCount] = attempt
+	return e
 }

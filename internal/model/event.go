@@ -58,6 +58,10 @@ const (
 	KindLogMarker        = "log.marker"       // a log line a pack matched; Marker holds its id
 	KindContainerImage   = "ContainerImage"   // SourceManifest; AttrImage holds the image reference
 	KindFact             = "Fact"             // SourceManifest; a pack fact read from the engine log
+
+	// KindContainerTerminated is the previous container's end (lastState.terminated.finishedAt).
+	// It carries the AttrRestartCount of the attempt it ends; the next attempt starts there.
+	KindContainerTerminated = "ContainerTerminated"
 )
 
 // Attributes of a KindContainerImage event: the profiled container's image as written in the
@@ -103,7 +107,9 @@ func TruncateRaw(s string) string {
 const AttrCached = "cached"
 
 // AttrRestartCount on a KindContainerStarted event is the container's restartCount at that
-// start, which is also its attempt number.
+// start, which is also its attempt number. On a KindContainerTerminated event it is the
+// attempt that ended. On an engine log line or marker it is the attempt of the container that
+// logged it, set only for a previous container's log; an untagged line is the current one's.
 const AttrRestartCount = "restart_count"
 
 // sourcePriority breaks timestamp ties (DESIGN.md section 6.1 step 2). Sources it does not

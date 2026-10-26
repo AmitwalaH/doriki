@@ -2,15 +2,22 @@
 
 **Date Discovered:** 2026-10-26
 **Severity:** LOW
-**Status:** OPEN
+**Status:** CLOSED (2026-10-26)
 **Label:** [ticket]
 **Found by:** the M2 agent, read in code (METHOD.md Step 9 after slice 1)
 **Filed by:** the M2 agent
 
 ## Problem
-A user profiles an engine whose image does not name the engine, so the pack is chosen by its
-`log_regex`. If the line that identifies the engine is long and the matching text sits past its
-first 512 bytes, no pack matches, the `generic` pack is used, and every engine phase is absent.
+A pack is chosen by image first; among the packs whose `image_regex` matches, `log_regex` reads
+the engine version to pick the one that covers it (`packs/doc.go`, `selectByVersion`). If the
+line that says the version is long and the version sits past its first 512 bytes, it is not
+read: with one matching pack the report carries a `pack-version-unknown` warning (measured,
+`TestSelectionReadsFullLine` before the fix); with several version packs for one engine,
+selection fails or cannot tell them apart.
+
+(Corrected 2026-10-26: the first version of this ticket said the generic pack would be used.
+That was read wrongly from the code; selection by `log_regex` happens only after the image
+matched.)
 
 Cause: `internal/cli/profile.go`, `logText` (line 122), hands `packs.Select` each line's `Raw`,
 which the collector cuts to 512 bytes. Slice 1 of M2 made markers and facts read the whole line
@@ -29,3 +36,10 @@ real line, sees it match, and the pipeline does not.
 
 ## Related
 `DK-COLLECT-BUG-20261025-match-full-log-line` (closed); `DESIGN.md` section 5.3.
+
+## Resolution (2026-10-26, M2)
+Option 1. `model.Event.Text()` is the one rule for the text a pack reads (whole line, else
+`Raw`); `cli.logText` uses it, so `log_regex` sees the whole line. Proved by
+`TestSelectionReadsFullLine` (a vLLM version at byte 600 selects `vllm/0.32` with no
+`pack-version-unknown` warning, through the real command). `enginelog` switches from its own
+`fullLine` to `Text()` in slice 2, which touches that file anyway.
