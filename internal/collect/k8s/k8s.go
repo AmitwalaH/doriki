@@ -3,6 +3,7 @@ package k8s
 import (
 	"cmp"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"slices"
@@ -64,6 +65,9 @@ type UnavailableError struct{ Err error }
 func (e *UnavailableError) Error() string { return e.Err.Error() }
 func (e *UnavailableError) Unwrap() error { return e.Err }
 
+// errNoPods is a workload that exists but has no pod yet: --follow waits for one.
+var errNoPods = errors.New("no pods")
+
 func unavailable(format string, args ...any) error {
 	return &UnavailableError{fmt.Errorf(format, args...)}
 }
@@ -71,32 +75,46 @@ func unavailable(format string, args ...any) error {
 // Collect reads one pod's objects and logs from the API. It only gets and lists (DESIGN.md
 // sections 7.4 and 10.3). notBefore, when set, drops events last seen before it (--since).
 func Collect(ctx context.Context, c Client, t Target, notBefore time.Time) (Objects, error) {
-	if c.Logs == nil {
-		c.Logs = func(ctx context.Context, namespace, pod string, opts *corev1.PodLogOptions) (io.ReadCloser, error) {
-			return c.API.CoreV1().Pods(namespace).GetLogs(pod, opts).Stream(ctx)
-		}
-	}
+	c = c.withLogs()
 	pod, err := resolve(ctx, c.API, t)
 	if err != nil {
 		return Objects{}, err
 	}
 	o := Objects{Pod: pod}
-
-	selector := fields.OneTermEqualSelector("involvedObject.uid", string(pod.UID)).String()
-	list, err := c.API.CoreV1().Events(pod.Namespace).List(ctx, metav1.ListOptions{FieldSelector: selector})
-	if err != nil {
-		return Objects{}, unavailable("events of pod %s/%s: %w", pod.Namespace, pod.Name, err)
+	if o.Events, err = podEvents(ctx, c.API, pod, notBefore); err != nil {
+		return Objects{}, err
 	}
-	for _, e := range list.Items {
-		if e.InvolvedObject.UID == pod.UID && !lastSeen(e).Before(notBefore) {
-			o.Events = append(o.Events, e)
-		}
-	}
-
 	o.Node = node(ctx, c.API, pod, &o.Warnings)
 	o.Owner = owner(ctx, c.API, pod, &o.Warnings)
 	o.Log, o.PreviousLog = logs(ctx, c.Logs, pod, &o.Warnings)
 	return o, nil
+}
+
+// withLogs fills in the API's pods/log when no LogFunc was given.
+func (c Client) withLogs() Client {
+	if c.Logs == nil {
+		api := c.API
+		c.Logs = func(ctx context.Context, namespace, pod string, opts *corev1.PodLogOptions) (io.ReadCloser, error) {
+			return api.CoreV1().Pods(namespace).GetLogs(pod, opts).Stream(ctx)
+		}
+	}
+	return c
+}
+
+// podEvents lists the events about this pod, by its UID, last seen at or after notBefore.
+func podEvents(ctx context.Context, api kubernetes.Interface, pod *corev1.Pod, notBefore time.Time) ([]corev1.Event, error) {
+	selector := fields.OneTermEqualSelector("involvedObject.uid", string(pod.UID)).String()
+	list, err := api.CoreV1().Events(pod.Namespace).List(ctx, metav1.ListOptions{FieldSelector: selector})
+	if err != nil {
+		return nil, unavailable("events of pod %s/%s: %w", pod.Namespace, pod.Name, err)
+	}
+	var out []corev1.Event
+	for _, e := range list.Items {
+		if e.InvolvedObject.UID == pod.UID && !lastSeen(e).Before(notBefore) {
+			out = append(out, e)
+		}
+	}
+	return out, nil
 }
 
 // lastSeen is an event's latest time: what --since compares.
@@ -160,7 +178,7 @@ func newestPod(ctx context.Context, api kubernetes.Interface, t Target, sel labe
 		}
 	}
 	if len(mine) == 0 {
-		return nil, unavailable("%s %s/%s has no pods", t.Kind, t.Namespace, t.Name)
+		return nil, unavailable("%s %s/%s has %w", t.Kind, t.Namespace, t.Name, errNoPods)
 	}
 	newest := slices.MaxFunc(mine, func(a, b corev1.Pod) int {
 		return cmp.Or(a.CreationTimestamp.Compare(b.CreationTimestamp.Time), cmp.Compare(a.Name, b.Name))

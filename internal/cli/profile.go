@@ -32,6 +32,8 @@ type profileFlags struct {
 	since         time.Duration
 	attempt       int
 	allAttempts   bool
+	follow        bool
+	timeout       time.Duration
 	kube          *genericclioptions.ConfigFlags // --kubeconfig, --context, -n and the rest of kubectl's
 }
 
@@ -42,6 +44,8 @@ func addProfileFlags(cmd *cobra.Command, f *profileFlags) {
 	cmd.Flags().DurationVar(&f.since, "since", 0, "only use events last seen within this long, e.g. 24h (default: every event the cluster still keeps)")
 	cmd.Flags().IntVar(&f.attempt, "attempt", 0, "report this boot attempt (the container's restart count) instead of the latest")
 	cmd.Flags().BoolVar(&f.allAttempts, "all-attempts", false, "also report every observed boot attempt")
+	cmd.Flags().BoolVar(&f.follow, "follow", false, "watch the pod boot, redrawing the waterfall as phases complete, until it is ready or --timeout")
+	cmd.Flags().DurationVar(&f.timeout, "timeout", 15*time.Minute, "how long --follow watches before it reports what it has")
 	f.kube = genericclioptions.NewConfigFlags(true)
 	f.kube.AddFlags(cmd.Flags())
 }
@@ -65,6 +69,25 @@ func runProfile(cmd *cobra.Command, args []string, f *profileFlags) error {
 		opts.attempt = &f.attempt
 	}
 	at := now()
+	out := cmd.OutOrStdout()
+	write := func(w io.Writer, r model.Report) error {
+		switch {
+		case f.output == "json":
+			return renderjson.Write(w, r)
+		case opts.allAttempts:
+			return writeAttempts(w, r, func(w io.Writer, r model.Report) error {
+				return rendertext.Write(w, r, rendertext.Options{Color: colorFor(out)})
+			})
+		case opts.attempt != nil:
+			return writeAttempt(w, r, func(w io.Writer, r model.Report) error {
+				return rendertext.Write(w, r, rendertext.Options{Color: colorFor(out)})
+			})
+		}
+		return rendertext.Write(w, r, rendertext.Options{Color: colorFor(out)})
+	}
+	if f.follow {
+		return runFollow(cmd.Context(), f, args, opts, out, write)
+	}
 
 	var collected []model.Event
 	var collectWarnings []model.Warning
@@ -94,24 +117,14 @@ func runProfile(cmd *cobra.Command, args []string, f *profileFlags) error {
 	if err != nil {
 		return err
 	}
-	out := cmd.OutOrStdout()
-	write := func(w io.Writer, r model.Report) error {
-		if f.output == "json" {
-			return renderjson.Write(w, r)
-		}
-		return rendertext.Write(w, r, rendertext.Options{Color: colorFor(out)})
-	}
-	switch {
-	case f.output == "text" && opts.allAttempts:
-		err = writeAttempts(out, r, write)
-	case f.output == "text" && opts.attempt != nil:
-		err = writeAttempt(out, r, write)
-	default:
-		err = write(out, r)
-	}
-	if err != nil {
+	if err := write(out, r); err != nil {
 		return err
 	}
+	return exitFor(r, pack)
+}
+
+// exitFor is the exit code of a finished report (DESIGN.md section 7.3).
+func exitFor(r model.Report, pack model.Pack) error {
 	if code := exitCode(r, phase.Expected(markerIDs(pack))); code != 0 {
 		return &ExitError{Code: code}
 	}
@@ -225,17 +238,20 @@ func exitCode(r model.Report, expected []model.PhaseName) int {
 	return 0
 }
 
-// colorFor reports whether text output to w is coloured: only for a terminal (a character
-// device), and never when NO_COLOR is set to anything non-empty (DESIGN.md section 7.5,
-// no-color.org). cli decides this so the renderer reads no environment.
-func colorFor(w io.Writer) bool {
-	if os.Getenv("NO_COLOR") != "" {
-		return false
-	}
+// isTerminal reports whether w is a terminal (a character device). A variable so tests can
+// pretend.
+var isTerminal = func(w io.Writer) bool {
 	f, ok := w.(*os.File)
 	if !ok {
 		return false
 	}
 	info, err := f.Stat()
 	return err == nil && info.Mode()&os.ModeCharDevice != 0
+}
+
+// colorFor reports whether text output to w is coloured: only for a terminal (a character
+// device), and never when NO_COLOR is set to anything non-empty (DESIGN.md section 7.5,
+// no-color.org). cli decides this so the renderer reads no environment.
+func colorFor(w io.Writer) bool {
+	return os.Getenv("NO_COLOR") == "" && isTerminal(w)
 }
