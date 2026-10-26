@@ -106,8 +106,8 @@ func TestUsageErrors(t *testing.T) {
 // pack list reads the same pack list as version; a sentinel list must show up.
 func TestPackList(t *testing.T) {
 	out, err := run(t, "pack", "list")
-	if err != nil || out != "generic\nvllm/0.32\n" {
-		t.Errorf("pack list = %q, %v; want generic and vllm/0.32", out, err)
+	if err != nil || out != "generic\nllamacpp/11889\nvllm/0.32\n" {
+		t.Errorf("pack list = %q, %v; want generic, llamacpp/11889 and vllm/0.32", out, err)
 	}
 	saved := packNames
 	t.Cleanup(func() { packNames = saved })

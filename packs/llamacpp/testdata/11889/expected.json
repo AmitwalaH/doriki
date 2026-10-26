@@ -1,0 +1,113 @@
+{
+  "phases": [
+    {
+      "name": "scheduling",
+      "start": "2026-10-26T13:18:20Z",
+      "end": "2026-10-26T13:18:20Z",
+      "seconds": 0,
+      "state": "complete",
+      "sources": [
+        "k8s-event",
+        "container-status"
+      ]
+    },
+    {
+      "name": "node-provision",
+      "state": "absent"
+    },
+    {
+      "name": "image-pull",
+      "start": "2026-10-26T13:18:21Z",
+      "end": "2026-10-26T13:21:09Z",
+      "seconds": 168,
+      "state": "complete",
+      "sources": [
+        "k8s-event"
+      ]
+    },
+    {
+      "name": "container-init",
+      "start": "2026-10-26T13:21:10Z",
+      "end": "2026-10-26T13:21:10.309482346Z",
+      "seconds": 0.309482346,
+      "state": "complete",
+      "sources": [
+        "container-status",
+        "engine-log"
+      ]
+    },
+    {
+      "name": "engine-init",
+      "start": "2026-10-26T13:21:10.309482346Z",
+      "end": "2026-10-26T13:21:11.878264684Z",
+      "seconds": 1.568782338,
+      "state": "complete",
+      "sources": [
+        "engine-log"
+      ]
+    },
+    {
+      "name": "weight-fetch",
+      "start": "2026-10-26T13:21:11.878264684Z",
+      "end": "2026-10-26T13:21:22.744553822Z",
+      "seconds": 10.866289137999999,
+      "state": "complete",
+      "attrs": {
+        "model": "ggml-org/models"
+      },
+      "sources": [
+        "engine-log"
+      ],
+      "confidence": 0.8
+    },
+    {
+      "name": "weight-load",
+      "start": "2026-10-26T13:21:22.744553822Z",
+      "end": "2026-10-26T13:21:22.861609284Z",
+      "seconds": 0.117055462,
+      "state": "complete",
+      "attrs": {
+        "model": "ggml-org/models"
+      },
+      "sources": [
+        "engine-log"
+      ]
+    },
+    {
+      "name": "compile",
+      "state": "skipped",
+      "attrs": {
+        "not_applicable": "true"
+      }
+    },
+    {
+      "name": "graph-capture",
+      "state": "skipped",
+      "attrs": {
+        "not_applicable": "true"
+      }
+    },
+    {
+      "name": "kv-alloc",
+      "state": "absent"
+    },
+    {
+      "name": "server-ready",
+      "start": "2026-10-26T13:21:22.861683792Z",
+      "end": "2026-10-26T13:21:24Z",
+      "seconds": 1.138316208,
+      "state": "complete",
+      "sources": [
+        "container-status",
+        "engine-log"
+      ]
+    },
+    {
+      "name": "first-token",
+      "state": "absent"
+    }
+  ],
+  "totals": {
+    "pending_to_ready_seconds": 184
+  }
+}

@@ -172,10 +172,11 @@ func selectByVersion(matched []model.Pack, generic *model.Pack, image string, li
 		if p.Detect.LogRegex == "" {
 			return p, nil, nil
 		}
-		return p, []model.Warning{{
-			Code: "pack-version-unknown",
-			Text: fmt.Sprintf("the log does not say the engine version in its first %d lines; using pack %s, tested with %s", detectLines, p.Name, p.Versions),
-		}}, nil
+		text := fmt.Sprintf("the log does not say the engine version in its first %d lines; using pack %s, tested with %s", detectLines, p.Name, p.Versions)
+		if p.Detect.VersionNote != "" {
+			text += "; " + p.Detect.VersionNote
+		}
+		return p, []model.Warning{{Code: "pack-version-unknown", Text: text}}, nil
 	}
 	return model.Pack{}, nil, fmt.Errorf("image %q matches packs %s and the log does not say which version it is", image, strings.Join(names, ", "))
 }

@@ -1,0 +1,205 @@
+{
+  "apiVersion": "v1",
+  "items": [
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-10-26T13:18:20Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "kind": "Pod",
+        "name": "llamacpp-f6ff5f6c9-tl55v",
+        "namespace": "doriki",
+        "resourceVersion": "8101",
+        "uid": "ed32257c-f268-4c5e-87c6-13deba17b6e0"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-10-26T13:18:20Z",
+      "message": "Successfully assigned doriki/llamacpp-f6ff5f6c9-tl55v to doriki-control-plane",
+      "metadata": {
+        "creationTimestamp": "2026-10-26T13:18:20Z",
+        "name": "llamacpp-f6ff5f6c9-tl55v.18e216d3cd293043",
+        "namespace": "doriki",
+        "resourceVersion": "8106",
+        "uid": "e769fc21-9433-4858-b896-aa6652539849"
+      },
+      "reason": "Scheduled",
+      "reportingComponent": "default-scheduler",
+      "reportingInstance": "",
+      "source": {
+        "component": "default-scheduler"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-10-26T13:18:21Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.containers{llamacpp}",
+        "kind": "Pod",
+        "name": "llamacpp-f6ff5f6c9-tl55v",
+        "namespace": "doriki",
+        "resourceVersion": "8104",
+        "uid": "ed32257c-f268-4c5e-87c6-13deba17b6e0"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-10-26T13:18:21Z",
+      "message": "Pulling image \"ghcr.io/ggml-org/llama.cpp:server@sha256:5741ab30aae42af23ca57d9b98a6d4544cb09c21f372f92c5ee55312fa8b8b0c\"",
+      "metadata": {
+        "creationTimestamp": "2026-10-26T13:18:21Z",
+        "name": "llamacpp-f6ff5f6c9-tl55v.18e216d3f44e1e0d",
+        "namespace": "doriki",
+        "resourceVersion": "8110",
+        "uid": "23bd5a23-55e4-4893-b588-29b2e7170d7c"
+      },
+      "reason": "Pulling",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "doriki-control-plane",
+      "source": {
+        "component": "kubelet",
+        "host": "doriki-control-plane"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-10-26T13:21:09Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.containers{llamacpp}",
+        "kind": "Pod",
+        "name": "llamacpp-f6ff5f6c9-tl55v",
+        "namespace": "doriki",
+        "resourceVersion": "8104",
+        "uid": "ed32257c-f268-4c5e-87c6-13deba17b6e0"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-10-26T13:21:09Z",
+      "message": "Successfully pulled image \"ghcr.io/ggml-org/llama.cpp:server@sha256:5741ab30aae42af23ca57d9b98a6d4544cb09c21f372f92c5ee55312fa8b8b0c\" in 2m48.461s (2m48.463s including waiting). Image size: 309693025 bytes.",
+      "metadata": {
+        "creationTimestamp": "2026-10-26T13:21:09Z",
+        "name": "llamacpp-f6ff5f6c9-tl55v.18e216fb2cbaa647",
+        "namespace": "doriki",
+        "resourceVersion": "8348",
+        "uid": "b66bae67-8dcc-45ff-a85c-a16ad8ca60de"
+      },
+      "reason": "Pulled",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "doriki-control-plane",
+      "source": {
+        "component": "kubelet",
+        "host": "doriki-control-plane"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-10-26T13:21:09Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.containers{llamacpp}",
+        "kind": "Pod",
+        "name": "llamacpp-f6ff5f6c9-tl55v",
+        "namespace": "doriki",
+        "resourceVersion": "8104",
+        "uid": "ed32257c-f268-4c5e-87c6-13deba17b6e0"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-10-26T13:21:09Z",
+      "message": "Container created",
+      "metadata": {
+        "creationTimestamp": "2026-10-26T13:21:09Z",
+        "name": "llamacpp-f6ff5f6c9-tl55v.18e216fb3045a211",
+        "namespace": "doriki",
+        "resourceVersion": "8349",
+        "uid": "9cac7871-4b98-4f68-a326-886e06917d5f"
+      },
+      "reason": "Created",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "doriki-control-plane",
+      "source": {
+        "component": "kubelet",
+        "host": "doriki-control-plane"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-10-26T13:21:10Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.containers{llamacpp}",
+        "kind": "Pod",
+        "name": "llamacpp-f6ff5f6c9-tl55v",
+        "namespace": "doriki",
+        "resourceVersion": "8104",
+        "uid": "ed32257c-f268-4c5e-87c6-13deba17b6e0"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-10-26T13:21:10Z",
+      "message": "Container started",
+      "metadata": {
+        "creationTimestamp": "2026-10-26T13:21:10Z",
+        "name": "llamacpp-f6ff5f6c9-tl55v.18e216fb5109b8dc",
+        "namespace": "doriki",
+        "resourceVersion": "8350",
+        "uid": "361212fa-cae5-44e2-8fba-de730764450c"
+      },
+      "reason": "Started",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "doriki-control-plane",
+      "source": {
+        "component": "kubelet",
+        "host": "doriki-control-plane"
+      },
+      "type": "Normal"
+    },
+    {
+      "apiVersion": "v1",
+      "count": 7,
+      "eventTime": null,
+      "firstTimestamp": "2026-10-26T13:21:11Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.containers{llamacpp}",
+        "kind": "Pod",
+        "name": "llamacpp-f6ff5f6c9-tl55v",
+        "namespace": "doriki",
+        "resourceVersion": "8104",
+        "uid": "ed32257c-f268-4c5e-87c6-13deba17b6e0"
+      },
+      "kind": "Event",
+      "lastTimestamp": "2026-10-26T13:21:22Z",
+      "message": "Readiness probe failed: Get \"http://10.244.0.12:8080/health\": dial tcp 10.244.0.12:8080: connect: connection refused",
+      "metadata": {
+        "creationTimestamp": "2026-10-26T13:21:11Z",
+        "name": "llamacpp-f6ff5f6c9-tl55v.18e216fb8da5392b",
+        "namespace": "doriki",
+        "resourceVersion": "8374",
+        "uid": "3e361c2c-a275-42eb-89e4-bfe265932a13"
+      },
+      "reason": "Unhealthy",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "doriki-control-plane",
+      "source": {
+        "component": "kubelet",
+        "host": "doriki-control-plane"
+      },
+      "type": "Warning"
+    }
+  ],
+  "kind": "List",
+  "metadata": {
+    "resourceVersion": ""
+  }
+}

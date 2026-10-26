@@ -34,6 +34,8 @@ type Options struct {
 	AllAttempts bool
 	// Pack names the selected pack in warnings.
 	Pack string
+	// NotApplicable are the pack's phases this engine never has (decision 0008).
+	NotApplicable []model.PhaseName
 }
 
 // matcher recognises the events that start or end a phase.
@@ -177,7 +179,7 @@ func Assign(events []model.Event, opts Options) (model.Report, error) {
 	pod := podPhases(sorted, opts.Markers)
 	report := model.Report{ReportVersion: model.ReportVersion, AttemptsTotal: attemptsTotal(attempts)}
 	for i, a := range attempts {
-		phases, gaps, warnings := assignAttempt(a.events, opts.Markers, opts.Pack, pod, a.from)
+		phases, gaps, warnings := assignAttempt(a.events, opts.Markers, opts.Pack, pod, a.from, opts.NotApplicable)
 		totals := attemptTotals(a.events, phases, created, hasCreated)
 		if i == chosen {
 			report.Attempt = a.number
@@ -288,7 +290,7 @@ func attemptNumbers(attempts []attempt) string {
 	return strings.Join(s, ", ")
 }
 
-func assignAttempt(events []model.Event, markers []string, pack string, pod map[model.PhaseName]model.Phase, from time.Time) ([]model.Phase, []model.Gap, []model.Warning) {
+func assignAttempt(events []model.Event, markers []string, pack string, pod map[model.PhaseName]model.Phase, from time.Time, notApplicable []model.PhaseName) ([]model.Phase, []model.Gap, []model.Warning) {
 	var (
 		phases   []model.Phase
 		warnings []model.Warning
@@ -298,6 +300,10 @@ func assignAttempt(events []model.Event, markers []string, pack string, pod map[
 		p, ok := pod[name]
 		if !ok {
 			p = assignPhase(name, specs[name], events, markers, cursor)
+		}
+		// A phase the engine never has is skipped, not absent: a label only (decision 0008).
+		if p.State == model.StateAbsent && slices.Contains(notApplicable, name) {
+			p = model.Phase{Name: name, State: model.StateSkipped, Attrs: map[string]string{model.AttrNotApplicable: "true"}}
 		}
 		if p.State != model.StateAbsent && p.State != model.StateSkipped {
 			cursor = p.Start
