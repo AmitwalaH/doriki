@@ -1,0 +1,7 @@
+{
+  // Packs and fixture captures must keep the exact bytes they were written with; an editor
+  // that reformats on save rewrites them silently (DK-REL-ENH-20261026-editor-rewrites).
+  "editor.formatOnSave": false,
+  "files.trimTrailingWhitespace": false,
+  "files.insertFinalNewline": false
+}

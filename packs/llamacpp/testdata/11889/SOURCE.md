@@ -69,3 +69,13 @@ kubectl --context kind-doriki -n doriki logs "$POD" --timestamps > container.log
 - Pod, node and IP names are kind defaults on a local cluster (`doriki-control-plane`). No
   tokens: the only `token` in `pod.json` is the projected service-account volume's file name;
   the container's only environment variable is `LLAMA_CACHE`.
+
+## Checksums
+
+The sha256 of each captured file as committed. `packs/fixtures_test.go` recomputes them, so a
+file rewritten by an editor or a tool fails the gate.
+
+- `container.log`: `sha256:f6ce64f57b7721b8c69ec3cc99d3dc17ad8cf0c3da19ce5dc56bb9e6bc9ccaa3`
+- `events.json`: `sha256:63a37da673540bdc3f722f967445e146777057b10cbb4ba7e5afa4e620872487`
+- `llamacpp.yaml`: `sha256:1ea37935ec15d4e79bf4ecb41a8eb285689768bf53303312dff7b29b1d2bdcbd`
+- `pod.json`: `sha256:27747ce07f938f8f59dd39b58866158a499d2c1c4b4e421005affb43724c3c5b`

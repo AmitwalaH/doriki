@@ -15,6 +15,8 @@ message shown to the agent) when the command would:
     proven by a .gate-ok marker that the Makefile writes on success);
   - regenerate goldens with -update without the owner's one-time approval marker
     (.doriki-approve-update in the repo root; consumed on use).
+    The marker is consumed when the hook approves the command, before the command runs, so
+    run the -update command alone: a check for the marker in the same command finds it gone.
 
 Everything else passes. Allowed git verbs: status, log, diff, show, grep, add, commit
 (under the conditions above), push to task/* without force, fetch, remote -v, rev-parse,

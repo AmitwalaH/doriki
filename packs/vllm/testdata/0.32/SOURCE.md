@@ -121,3 +121,12 @@ spec:
   the entrypoint prints `API key:` empty because none was set. The only `token` in `pod.json`
   is the projected service-account volume's file name. Pod, node and IP names are kind
   defaults on a local cluster (`doriki-control-plane`, `10.244.0.0/16`).
+
+## Checksums
+
+The sha256 of each captured file as committed. `packs/fixtures_test.go` recomputes them, so a
+file rewritten by an editor or a tool fails the gate.
+
+- `container.log`: `sha256:7ff2c4ee16142d45a3bc6018d3f4d2e093ad39dac85df238dd9c891ee6316e49`
+- `events.json`: `sha256:a32f30def40267e2175982a5714883e92bb18a96bc09562871de7dddf500931d`
+- `pod.json`: `sha256:6ebb430beb9e77441e54c1e08d2d129019116f9ebbfaee57330dea9eb93bb886`
