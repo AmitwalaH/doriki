@@ -16,6 +16,9 @@
         },
         "evidence": {
           "type": "object"
+        },
+        "fix": {
+          "type": "string"
         }
       },
       "additionalProperties": false,
@@ -175,6 +178,9 @@
         "accelerator": {
           "$ref": "#/$defs/ManifestAccelerator"
         },
+        "caches": {
+          "$ref": "#/$defs/ManifestCaches"
+        },
         "fingerprint": {
           "type": "string",
           "description": "Fingerprint is \"sha256:\" and the hash of every other field except the pod's name and\nUID, so two boots of the same deployment share it (DESIGN.md section 4.3)."
@@ -202,6 +208,16 @@
       "additionalProperties": false,
       "type": "object",
       "description": "ManifestAccelerator comes from node labels and container limits only; doriki reads no GPU."
+    },
+    "ManifestCaches": {
+      "properties": {
+        "torch_compile": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "description": "ManifestCaches is what the engine log said about its caches."
     },
     "ManifestContainer": {
       "properties": {
@@ -247,6 +263,14 @@
       "properties": {
         "ref": {
           "type": "string"
+        },
+        "source": {
+          "type": "string",
+          "description": "Source is the host the weights download from, derived from Ref by manifest.ModelSource;\nomitted when Ref is a local path or unknown."
+        },
+        "loaded_gib": {
+          "type": "number",
+          "description": "LoadedGiB is the memory the engine reported for the loaded weights: the model's size in\nmemory, which differs from its size on disk when the dtype or quantization changes."
         }
       },
       "additionalProperties": false,
@@ -262,6 +286,10 @@
         },
         "zone": {
           "type": "string"
+        },
+        "kubelet": {
+          "type": "string",
+          "description": "Kubelet is the node's status.nodeInfo.kubeletVersion, as written (v1.33.2)."
         }
       },
       "additionalProperties": false,

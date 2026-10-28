@@ -1,0 +1,18 @@
+# Update pull requests for the Go modules and the SHA-pinned Actions (DESIGN.md section 10.3),
+# weekly, one grouped pull request per ecosystem.
+version: 2
+updates:
+  - package-ecosystem: gomod
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      gomod:
+        patterns: ["*"]
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      github-actions:
+        patterns: ["*"]

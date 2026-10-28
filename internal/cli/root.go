@@ -18,7 +18,7 @@ func NewRootCmd() *cobra.Command {
 		SilenceErrors: true,
 	}
 	addProfileFlags(root, &f)
-	root.AddCommand(newVersionCmd(), newPackCmd())
+	root.AddCommand(newVersionCmd(), newPackCmd(), newCaptureCmd())
 	return root
 }
 

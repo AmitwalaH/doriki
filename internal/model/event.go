@@ -93,6 +93,7 @@ const (
 	FactEnvPrefix          = "container.env."
 	FactNodeInstanceType   = "node.instance_type"
 	FactNodeZone           = "node.zone"
+	FactNodeKubelet        = "node.kubelet"
 	FactAcceleratorVendor  = "accelerator.vendor"
 	FactAcceleratorProduct = "accelerator.product"
 	FactAcceleratorCount   = "accelerator.count"

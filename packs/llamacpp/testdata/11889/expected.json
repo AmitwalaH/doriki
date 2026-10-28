@@ -109,5 +109,44 @@
   ],
   "totals": {
     "pending_to_ready_seconds": 184
+  },
+  "manifest": {
+    "manifest_version": 1,
+    "pod": {
+      "namespace": "doriki",
+      "name": "llamacpp-f6ff5f6c9-tl55v",
+      "uid": "ed32257c-f268-4c5e-87c6-13deba17b6e0",
+      "owner": "Deployment/llamacpp",
+      "owner_ref": "ReplicaSet/llamacpp-f6ff5f6c9"
+    },
+    "node": {
+      "name": "doriki-control-plane"
+    },
+    "container": {
+      "image": "ghcr.io/ggml-org/llama.cpp:server@sha256:5741ab30aae42af23ca57d9b98a6d4544cb09c21f372f92c5ee55312fa8b8b0c",
+      "image_digest": "sha256:5741ab30aae42af23ca57d9b98a6d4544cb09c21f372f92c5ee55312fa8b8b0c",
+      "args": [
+        "--hf-repo",
+        "ggml-org/models",
+        "--hf-file",
+        "tinyllamas/stories15M-q4_0.gguf",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "8080"
+      ],
+      "env_allowlist": {
+        "LLAMA_CACHE": "/cache"
+      }
+    },
+    "engine": {
+      "name": "llamacpp",
+      "parser_pack": "llamacpp/11889"
+    },
+    "model": {
+      "ref": "ggml-org/models",
+      "source": "huggingface.co"
+    },
+    "fingerprint": "sha256:af4a4711600a1420ed66df483f84b3f8d03d8c1cba1d38b36bbac1a2657d4585"
   }
 }

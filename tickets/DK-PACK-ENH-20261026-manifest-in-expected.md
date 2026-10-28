@@ -2,7 +2,7 @@
 
 **Date Discovered:** 2026-10-25
 **Severity:** MEDIUM
-**Status:** OPEN, scheduled for M3 (manifest)
+**Status:** CLOSED (2026-10-28)
 **Label:** [ticket]
 **Found by:** the M1b plan review (promised there, never filed); confirmed by the M2 agent, read
 in code
@@ -33,3 +33,15 @@ would say so.
 ## Related
 `DESIGN.md` sections 4.3 and 5.4; M2 task acceptance 5 (manifest fields stay out of
 `expected.json`; the CLI JSON goldens cover them); `packs/golden_test.go`.
+
+## Resolution
+Option 1, in M3 slice 7, after the manifest fields settled (M2 container, node and accelerator;
+M3 `node.kubelet`, `model.source`, `model.loaded_gib`, `caches`). `expected` in
+`packs/golden_test.go` now holds the manifest, and every fixture's `expected.json` was
+re-recorded once with the owner's marker (`go test ./packs/ -run TestFixtures -update`) after a
+side-by-side review: each file only gained its manifest block (21, 21, 19, 39 and 32 lines), and
+phases, gaps and totals are unchanged. Checked against the captures: pod namespace, name, UID,
+image, digest and owner reference agree with each fixture's `pod.json`, and each fingerprint
+equals the one in the CLI goldens (kind-nginx and kind-nginx-warm share one: two boots of one
+Deployment). `TestDocumentsValidate` (`schema/schema_test.go`) now also validates each
+fixture's manifest against `schema/manifest.v1.json` (owner-approved edit).

@@ -24,5 +24,6 @@ func newPackCmd() *cobra.Command {
 			return nil
 		},
 	})
+	cmd.AddCommand(newPackTestCmd())
 	return cmd
 }

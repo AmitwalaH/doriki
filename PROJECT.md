@@ -83,8 +83,7 @@ is the judge.
 `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`. A commit message the agent proposes
 for the owner to commit has no trailer.
 
-**Open decisions, so don't decide them:**
-- `--probe` request shape and prompt (decide before M3).
+**Open decisions, so don't decide them:** none.
 
 **Decided, so follow them:**
 - Go, not Rust. Apache-2.0. Packs as data, embedded. No GPU in CI, ever. Report JSON is
@@ -92,6 +91,8 @@ for the owner to commit has no trailer.
 - v0.1 advice rules: `pull-dominant`, `fetch-remote-hub`, `compile-miss`, `load-slow-storage`,
   `restart-loop`. The other six are v0.2 (`docs/v0.2-backlog.md`).
 - v0.1 scope ends 18 Nov 2026. Cut list and slip order are in `DESIGN.md` section 11.
+- `--probe`: one `POST /v1/completions`, `max_tokens: 1`, prompt `"Hello"`, model from
+  `manifest.model.ref`, only with the flag (decision 0009, 28 Oct 2026); implementation v0.2.
 
 **Dated and temporary:** live in the task file, not here.
 

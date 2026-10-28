@@ -29,9 +29,10 @@
       "parser_pack": "vllm/0.32"
     },
     "model": {
-      "ref": "facebook/opt-125m"
+      "ref": "facebook/opt-125m",
+      "source": "huggingface.co"
     },
-    "fingerprint": "sha256:746f34a35268fbc808d5222deb5b3cd5bff558291c9c0041abb80b50638160fb"
+    "fingerprint": "sha256:ef83cb89a91c2340e9430812e1ed1518cacaf32ec241bff58bbc24829f9fe881"
   },
   "attempt": 0,
   "attempts_total": 1,
@@ -180,5 +181,19 @@
   ],
   "totals": {
     "pending_to_ready_seconds": 456
-  }
+  },
+  "advice": [
+    {
+      "rule": "pull-dominant",
+      "severity": "high",
+      "text": "image-pull took 59% of startup (268 s of 456 s) and the image was not on the node; prepull it with a DaemonSet or pull lazily with SOCI or estargz (image volumes are not suggested: the node's kubelet version could not be read).",
+      "evidence": {
+        "kubelet": "unknown",
+        "seconds": 268,
+        "share": 0.5877192982456141,
+        "total_seconds": 456
+      },
+      "fix": "a prepull DaemonSet for the image; lazy pulling with the SOCI or estargz snapshotter"
+    }
+  ]
 }

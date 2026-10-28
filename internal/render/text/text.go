@@ -125,7 +125,7 @@ func Write(w io.Writer, r model.Report, opts Options) error {
 		add("")
 		add(st.header.Render("Advice"))
 		for i, a := range r.Advice[:min(len(r.Advice), maxAdvice)] {
-			lines = append(lines, wrap(lipgloss.Style{}, fmt.Sprintf("  %d. %s", i+1, a.Text), "     ")...)
+			lines = append(lines, wrap(lipgloss.Style{}, fmt.Sprintf("  %d. %s: %s", i+1, a.Rule, a.Text), "     ")...)
 		}
 	}
 	_, err := io.WriteString(w, strings.Join(lines, "\n")+"\n")

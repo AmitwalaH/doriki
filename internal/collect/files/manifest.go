@@ -83,6 +83,7 @@ func objectFacts(p *corev1.Pod, container string, node *corev1.Node, walked stri
 	if node != nil {
 		add(model.FactNodeInstanceType, firstLabel(node, instanceTypeLabels), "node label instance type")
 		add(model.FactNodeZone, firstLabel(node, zoneLabels), "node label zone")
+		add(model.FactNodeKubelet, node.Status.NodeInfo.KubeletVersion, "node kubelet "+node.Status.NodeInfo.KubeletVersion)
 		product = node.Labels[nvidiaProduct]
 	}
 	if gpus > 0 || product != "" {

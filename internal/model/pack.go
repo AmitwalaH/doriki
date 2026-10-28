@@ -67,8 +67,13 @@ func (m PackMarker) DerivedStartID() string {
 const DerivedStartConfidence float32 = 0.9
 
 // PackFact is a one-shot manifest fact read from the log: the named group "v" of the first
-// matching line. Key is a manifest field such as engine.version or model.ref.
+// matching line, or Value when set, for a line that means a value without printing it (a cache
+// hit). Key is a manifest field such as engine.version or model.ref; several facts may share
+// one. Untested marks a fact written from the engine's source for a line the pack's fixture
+// cannot show, as confidence below 1.0 marks an untested marker.
 type PackFact struct {
-	Key   string `yaml:"key"`
-	Regex string `yaml:"regex"`
+	Key      string `yaml:"key"`
+	Regex    string `yaml:"regex"`
+	Value    string `yaml:"value,omitempty"`
+	Untested bool   `yaml:"untested,omitempty"`
 }

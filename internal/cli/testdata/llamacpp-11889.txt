@@ -1,0 +1,23 @@
+Pod doriki/llamacpp-f6ff5f6c9-tl55v   engine llamacpp   node doriki-control-plane   total 3:04
+
+scheduling       │                                               0.0s
+image-pull       ████████████████████████████████████████        2:48
+container-init                                            █      0.3s
+engine-init                                               █      0:02
+weight-fetch                                              ███   ~0:11  ggml-org/models
+weight-load                                                 █    0.1s  ggml-org/models
+server-ready                                                █    0:01
+
+skipped: compile, graph-capture (not applicable to this engine)
+absent: node-provision, kv-alloc, first-token (not seen in the events or the log; pack
+  llamacpp/11889)
+~ estimated: confidence below 1.0 (a start derived from a logged duration, or a heuristic marker)
+
+Warnings
+  pack-version-unknown: the log does not say the engine version in its first 200 lines; using pack
+    llamacpp/11889, tested with 11889; llama.cpp prints its build only at -lv 4 or above
+
+Advice
+  1. pull-dominant: image-pull took 91% of startup (168 s of 184 s) and the image was not on the
+     node; prepull it with a DaemonSet or pull lazily with SOCI or estargz (image volumes are not
+     suggested: the node's kubelet version could not be read).

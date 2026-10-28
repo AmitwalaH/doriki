@@ -38,7 +38,7 @@ As of 24 Oct 2026 · maintained by the repository owner
 4. **Record for later.** `--output json` writes a self-contained report; teams attach it to tickets or commit it as a fixture.
 5. **Fleet view (v0.3+).** `doriki export` runs as a Deployment and publishes `doriki_phase_seconds` histograms to Prometheus for every inference pod matching a label selector.
 
-**Terminal output** (real: the vLLM 0.32 CPU fixture, recorded as `internal/cli/testdata/vllm-0.32.txt`; advice rules arrive in M3, so it has no Advice block).
+**Terminal output** (real: the vLLM 0.32 CPU fixture, recorded as `internal/cli/testdata/vllm-0.32.txt`; the node object is not in the fixture, so the advice cannot read the kubelet version).
 
 ```text
 Pod default/vllm-785fb8997d-bvsz4   engine vllm 0.32.0   node doriki-control-plane   total 7:36
@@ -57,6 +57,11 @@ server-ready                                                │    0.0s
 skipped: compile, graph-capture (the engine said it skips them)
 absent: node-provision, first-token (not seen in the events or the log; pack vllm/0.32)
 ~ estimated: confidence below 1.0 (a start derived from a logged duration, or a heuristic marker)
+
+Advice
+  1. pull-dominant: image-pull took 59% of startup (268 s of 456 s) and the image was not on the
+     node; prepull it with a DaemonSet or pull lazily with SOCI or estargz (image volumes are not
+     suggested: the node's kubelet version could not be read).
 ```
 
 **What "done" feels like.** An operator with no prior knowledge of the tool installs it with `kubectl krew install doriki`, runs it against a pod, and knows within one screen what to fix first.
@@ -253,7 +258,7 @@ Rules are Go functions over the report, each returning zero or one `Advice`. v0.
 
 | Rule id | Trigger | Advice (abridged) |
 | --- | --- | --- |
-| `pull-dominant` | `image-pull` ≥ 35% of total and image not previously on node | Prepull DaemonSet; OCI image volume (K8s ≥1.31); SOCI/estargz lazy pull; slim the image (vLLM images are 8–18 GB) |
+| `pull-dominant` | `image-pull` ≥ 35% of total and image not previously on node | Prepull DaemonSet; OCI image volume only when `node.kubelet` ≥ 1.35 (alpha in 1.31–1.32, beta and off by default in 1.33–1.34; below 1.35 or when unknown, say why it is not suggested); SOCI/estargz lazy pull; slim the image (vLLM images are 8–18 GB) |
 | `pull-small-node` | `image-pull` ≥ 35% and node vCPU < 16 | Decompression is CPU-bound; larger node or pre-decompressed image |
 | `fetch-remote-hub` | `weight-fetch` ≥ 25% and source host is `huggingface.co` | Cluster-local mirror, Dragonfly `hf://`, or ModelCar/OCI artifact; pin `revision` |
 | `fetch-rate-limited` | log contains HTTP 429 from the Hub | Shared egress IP hit the 5-minute window; stagger ranks or use a mirror |
@@ -421,7 +426,7 @@ Real GPU timing accuracy. The README states this and asks users to share `doriki
 
 1. Conventional commits on `main`; `release-please` opens a release PR with the changelog.
 2. Merging it tags `vX.Y.Z`; `release.yml` runs `goreleaser` for `linux|darwin|windows × amd64|arm64`, builds a multi-arch image to `ghcr.io/<org>/doriki`, and signs binaries, checksums and image with `cosign` (keyless, GitHub OIDC). SBOM via `syft`, attached to the release.
-3. `goreleaser` updates the Homebrew tap and opens the krew index PR (`krew-release-bot`).
+3. `goreleaser` updates the Homebrew tap (a cask, which also carries the Linux archives) and writes the krew manifest; for v0.1 the owner opens the krew-index PR by hand.
 4. Pre-1.0: minor versions may break the pack schema; the report schema is append-only from 0.1 and bumps `report_version` only with a migration note.
 
 ### 10.2 Install matrix
@@ -497,5 +502,5 @@ After 18 Nov: read gate responses and v0.1.0 feedback for one week before choosi
 - [x] Final project name and GitHub org: `doriki`, under the owner's personal GitHub account (24 Oct 2026)
 - [x] Minimum Kubernetes version: 1.29 (24 Oct 2026)
 - [x] v0.1 advice rules confirmed: `pull-dominant`, `fetch-remote-hub`, `compile-miss`, `load-slow-storage`, `restart-loop`; the other six are v0.2 because they need data v0.1 does not collect (24 Oct 2026, architect's call)
-- [ ] Whether `--probe` sends a `/v1/completions` or `/v1/chat/completions` request, and with which 1-token prompt (before M3)
+- [x] Whether `--probe` sends a `/v1/completions` or `/v1/chat/completions` request, and with which 1-token prompt: one `POST /v1/completions`, `max_tokens: 1`, prompt `"Hello"`, model from `manifest.model.ref`, only with `--probe`; implemented in v0.2 (28 Oct 2026, decision 0009)
 - [ ] HTML report: cut to v0.2, so no decision needed for v0.1

@@ -1,0 +1,119 @@
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+# The release (DESIGN.md section 10.1), run by .github/workflows/release.yml on a v* tag, with
+# GoReleaser v2.19.0. Checked against its docs on 2026-10-28: brews is deprecated (v2.10), so
+# Homebrew gets a cask, which also carries the Linux archives.
+version: 2
+project_name: doriki
+
+builds:
+  - id: doriki
+    main: ./cmd/doriki
+    binary: doriki
+    env:
+      - CGO_ENABLED=0
+    flags:
+      - -trimpath
+    # The same variables the Makefile sets, so `doriki version` prints the tag (without its v),
+    # the commit and the build date.
+    ldflags:
+      - -s -w
+      - -X github.com/AmitwalaH/doriki/internal/cli.version={{ .Version }}
+      - -X github.com/AmitwalaH/doriki/internal/cli.commit={{ .ShortCommit }}
+      - -X github.com/AmitwalaH/doriki/internal/cli.date={{ .Date }}
+    goos: [linux, darwin, windows]
+    goarch: [amd64, arm64]
+    # Files dated at the commit, so a rebuild of a tag gives the same archives.
+    mod_timestamp: "{{ .CommitTimestamp }}"
+
+archives:
+  - id: doriki
+    formats: [tar.gz]
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    files:
+      - LICENSE
+      - README.md
+
+checksum:
+  name_template: checksums.txt
+
+# One SPDX SBOM per archive, made by syft.
+sboms:
+  - artifacts: archive
+
+# Keyless: cosign signs checksums.txt with the workflow's GitHub OIDC identity, into one
+# .sigstore.json bundle (cosign v3). Verifying the checksums verifies every archive.
+signs:
+  - cmd: cosign
+    signature: "${artifact}.sigstore.json"
+    args:
+      - sign-blob
+      - --bundle=${signature}
+      - ${artifact}
+      - --yes
+    artifacts: checksum
+
+dockers_v2:
+  - images:
+      # GHCR names must be lower case.
+      - ghcr.io/amitwalah/doriki
+    tags:
+      - "{{ .Version }}"
+    dockerfile: deploy/Dockerfile
+    labels:
+      org.opencontainers.image.source: https://github.com/AmitwalaH/doriki
+      org.opencontainers.image.version: "{{ .Version }}"
+      org.opencontainers.image.revision: "{{ .FullCommit }}"
+      org.opencontainers.image.licenses: Apache-2.0
+
+# The image, keyless as above, by digest so the signature covers exactly what was pushed.
+docker_signs:
+  - cmd: cosign
+    args:
+      - sign
+      - ${artifact}@${digest}
+      - --yes
+
+homebrew_casks:
+  - name: doriki
+    binaries:
+      - doriki
+    homepage: https://github.com/AmitwalaH/doriki
+    description: Show which startup phase made an LLM inference pod slow, and what to do about it
+    # Release candidates are published too (owner decision, M3 slice 8 Q1), so the tap token is
+    # exercised before v0.1.0.
+    repository:
+      owner: AmitwalaH
+      name: homebrew-tap
+      token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
+    # The binaries are cosign-signed but not Apple-notarized, and macOS would refuse to run a
+    # quarantined download as "damaged". This removes the quarantine flag at install, which
+    # bypasses Gatekeeper for doriki only (owner decision, M3 slice 8 Q2; the README says so).
+    hooks:
+      post:
+        install_steps: |
+          on_macos do
+            run "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "{{ .StagedPath }}/doriki"]
+          end
+
+# The krew manifest is written to dist/ only; the release workflow uploads it as an artifact
+# and the owner opens the krew-index pull request by hand for v0.1 (M3 plan f).
+krews:
+  - name: doriki
+    homepage: https://github.com/AmitwalaH/doriki
+    short_description: Explain why an LLM inference pod started slowly
+    description: |
+      doriki reads a pod's Kubernetes events, container statuses and inference-engine log,
+      draws its startup as a phase waterfall (image pull, weight fetch and load, compile,
+      KV cache, server ready) and prints up to three lines of advice. It never writes to the
+      cluster.
+    skip_upload: true
+
+release:
+  draft: true
+  prerelease: auto
+
+changelog:
+  use: github

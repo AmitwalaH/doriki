@@ -82,5 +82,24 @@
   ],
   "totals": {
     "pending_to_ready_seconds": 3
+  },
+  "manifest": {
+    "manifest_version": 1,
+    "pod": {
+      "namespace": "default",
+      "name": "restart-once",
+      "uid": "744cd3ba-f82d-4e5f-beed-3ab06ea533aa"
+    },
+    "node": {
+      "name": "doriki-control-plane"
+    },
+    "container": {
+      "image": "busybox:1.37.0@sha256:bdf57e528e45e4433820e045b29b4597825a1c9e38353532d90a01445013f82e",
+      "image_digest": "sha256:bdf57e528e45e4433820e045b29b4597825a1c9e38353532d90a01445013f82e"
+    },
+    "engine": {
+      "parser_pack": "generic"
+    },
+    "fingerprint": "sha256:3ba83b2bfff1ac8d74fe788d35b8878ecfc581bde0400818e413345f1e79b93a"
   }
 }

@@ -57,6 +57,16 @@ run "git log --oneline -3 > /tmp/log.txt 2>&1" 0
 run "git stash list" 0
 run "git stash show -p" 0
 run "git stash" 2
+# v5 cases: quoted pipes are not separators; -update as text does not consume the marker
+run "go test ./internal/cli/ -run 'TestCLIGoldens/^(kind-nginx|vllm)$/' -update" 2
+run "go test ./pkg -run \"a|b\" -update" 2
+touch .doriki-approve-update
+run "echo 'go test ./x -update is text'; for c in 'go test -update'; do echo \$c; done" 0
+[ -e .doriki-approve-update ] && pass=$((pass+1)) || { fail=$((fail+1)); echo "FAIL marker consumed by text"; }
+run "go test ./internal/cli/ -run 'TestCLIGoldens/^(kind-nginx|vllm)$/' -update" 0
+[ ! -e .doriki-approve-update ] && pass=$((pass+1)) || { fail=$((fail+1)); echo "FAIL marker not consumed by real run"; }
+run "git log --oneline | head -3" 0
+run "git push origin 'main'" 2
 run "git stash pop" 2
 run "git archive --format=tar HEAD > /tmp/x.tar" 0
 # v4 cases: commands after a heredoc body must still be judged (bypass found 26 Oct)

@@ -9,3 +9,8 @@ absent: node-provision, engine-init, weight-fetch, weight-load, compile, graph-c
 
 Warnings
   no-pack: no parser pack matches image "nginx:1.29.3-alpine"; only Kubernetes phases are reported
+
+Advice
+  1. pull-dominant: image-pull took 95% of startup (20 s of 21 s) and the image was not on the node;
+     prepull it with a DaemonSet or pull lazily with SOCI or estargz (image volumes are not
+     suggested: the node's kubelet version could not be read).

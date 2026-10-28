@@ -63,7 +63,7 @@ func TestBuildGeneric(t *testing.T) {
 // Every fact key a pack may use is one Build knows.
 func TestFactKeys(t *testing.T) {
 	for _, k := range FactKeys() {
-		got := Build([]model.Event{fact(k, "v")}, model.Pack{Engine: "e", Name: "e/1"})
+		got := Build([]model.Event{fact(k, "1")}, model.Pack{Engine: "e", Name: "e/1"})
 		if reflect.DeepEqual(got, Build(nil, model.Pack{Engine: "e", Name: "e/1"})) {
 			t.Errorf("fact %s changed nothing", k)
 		}

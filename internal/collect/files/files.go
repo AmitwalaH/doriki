@@ -6,7 +6,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -37,6 +39,62 @@ func Load(podPath, eventsPath, logPath string, previousLogPath ...string) ([]mod
 	return Read(readers[0], readers[1], readers[2], readers[3:]...)
 }
 
+// The files of a capture directory (doriki capture), which LoadDir reads.
+const (
+	PodFile         = "pod.json"
+	EventsFile      = "events.json"
+	LogFile         = "container.log"
+	PreviousLogFile = "container-previous.log" // only after a restart
+	NodeFile        = "node.json"              // optional
+)
+
+// LoadDir reads a capture directory: pod, events and log, and the previous container's log and
+// the node when the directory has them. The node gives the manifest what a live run reads
+// from it (kubelet version, instance type, zone, GPU product).
+func LoadDir(dir string) ([]model.Event, []model.Warning, error) {
+	open := func(name string, optional bool) (io.Reader, func(), error) {
+		path := filepath.Join(dir, name)
+		f, err := os.Open(path) // #nosec G304 -- the user names the directory on the command line
+		if optional && errors.Is(err, fs.ErrNotExist) {
+			return nil, func() {}, nil
+		}
+		if err != nil {
+			return nil, func() {}, err
+		}
+		return namedReader{f, path}, func() { _ = f.Close() }, nil // read-only file
+	}
+	readers := map[string]io.Reader{}
+	for _, n := range []struct {
+		name     string
+		optional bool
+	}{{PodFile, false}, {EventsFile, false}, {LogFile, false}, {PreviousLogFile, true}, {NodeFile, true}} {
+		r, closeFile, err := open(n.name, n.optional)
+		if err != nil {
+			return nil, nil, err
+		}
+		defer closeFile()
+		readers[n.name] = r
+	}
+	var node *corev1.Node
+	if r := readers[NodeFile]; r != nil {
+		node = &corev1.Node{}
+		if err := json.NewDecoder(r).Decode(node); err != nil {
+			return nil, nil, fmt.Errorf("%s: %w", nameOf(r, NodeFile), err)
+		}
+	}
+	return readObjects(readers[PodFile], readers[EventsFile], readers[LogFile], readers[PreviousLogFile], node)
+}
+
+// ReadLog reads a container log alone (`kubectl logs`, timestamps optional) into log-line
+// events, for doriki pack test: no pod, so lines without a runtime timestamp stay untimed.
+func ReadLog(log io.Reader) ([]model.Event, error) {
+	events, err := logLines(log, "")
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", nameOf(log, "log"), err)
+	}
+	return events, nil
+}
+
 // namedReader lets Read name the file in its errors.
 type namedReader struct {
 	io.Reader
@@ -58,6 +116,15 @@ func Read(pod, events, log io.Reader, previousLog ...io.Reader) ([]model.Event, 
 	if len(previousLog) > 1 {
 		return nil, nil, fmt.Errorf("one previous log at most, got %d", len(previousLog))
 	}
+	var previous io.Reader
+	if len(previousLog) == 1 {
+		previous = previousLog[0]
+	}
+	return readObjects(pod, events, log, previous, nil)
+}
+
+// readObjects is Read with an optional previous log and node.
+func readObjects(pod, events, log, previousLog io.Reader, node *corev1.Node) ([]model.Event, []model.Warning, error) {
 	var p corev1.Pod
 	if err := json.NewDecoder(pod).Decode(&p); err != nil {
 		return nil, nil, fmt.Errorf("%s: %w", nameOf(pod, "pod"), err)
@@ -66,9 +133,9 @@ func Read(pod, events, log io.Reader, previousLog ...io.Reader) ([]model.Event, 
 	if err := json.NewDecoder(events).Decode(&list); err != nil {
 		return nil, nil, fmt.Errorf("%s: %w", nameOf(events, "events"), err)
 	}
-	o := Objects{Pod: &p, Events: list.Items, Log: namedReader{log, nameOf(log, "log")}}
-	if len(previousLog) == 1 {
-		o.PreviousLog = namedReader{previousLog[0], nameOf(previousLog[0], "previous log")}
+	o := Objects{Pod: &p, Events: list.Items, Node: node, Log: namedReader{log, nameOf(log, "log")}}
+	if previousLog != nil {
+		o.PreviousLog = namedReader{previousLog, nameOf(previousLog, "previous log")}
 	}
 	if len(p.Spec.Containers) == 0 {
 		return nil, nil, fmt.Errorf("%s: pod %s has no containers", nameOf(pod, "pod"), p.Name)

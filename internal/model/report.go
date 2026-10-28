@@ -60,6 +60,7 @@ type Manifest struct {
 	Engine          *ManifestEngine      `json:"engine,omitempty"`
 	Model           *ManifestModel       `json:"model,omitempty"`
 	Accelerator     *ManifestAccelerator `json:"accelerator,omitempty"`
+	Caches          *ManifestCaches      `json:"caches,omitempty"`
 	// Fingerprint is "sha256:" and the hash of every other field except the pod's name and
 	// UID, so two boots of the same deployment share it (DESIGN.md section 4.3).
 	Fingerprint string `json:"fingerprint,omitempty"`
@@ -79,6 +80,8 @@ type ManifestNode struct {
 	Name         string `json:"name,omitempty"`
 	InstanceType string `json:"instance_type,omitempty"`
 	Zone         string `json:"zone,omitempty"`
+	// Kubelet is the node's status.nodeInfo.kubeletVersion, as written (v1.33.2).
+	Kubelet string `json:"kubelet,omitempty"`
 }
 
 // ManifestContainer is the profiled container. EnvAllowlist holds allowlisted variables only,
@@ -98,6 +101,12 @@ type ManifestEngine struct {
 
 type ManifestModel struct {
 	Ref string `json:"ref,omitempty"`
+	// Source is the host the weights download from, derived from Ref by manifest.ModelSource;
+	// omitted when Ref is a local path or unknown.
+	Source string `json:"source,omitempty"`
+	// LoadedGiB is the memory the engine reported for the loaded weights: the model's size in
+	// memory, which differs from its size on disk when the dtype or quantization changes.
+	LoadedGiB float64 `json:"loaded_gib,omitempty"`
 }
 
 // ManifestAccelerator comes from node labels and container limits only; doriki reads no GPU.
@@ -107,12 +116,25 @@ type ManifestAccelerator struct {
 	Count   int    `json:"count,omitempty"`
 }
 
-// Advice is one rule's finding (DESIGN.md section 6.2). No rules run until M3.
+// ManifestCaches is what the engine log said about its caches. TorchCompile is "hit" or
+// "miss", set by a pack fact; a miss anywhere in the boot is a miss.
+type ManifestCaches struct {
+	TorchCompile string `json:"torch_compile,omitempty"`
+}
+
+// CacheMiss is the ManifestCaches value for a cache the boot could not use; manifest keeps it
+// over a later hit, and compile-miss fires on it.
+const CacheMiss = "miss"
+
+// Advice is one rule's finding (DESIGN.md section 6.2). Text is the one sentence the terminal
+// prints, fix included; Evidence holds the numbers the rule used; Fix names the flag, resource
+// or setting to change.
 type Advice struct {
 	Rule     string         `json:"rule"`
 	Severity string         `json:"severity"`
 	Text     string         `json:"text"`
 	Evidence map[string]any `json:"evidence,omitempty"`
+	Fix      string         `json:"fix,omitempty"`
 }
 
 // WarnPhaseUnobserved is the warning code for an expected engine phase still absent once the

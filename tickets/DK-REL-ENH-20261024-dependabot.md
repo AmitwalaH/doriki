@@ -2,7 +2,7 @@
 
 **Date Discovered:** 2026-10-24
 **Severity:** LOW
-**Status:** OPEN
+**Status:** CLOSED (2026-10-28)
 **Label:** [ticket]
 **Found by:** the M0 agent, read in `DESIGN.md` section 10.3 while pinning actions in `ci.yml`
 **Filed by:** the M0 agent
@@ -24,3 +24,10 @@ silently until someone looks by hand.
 
 ## Related
 `DESIGN.md` section 10.3; `.github/workflows/ci.yml`.
+
+## Resolution
+Option 2, in M3 slice 8: `.github/dependabot.yml` asks for weekly update pull requests for
+`gomod` and `github-actions`, one grouped pull request per ecosystem. It covers the SHA-pinned
+actions in `ci.yml` and the new `release.yml`. Not covered: the distroless base image digest in
+`deploy/Dockerfile`, which is bumped by hand (its comment says so); adding the `docker`
+ecosystem would cover it.
