@@ -38,7 +38,7 @@ As of 24 Oct 2026 · maintained by the repository owner
 4. **Record for later.** `--output json` writes a self-contained report; teams attach it to tickets or commit it as a fixture.
 5. **Fleet view (v0.3+).** `doriki export` runs as a Deployment and publishes `doriki_phase_seconds` histograms to Prometheus for every inference pod matching a label selector.
 
-**Terminal output** (real: the vLLM 0.32 CPU fixture, recorded as `internal/cli/testdata/vllm-0.32.txt`; advice rules arrive in M3, so it has no Advice block).
+**Terminal output** (real: the vLLM 0.32 CPU fixture, recorded as `internal/cli/testdata/vllm-0.32.txt`; the node object is not in the fixture, so the advice cannot read the kubelet version).
 
 ```text
 Pod default/vllm-785fb8997d-bvsz4   engine vllm 0.32.0   node doriki-control-plane   total 7:36
@@ -57,6 +57,11 @@ server-ready                                                │    0.0s
 skipped: compile, graph-capture (the engine said it skips them)
 absent: node-provision, first-token (not seen in the events or the log; pack vllm/0.32)
 ~ estimated: confidence below 1.0 (a start derived from a logged duration, or a heuristic marker)
+
+Advice
+  1. pull-dominant: image-pull took 59% of startup (268 s of 456 s) and the image was not on the
+     node; prepull it with a DaemonSet or pull lazily with SOCI or estargz (image volumes are not
+     suggested: the node's kubelet version could not be read).
 ```
 
 **What "done" feels like.** An operator with no prior knowledge of the tool installs it with `kubectl krew install doriki`, runs it against a pod, and knows within one screen what to fix first.
@@ -497,5 +502,5 @@ After 18 Nov: read gate responses and v0.1.0 feedback for one week before choosi
 - [x] Final project name and GitHub org: `doriki`, under the owner's personal GitHub account (24 Oct 2026)
 - [x] Minimum Kubernetes version: 1.29 (24 Oct 2026)
 - [x] v0.1 advice rules confirmed: `pull-dominant`, `fetch-remote-hub`, `compile-miss`, `load-slow-storage`, `restart-loop`; the other six are v0.2 because they need data v0.1 does not collect (24 Oct 2026, architect's call)
-- [ ] Whether `--probe` sends a `/v1/completions` or `/v1/chat/completions` request, and with which 1-token prompt (before M3)
+- [x] Whether `--probe` sends a `/v1/completions` or `/v1/chat/completions` request, and with which 1-token prompt: one `POST /v1/completions`, `max_tokens: 1`, prompt `"Hello"`, model from `manifest.model.ref`, only with `--probe`; implemented in v0.2 (28 Oct 2026, decision 0009)
 - [ ] HTML report: cut to v0.2, so no decision needed for v0.1
