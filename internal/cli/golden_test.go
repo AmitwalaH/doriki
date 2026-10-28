@@ -15,6 +15,7 @@ import (
 var goldenFixtures = map[string]string{
 	"kind-nginx":      "../../packs/generic/testdata/kind-nginx/",
 	"kind-nginx-warm": "../../packs/generic/testdata/kind-nginx-warm/",
+	"llamacpp-11889":  "../../packs/llamacpp/testdata/11889/",
 	"vllm-0.32":       "../../packs/vllm/testdata/0.32/",
 }
 

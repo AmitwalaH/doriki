@@ -14,3 +14,8 @@ server-ready                                                │    0.0s
 skipped: compile, graph-capture (the engine said it skips them)
 absent: node-provision, first-token (not seen in the events or the log; pack vllm/0.32)
 ~ estimated: confidence below 1.0 (a start derived from a logged duration, or a heuristic marker)
+
+Advice
+  1. pull-dominant: image-pull took 59% of startup (268 s of 456 s) and the image was not on the
+     node; prepull it with a DaemonSet or pull lazily with SOCI or estargz (image volumes are not
+     suggested: the node's kubelet version could not be read).

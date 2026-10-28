@@ -98,6 +98,20 @@
   "totals": {
     "pending_to_ready_seconds": 21
   },
+  "advice": [
+    {
+      "rule": "pull-dominant",
+      "severity": "high",
+      "text": "image-pull took 95% of startup (20 s of 21 s) and the image was not on the node; prepull it with a DaemonSet or pull lazily with SOCI or estargz (image volumes are not suggested: the node's kubelet version could not be read).",
+      "evidence": {
+        "kubelet": "unknown",
+        "seconds": 20,
+        "share": 0.9523809523809523,
+        "total_seconds": 21
+      },
+      "fix": "a prepull DaemonSet for the image; lazy pulling with the SOCI or estargz snapshotter"
+    }
+  ],
   "warnings": [
     {
       "code": "no-pack",
