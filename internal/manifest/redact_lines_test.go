@@ -2,6 +2,7 @@ package manifest
 
 import (
 	"encoding/json"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -76,5 +77,40 @@ func TestRedactArgList(t *testing.T) {
 	want := []string{"--api-key", Redacted, "--model", "org/m", "--hf-token=" + Redacted, Redacted}
 	if strings.Join(got, " ") != strings.Join(want, " ") {
 		t.Errorf("got %q, want %q", got, want)
+	}
+}
+
+// A plain secret (no token shape) after a secret-named key in a log line is redacted in each
+// shape engines print: a Python dict (vLLM's "non-default args"), key=value, key: value,
+// --flag value, and an Authorization header. The key list is the one env names use (secretName),
+// and the rest of the line stays (DK-COLLECT-ENH-20261028-secret-keys-in-log-lines).
+func TestRedactLineSecretKeys(t *testing.T) {
+	for in, want := range map[string]string{ // #nosec G101 -- made up for the test
+		// vLLM 0.32's real line (fixture line 110) with an api_key planted.
+		"non-default args: {'host': '0.0.0.0', 'model': 'facebook/opt-125m', 'api_key': 'plainword', 'dtype': 'bfloat16'}": "non-default args: {'host': '0.0.0.0', 'model': 'facebook/opt-125m', 'api_key': '[redacted]', 'dtype': 'bfloat16'}",
+		`{"password": "two words", "user": "bob"}`:         `{"password": "[redacted]", "user": "bob"}`,
+		"starting with api_key=plainword port=8000":        "starting with api_key=[redacted] port=8000",
+		"HF_TOKEN: plainword":                              "HF_TOKEN: [redacted]",
+		"cmd: server --api-key plainword --port 8000":      "cmd: server --api-key [redacted] --port 8000",
+		"cmd: server --hf-token=plainword":                 "cmd: server --hf-token=[redacted]",
+		"header Authorization: Bearer abc.def":             "header Authorization: [redacted]",
+		"model=org/m dtype=auto port: 8000":                "model=org/m dtype=auto port: 8000",
+		"INFO 10-25 09:28:37 [api_utils.py:286] listening": "INFO 10-25 09:28:37 [api_utils.py:286] listening",
+		"api_key=[redacted] already":                       "api_key=[redacted] already",
+	} {
+		if got := RedactLine(in); got != want {
+			t.Errorf("RedactLine(%q)\n got %q\nwant %q", in, got, want)
+		}
+	}
+}
+
+// The key rule uses secretName itself: swapping it for a sentinel changes which keys are
+// redacted, so no second key list is in use.
+func TestRedactLineUsesSecretName(t *testing.T) {
+	saved := secretName
+	t.Cleanup(func() { secretName = saved })
+	secretName = regexp.MustCompile(`sentinel`)
+	if got := RedactLine("api_key=plainword sentinel=plainword"); got != "api_key=plainword sentinel=[redacted]" {
+		t.Errorf("got %q", got)
 	}
 }

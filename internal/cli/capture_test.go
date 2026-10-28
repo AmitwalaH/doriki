@@ -394,3 +394,42 @@ func TestImageParts(t *testing.T) {
 		}
 	}
 }
+
+// A plain API key vLLM echoes in its "non-default args" line is redacted from the report and a
+// capture bundle, and the model ref the pack reads from that same line survives
+// (DK-COLLECT-ENH-20261028-secret-keys-in-log-lines).
+func TestEchoedAPIKeyRedacted(t *testing.T) {
+	const vllm, plain = "../../packs/vllm/testdata/0.32/", "plainword-7f3a"
+	dir := t.TempDir()
+	for _, name := range []string{"pod.json", "events.json", "container.log"} {
+		b, err := os.ReadFile(vllm + name) // #nosec G304 -- a fixture path
+		if err != nil {
+			t.Fatal(err)
+		}
+		if name == "container.log" {
+			b = []byte(strings.Replace(string(b), "'model': 'facebook/opt-125m',", "'model': 'facebook/opt-125m', 'api_key': '"+plain+"',", 1))
+			if !strings.Contains(string(b), plain) {
+				t.Fatal("key not planted")
+			}
+		}
+		if err := os.WriteFile(filepath.Join(dir, name), b, 0o600); err != nil { // #nosec G703 -- a file in t.TempDir()
+			t.Fatal(err)
+		}
+	}
+	out, err := run(t, "--from-files", dir, "-o", "json", "--include-events")
+	if code, msg := Exit(err); code > 1 {
+		t.Fatalf("exit %d %s", code, msg)
+	}
+	if strings.Contains(out, plain) {
+		t.Errorf("the echoed API key is in the report")
+	}
+	var r struct {
+		Manifest struct{ Model struct{ Ref string } }
+	}
+	if err := json.Unmarshal([]byte(out), &r); err != nil {
+		t.Fatal(err)
+	}
+	if r.Manifest.Model.Ref != "facebook/opt-125m" {
+		t.Errorf("model.ref = %q, want facebook/opt-125m from the same line", r.Manifest.Model.Ref)
+	}
+}

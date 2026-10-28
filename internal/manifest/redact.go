@@ -91,9 +91,45 @@ func RedactEnv(name, value string) (v string, keep bool) {
 	return RedactLine(value), true
 }
 
-// RedactLine redacts every token-shaped part of s.
+// The shapes in which a log line pairs a key with its value, for RedactLine: a quoted value
+// (a Python dict such as vLLM's "non-default args", or JSON), key=value or key: value with an
+// optional Bearer or Basic scheme, and a --flag followed by its value. Group 1 is the key; the
+// other groups are the value. A value already [redacted] does not match again.
+var keyValues = []*regexp.Regexp{
+	regexp.MustCompile(`([A-Za-z_][A-Za-z0-9_.-]*)['"]?\s*[:=]\s*(?:'([^']*)'|"([^"]*)")`),
+	regexp.MustCompile(`([A-Za-z_][A-Za-z0-9_.-]*)\s*[:=]\s*((?:(?:Bearer|Basic)\s+)?[^\s'",;{}\[\]()]+)`),
+	regexp.MustCompile(`--([A-Za-z0-9_-]+)\s+([^\s\[-]\S*)`),
+}
+
+// RedactLine redacts every token-shaped part of s, and the value after any secret-named key
+// (the secretName list env names use), so an engine that echoes a plain API key or password
+// does not leak it. A key such as "tokenizer" matches the list too, and its value goes with it.
 func RedactLine(s string) string {
-	return secretValue.ReplaceAllString(s, Redacted)
+	s = secretValue.ReplaceAllString(s, Redacted)
+	for _, re := range keyValues {
+		s = redactValues(re, s)
+	}
+	return s
+}
+
+// redactValues replaces the value groups of re's matches whose key (group 1) says secret.
+func redactValues(re *regexp.Regexp, s string) string {
+	var b strings.Builder
+	last := 0
+	for _, m := range re.FindAllStringSubmatchIndex(s, -1) {
+		if !secretName.MatchString(s[m[2]:m[3]]) {
+			continue
+		}
+		for g := 2; 2*g+1 < len(m); g++ {
+			if start, end := m[2*g], m[2*g+1]; start >= 0 && s[start:end] != Redacted {
+				b.WriteString(s[last:start])
+				b.WriteString(Redacted)
+				last = end
+			}
+		}
+	}
+	b.WriteString(s[last:])
+	return b.String()
 }
 
 // RedactJSON redacts the token-shaped parts of every string value in a JSON document, at any

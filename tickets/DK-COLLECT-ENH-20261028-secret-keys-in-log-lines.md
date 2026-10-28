@@ -1,8 +1,8 @@
 # DK-COLLECT-ENH-20261028-secret-keys-in-log-lines: An API key vLLM echoes in its log stays in a capture bundle
 
 **Date Discovered:** 2026-10-28
-**Severity:** MEDIUM
-**Status:** OPEN
+**Severity:** HIGH (raised by the owner on 2026-10-28)
+**Status:** CLOSED (2026-10-28)
 **Label:** [ticket]
 **Found by:** the M3 agent, read in code and in the vLLM 0.32.0 fixture while writing `capture`
 **Filed by:** the M3 agent
@@ -30,3 +30,19 @@ Many deployments use plain API keys, not token-shaped ones.
 
 ## Related
 `DK-COLLECT-ENH-20261026-redact-log-lines` (closed: token shapes); M3 slice 5 (`capture`).
+
+## Resolution
+Option 1. `manifest.RedactLine` (`internal/manifest/redact.go`), which `Sanitize` applies to
+every engine log line and `capture` to its log files, also redacts the value after any key the
+`secretName` list matches, the list env names use, in four shapes: a quoted value (`'api_key':
+'x'`, `"password": "x"`), `key=value` and `key: value` (with a Bearer or Basic scheme taken
+along), and `--flag value`. `TestRedactLineUsesSecretName` swaps the list for a sentinel and
+proves no second list is in use. `TestEchoedAPIKeyRedacted` plants `'api_key': 'plainword-7f3a'`
+in the fixture's real `non-default args` line: the value is absent from `-o json
+--include-events` and `model.ref` (read from the same line) is still `facebook/opt-125m`; with
+the key rule switched off it fails ("the echoed API key is in the report").
+
+Measured cost, 2026-10-28, all five fixture logs: the rule also redacts the values of
+tokenizer settings (vLLM `tokenizer`, `Tokenizer`, `tokenizer_mode`, `tokenizer_revision`,
+`skip_tokenizer_init`, `tokens`; one llama.cpp `token` key) in `--include-events` output and
+bundles. No marker or fact line is affected; phases, manifests and goldens are unchanged.
