@@ -40,7 +40,7 @@ type profileFlags struct {
 }
 
 func addProfileFlags(cmd *cobra.Command, f *profileFlags) {
-	cmd.Flags().BoolVar(&f.fromFiles, "from-files", false, "build the report from saved files: pod.json events.json container.log [container-previous.log]")
+	cmd.Flags().BoolVar(&f.fromFiles, "from-files", false, "build the report from saved files: a capture directory, or pod.json events.json container.log [container-previous.log]")
 	cmd.Flags().StringVarP(&f.output, "output", "o", "text", "output format: text (the waterfall) or json (the report)")
 	cmd.Flags().BoolVar(&f.includeEvents, "include-events", false, "add every input event to the JSON report")
 	cmd.Flags().DurationVar(&f.since, "since", 0, "only use events last seen within this long, e.g. 24h (default: every event the cluster still keeps)")
@@ -101,9 +101,12 @@ func runProfile(cmd *cobra.Command, args []string, f *profileFlags) error {
 	var collectWarnings []model.Warning
 	var err error
 	switch {
+	case f.fromFiles && len(args) == 1:
+		// A capture directory (doriki capture), with its node.json when it has one.
+		collected, collectWarnings, err = files.LoadDir(args[0])
 	case f.fromFiles:
 		if len(args) != 3 && len(args) != 4 {
-			return fmt.Errorf("--from-files takes 3 files (pod.json events.json container.log) and, after a restart, optionally container-previous.log; got %d", len(args))
+			return fmt.Errorf("--from-files takes a capture directory, or 3 files (pod.json events.json container.log) and, after a restart, optionally container-previous.log; got %d", len(args))
 		}
 		previous := ""
 		if len(args) == 4 {

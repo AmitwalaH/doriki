@@ -1,6 +1,7 @@
 package manifest
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -33,10 +34,22 @@ var (
 // Sanitize applies env capture rules to the collector's facts before anything else reads them
 // (DESIGN.md sections 4.3 and 10.3): an env fact outside the allowlist is dropped, an
 // allowlisted one has its value redacted when the name says secret and any token-shaped part
-// redacted otherwise, and args are redacted the same way. Every other event passes unchanged.
+// redacted otherwise, and args are redacted the same way. An engine log line has its
+// token-shaped parts redacted, so a token the engine prints reaches no report or capture; the
+// rest of the line stays for packs to match. Every other event passes unchanged.
 func Sanitize(events []model.Event) []model.Event {
 	out := make([]model.Event, 0, len(events))
 	for _, e := range events {
+		if e.Source == model.SourceEngineLog && e.Kind == model.KindLogLine {
+			// Raw is Line cut to MaxRawBytes, so it is cut again from the redacted line: a
+			// token across the cut would leave a stub too short for the patterns.
+			if e.Line != "" {
+				e.Line = RedactLine(e.Line)
+				e.Raw = model.TruncateRaw(e.Line)
+			} else {
+				e.Raw = RedactLine(e.Raw)
+			}
+		}
 		if e.Source != model.SourceManifest || e.Kind != model.KindFact {
 			out = append(out, e)
 			continue
@@ -45,10 +58,11 @@ func Sanitize(events []model.Event) []model.Event {
 		switch {
 		case strings.HasPrefix(key, model.FactEnvPrefix):
 			name := strings.TrimPrefix(key, model.FactEnvPrefix)
-			if !allowlisted(name) {
+			v, keep := RedactEnv(name, value)
+			if !keep {
 				continue
 			}
-			e = withValue(e, redactValue(name, value))
+			e = withValue(e, v)
 		case key == model.FactArgs:
 			args, ok := redactArgs(value)
 			if !ok {
@@ -65,23 +79,68 @@ func allowlisted(name string) bool {
 	return slices.ContainsFunc(envAllowlist, func(prefix string) bool { return strings.HasPrefix(name, prefix) })
 }
 
-func redactValue(name, value string) string {
-	if secretName.MatchString(name) {
-		return Redacted
+// RedactEnv is the env capture rule for one variable: keep is false outside the allowlist;
+// inside it, a secret name's value is redacted whole, and any other value's token-shaped parts.
+func RedactEnv(name, value string) (v string, keep bool) {
+	if !allowlisted(name) {
+		return "", false
 	}
-	return secretValue.ReplaceAllString(value, Redacted)
+	if secretName.MatchString(name) {
+		return Redacted, true
+	}
+	return RedactLine(value), true
 }
 
-// redactArgs redacts the value of a secret-named flag, as --flag=value or as the next argument,
-// and any token-shaped part of any argument.
+// RedactLine redacts every token-shaped part of s.
+func RedactLine(s string) string {
+	return secretValue.ReplaceAllString(s, Redacted)
+}
+
+// RedactJSON redacts the token-shaped parts of every string value in a JSON document, at any
+// depth. The document is decoded with numbers kept as written, so only strings change.
+func RedactJSON(b []byte) ([]byte, error) {
+	dec := json.NewDecoder(bytes.NewReader(b))
+	dec.UseNumber()
+	var v any
+	if err := dec.Decode(&v); err != nil {
+		return nil, err
+	}
+	var walk func(any) any
+	walk = func(v any) any {
+		switch x := v.(type) {
+		case string:
+			return RedactLine(x)
+		case []any:
+			for i := range x {
+				x[i] = walk(x[i])
+			}
+		case map[string]any:
+			for k := range x {
+				x[k] = walk(x[k])
+			}
+		}
+		return v
+	}
+	return json.MarshalIndent(walk(v), "", "  ")
+}
+
+// redactArgs is RedactArgList on a JSON array of arguments; false when it is not one.
 func redactArgs(value string) (string, bool) {
 	var args []string
 	if err := json.Unmarshal([]byte(value), &args); err != nil {
 		return "", false
 	}
+	out, _ := json.Marshal(RedactArgList(args)) // a []string always marshals
+	return string(out), true
+}
+
+// RedactArgList redacts the value of a secret-named flag, as --flag=value or as the next
+// argument, and any token-shaped part of any argument. It returns a new slice.
+func RedactArgList(in []string) []string {
+	args := slices.Clone(in)
 	for i, a := range args {
 		if !strings.HasPrefix(a, "-") || !secretName.MatchString(a) {
-			args[i] = secretValue.ReplaceAllString(a, Redacted)
+			args[i] = RedactLine(a)
 			continue
 		}
 		if flag, _, ok := strings.Cut(a, "="); ok {
@@ -90,8 +149,7 @@ func redactArgs(value string) (string, bool) {
 			args[i+1] = Redacted
 		}
 	}
-	out, _ := json.Marshal(args) // a []string always marshals
-	return string(out), true
+	return args
 }
 
 func withValue(e model.Event, v string) model.Event {
