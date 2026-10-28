@@ -250,6 +250,10 @@
       "properties": {
         "ref": {
           "type": "string"
+        },
+        "source": {
+          "type": "string",
+          "description": "Source is the host the weights download from, derived from Ref by manifest.ModelSource;\nomitted when Ref is a local path or unknown."
         }
       },
       "additionalProperties": false,
@@ -265,6 +269,10 @@
         },
         "zone": {
           "type": "string"
+        },
+        "kubelet": {
+          "type": "string",
+          "description": "Kubelet is the node's status.nodeInfo.kubeletVersion, as written (v1.33.2)."
         }
       },
       "additionalProperties": false,

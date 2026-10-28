@@ -3,6 +3,7 @@ package manifest
 import (
 	"encoding/json"
 	"maps"
+	"regexp"
 	"slices"
 	"strconv"
 	"strings"
@@ -40,6 +41,7 @@ var objectFacts = map[string]func(m *model.Manifest, v string){
 	},
 	model.FactNodeInstanceType:   func(m *model.Manifest, v string) { node(m).InstanceType = v },
 	model.FactNodeZone:           func(m *model.Manifest, v string) { node(m).Zone = v },
+	model.FactNodeKubelet:        func(m *model.Manifest, v string) { node(m).Kubelet = v },
 	model.FactAcceleratorVendor:  func(m *model.Manifest, v string) { accelerator(m).Vendor = v },
 	model.FactAcceleratorProduct: func(m *model.Manifest, v string) { accelerator(m).Product = v },
 	model.FactAcceleratorCount: func(m *model.Manifest, v string) {
@@ -131,4 +133,24 @@ func Build(events []model.Event, pack model.Pack) *model.Manifest {
 		}
 	}
 	return m
+}
+
+// hubHost is where a Hub repository id downloads from.
+const hubHost = "huggingface.co"
+
+// hubRepo is a Hugging Face Hub repository id, org/name, as vLLM's --model and llama.cpp's
+// --hf-repo take it. Anything else (an absolute or relative path, a bare name, a URL) is not
+// known to come from the Hub.
+var hubRepo = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]*/[A-Za-z0-9][A-Za-z0-9._-]*$`)
+
+// ModelSource is the host m's model downloads from: huggingface.co when the pack's model ref
+// (each pack's model.ref fact) is a Hub repository id, else "". vLLM's --download-dir does not
+// change it: it only says where the Hub download is cached (vLLM 0.32.0 config/load.py:62,
+// model_executor/model_loader/default_loader.py:246). Like Fingerprint, it is separate from
+// Build, so Build stays the facts as read.
+func ModelSource(m *model.Manifest) string {
+	if m.Model == nil || !hubRepo.MatchString(m.Model.Ref) {
+		return ""
+	}
+	return hubHost
 }

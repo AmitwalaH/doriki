@@ -79,6 +79,8 @@ type ManifestNode struct {
 	Name         string `json:"name,omitempty"`
 	InstanceType string `json:"instance_type,omitempty"`
 	Zone         string `json:"zone,omitempty"`
+	// Kubelet is the node's status.nodeInfo.kubeletVersion, as written (v1.33.2).
+	Kubelet string `json:"kubelet,omitempty"`
 }
 
 // ManifestContainer is the profiled container. EnvAllowlist holds allowlisted variables only,
@@ -98,6 +100,9 @@ type ManifestEngine struct {
 
 type ManifestModel struct {
 	Ref string `json:"ref,omitempty"`
+	// Source is the host the weights download from, derived from Ref by manifest.ModelSource;
+	// omitted when Ref is a local path or unknown.
+	Source string `json:"source,omitempty"`
 }
 
 // ManifestAccelerator comes from node labels and container limits only; doriki reads no GPU.

@@ -184,6 +184,9 @@ func buildReport(collected []model.Event, collectWarnings []model.Warning, opts 
 	r.GeneratedAt = now.UTC()
 	r.DorikiVersion = version
 	r.Manifest = manifest.Build(events, pack)
+	if s := manifest.ModelSource(r.Manifest); s != "" {
+		r.Manifest.Model.Source = s
+	}
 	r.Manifest.Fingerprint = manifest.Fingerprint(r.Manifest)
 	r.Warnings = slices.Concat(collectWarnings, packWarnings, logWarnings, normalizeWarnings, r.Warnings)
 	// Rules read the finished report and nothing else (DESIGN.md section 6.2), so they run
