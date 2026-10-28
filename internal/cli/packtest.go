@@ -19,7 +19,8 @@ import (
 	"github.com/AmitwalaH/doriki/packs"
 )
 
-// ExitPackUntested is pack test's failure: a tested (confidence 1.0) marker matched no line.
+// ExitPackUntested is pack test's failure: a tested marker (confidence 1.0) or a tested fact
+// matched no line, the fixture-first rule packs/vllm_test.go holds the embedded packs to.
 // It shares 1 with ExitIncomplete; the two never come from the same command.
 const ExitPackUntested = 1
 
@@ -30,7 +31,7 @@ func newPackTestCmd() *cobra.Command {
 		Short: "Run a pack against a log without a cluster: every marker and fact with the line it matched",
 		Long: "Runs a parser pack against a container log alone, with times from the log's runtime timestamps\n" +
 			"or else the engine's own in-line times, and lists every marker and fact with the first line it\n" +
-			"matched, or \"no match\". Exits 1 when a tested (confidence 1.0) marker matched nothing. An\n" +
+			"matched, or \"no match\". Exits 1 when a tested marker (confidence 1.0) or fact matched nothing. An\n" +
 			"untested marker that matches is flagged for promotion (DESIGN.md section 5.4).",
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -96,7 +97,7 @@ func runPackTest(w io.Writer, packPath, logPath, podPath, eventsPath string) err
 	for _, f := range pack.Facts {
 		idWidth = max(idWidth, len(f.Key))
 	}
-	var failed []string
+	var failed, failedFacts []string
 	for _, m := range pack.Markers {
 		re, err := regexp.Compile(m.Regex)
 		if err != nil {
@@ -135,6 +136,9 @@ func runPackTest(w io.Writer, packPath, logPath, podPath, eventsPath string) err
 		}
 		first, n := firstMatch(re, lines)
 		if n == 0 {
+			if !f.Untested {
+				failedFacts = append(failedFacts, f.Key)
+			}
 			fmt.Fprintf(w, "%s\n", fit(fmt.Sprintf("no match  %-*s  %s", idWidth, f.Key, label), terminalWidth)) //nolint:errcheck // checked at the end
 			continue
 		}
@@ -147,18 +151,26 @@ func runPackTest(w io.Writer, packPath, logPath, podPath, eventsPath string) err
 		fmt.Fprintf(w, "%s\n", fit(fmt.Sprintf("ok        %-*s  = %s  %s  %s", idWidth, f.Key, v, label, clock(first)), terminalWidth)) //nolint:errcheck // checked at the end
 	}
 
-	if len(failed) > 0 {
-		noun := "marker"
-		if len(failed) > 1 {
-			noun = "markers"
-		}
-		_, err := fmt.Fprintf(w, "\n%d tested %s matched no line: %s\n", len(failed), noun, strings.Join(failed, ", "))
-		if err != nil {
-			return err
+	if len(failed)+len(failedFacts) > 0 {
+		fmt.Fprintln(w) //nolint:errcheck // checked below
+		for _, f := range []struct {
+			noun string
+			ids  []string
+		}{{"marker", failed}, {"fact", failedFacts}} {
+			if len(f.ids) == 0 {
+				continue
+			}
+			noun := f.noun
+			if len(f.ids) > 1 {
+				noun += "s"
+			}
+			if _, err := fmt.Fprintf(w, "%d tested %s matched no line: %s\n", len(f.ids), noun, strings.Join(f.ids, ", ")); err != nil {
+				return err
+			}
 		}
 		return &ExitError{Code: ExitPackUntested}
 	}
-	_, err = fmt.Fprintf(w, "\nevery tested marker matched\n")
+	_, err = fmt.Fprintf(w, "\nevery tested marker and fact matched\n")
 	return err
 }
 

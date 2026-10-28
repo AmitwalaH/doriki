@@ -136,3 +136,34 @@ func TestPackTestWithPod(t *testing.T) {
 		t.Errorf("--pod without --events accepted")
 	}
 }
+
+// A tested fact that matches nothing fails too (the vllm_test.go rule); an untested one does
+// not. A made-up pack against the real vLLM log, whose markers all match.
+func TestPackTestFactExit(t *testing.T) {
+	pack := filepath.Join(t.TempDir(), "y.yaml")
+	body := `pack_version: 1
+engine: y
+versions: "1"
+detect:
+  image_regex: "y"
+markers:
+  - id: y.weights.load.end
+    regex: "Loading weights took (?P<seconds>[0-9.]+) seconds"
+facts:
+  - key: engine.version
+    regex: "this line is in no log (?P<v>x)"
+  - key: model.loaded_gib
+    regex: "nor this one (?P<v>[0-9.]+)"
+    untested: true
+`
+	if err := os.WriteFile(pack, []byte(body), 0o600); err != nil { // #nosec G703 -- a file in t.TempDir()
+		t.Fatal(err)
+	}
+	out, err := run(t, "pack", "test", pack, "--log", vllmFixture+"container.log")
+	if code, _ := Exit(err); code != 1 {
+		t.Errorf("exit %d, want 1 for a tested fact with no match\n%s", code, out)
+	}
+	if !strings.Contains(out, "1 tested fact matched no line: engine.version") || strings.Contains(out, "matched no line: model.loaded_gib") {
+		t.Errorf("summary:\n%s", out)
+	}
+}
