@@ -46,3 +46,15 @@ Measured cost, 2026-10-28, all five fixture logs: the rule also redacts the valu
 tokenizer settings (vLLM `tokenizer`, `Tokenizer`, `tokenizer_mode`, `tokenizer_revision`,
 `skip_tokenizer_init`, `tokens`; one llama.cpp `token` key) in `--include-events` output and
 bundles. No marker or fact line is affected; phases, manifests and goldens are unchanged.
+
+**Changed 2026-10-28, on the owner's instruction:** secret names now match whole words only.
+`secretName` is a function over one list, `secretWords` (token, secret, password, passwd, key,
+apikey, credential, credentials, auth, authorization), and a name says secret when one of its
+words is in it; words split at anything but letters and digits and at camelCase. It applies to
+env names, flags and log-line keys alike. `tokenizer`, `tokenizer_mode` and `max_tokens` keep
+their values (negative cases in `TestRedactLineSecretKeys` and `TestSecretName`); `accessToken`,
+`apikey` and `Authorization` are still redacted. Re-measured on all five fixture logs: the vLLM
+tokenizer settings are no longer redacted; two llama.cpp warnings still are (`bad special token:
+'tokenizer.ggml.padding_token_id'`, a real `token: '<value>'` shape). Env names that held a
+secret word only inside a longer word (`VLLM_KEYFILE`) are no longer redacted by name; a
+token-shaped value in them still is.

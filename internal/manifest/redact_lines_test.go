@@ -2,7 +2,6 @@ package manifest
 
 import (
 	"encoding/json"
-	"regexp"
 	"strings"
 	"testing"
 
@@ -97,6 +96,10 @@ func TestRedactLineSecretKeys(t *testing.T) {
 		"model=org/m dtype=auto port: 8000":                "model=org/m dtype=auto port: 8000",
 		"INFO 10-25 09:28:37 [api_utils.py:286] listening": "INFO 10-25 09:28:37 [api_utils.py:286] listening",
 		"api_key=[redacted] already":                       "api_key=[redacted] already",
+		// Whole words only: these keys hold no secret.
+		"tokenizer='facebook/opt-125m', tokenizer_mode=auto":  "tokenizer='facebook/opt-125m', tokenizer_mode=auto",
+		"{'max_tokens': 16, 'model': 'm'}":                    "{'max_tokens': 16, 'model': 'm'}",
+		`{"accessToken": "plainword", "apikey": "plainword"}`: `{"accessToken": "[redacted]", "apikey": "[redacted]"}`,
 	} {
 		if got := RedactLine(in); got != want {
 			t.Errorf("RedactLine(%q)\n got %q\nwant %q", in, got, want)
@@ -104,13 +107,31 @@ func TestRedactLineSecretKeys(t *testing.T) {
 	}
 }
 
-// The key rule uses secretName itself: swapping it for a sentinel changes which keys are
-// redacted, so no second key list is in use.
-func TestRedactLineUsesSecretName(t *testing.T) {
-	saved := secretName
-	t.Cleanup(func() { secretName = saved })
-	secretName = regexp.MustCompile(`sentinel`)
-	if got := RedactLine("api_key=plainword sentinel=plainword"); got != "api_key=plainword sentinel=[redacted]" {
+// The key rule uses secretWords itself: swapping it for a sentinel changes which keys are
+// redacted, in log lines and env names alike, so no second key list is in use.
+func TestRedactLineUsesSecretWords(t *testing.T) {
+	saved := secretWords
+	t.Cleanup(func() { secretWords = saved })
+	secretWords = []string{"sentinel"}
+	if got := RedactLine("api_key=plainword my_sentinel=plainword"); got != "api_key=plainword my_sentinel=[redacted]" {
 		t.Errorf("got %q", got)
+	}
+	if v, _ := RedactEnv("HF_SENTINEL", "plainword"); v != Redacted {
+		t.Errorf("env HF_SENTINEL = %q, want redacted", v)
+	}
+}
+
+// A name says secret when one of its words is a secret word: words split at anything but
+// letters and digits, and at a lower-to-upper case change.
+func TestSecretName(t *testing.T) {
+	for name, want := range map[string]bool{
+		"HF_TOKEN": true, "VLLM_API_KEY": true, "--hf-token": true, "NCCL_SOCKET_PASSWORD": true,
+		"accessToken": true, "Authorization": true, "apikey": true, "client-secret": true,
+		"tokenizer": false, "tokenizer_mode": false, "max_tokens": false, "keyboard": false,
+		"author": false, "VLLM_KEYFILE": false, "kv_cache": false,
+	} {
+		if got := secretName(name); got != want {
+			t.Errorf("secretName(%q) = %v, want %v", name, got, want)
+		}
 	}
 }

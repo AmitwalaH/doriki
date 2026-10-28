@@ -12,6 +12,26 @@ import (
 	"github.com/AmitwalaH/doriki/internal/model"
 )
 
+// secretWords are the words that make a name secret: an env variable, a flag, or a key in a
+// log line. A name says secret when one of its whole words is one of these, so HF_TOKEN,
+// VLLM_API_KEY, --hf-token and accessToken do, and tokenizer, max_tokens and keyboard do not.
+// A variable so a test can swap in a sentinel and prove nothing else decides.
+var secretWords = []string{"token", "secret", "password", "passwd", "key", "apikey", "credential", "credentials", "auth", "authorization"}
+
+// nameWord is a word of a name: a run of letters and digits, split again where a lower-case
+// letter meets an upper-case one (camelCase).
+var nameWord = regexp.MustCompile(`[A-Z]?[a-z0-9]+|[A-Z0-9]+`)
+
+// secretName reports whether one of name's words is a secret word.
+func secretName(name string) bool {
+	for _, w := range nameWord.FindAllString(name, -1) {
+		if slices.Contains(secretWords, strings.ToLower(w)) {
+			return true
+		}
+	}
+	return false
+}
+
 // Redacted replaces a secret value.
 const Redacted = "[redacted]"
 
@@ -19,7 +39,6 @@ const Redacted = "[redacted]"
 // says secret redacts its whole value; a value shaped like a known token is redacted wherever
 // it appears, so a secret under an innocent name, or inside a longer value, is caught too.
 var (
-	secretName  = regexp.MustCompile(`(?i)token|secret|passw|key|credential|auth`)
 	secretValue = regexp.MustCompile(strings.Join([]string{
 		`hf_[A-Za-z0-9]{20,}`,                               // Hugging Face
 		`sk-[A-Za-z0-9_-]{16,}`,                             // OpenAI-style API keys
@@ -85,7 +104,7 @@ func RedactEnv(name, value string) (v string, keep bool) {
 	if !allowlisted(name) {
 		return "", false
 	}
-	if secretName.MatchString(name) {
+	if secretName(name) {
 		return Redacted, true
 	}
 	return RedactLine(value), true
@@ -102,8 +121,8 @@ var keyValues = []*regexp.Regexp{
 }
 
 // RedactLine redacts every token-shaped part of s, and the value after any secret-named key
-// (the secretName list env names use), so an engine that echoes a plain API key or password
-// does not leak it. A key such as "tokenizer" matches the list too, and its value goes with it.
+// (secretName, the rule env names use), so an engine that echoes a plain API key or password
+// does not leak it. Only whole words count, so a key such as "tokenizer" keeps its value.
 func RedactLine(s string) string {
 	s = secretValue.ReplaceAllString(s, Redacted)
 	for _, re := range keyValues {
@@ -117,7 +136,7 @@ func redactValues(re *regexp.Regexp, s string) string {
 	var b strings.Builder
 	last := 0
 	for _, m := range re.FindAllStringSubmatchIndex(s, -1) {
-		if !secretName.MatchString(s[m[2]:m[3]]) {
+		if !secretName(s[m[2]:m[3]]) {
 			continue
 		}
 		for g := 2; 2*g+1 < len(m); g++ {
@@ -175,7 +194,7 @@ func redactArgs(value string) (string, bool) {
 func RedactArgList(in []string) []string {
 	args := slices.Clone(in)
 	for i, a := range args {
-		if !strings.HasPrefix(a, "-") || !secretName.MatchString(a) {
+		if !strings.HasPrefix(a, "-") || !secretName(a) {
 			args[i] = RedactLine(a)
 			continue
 		}
