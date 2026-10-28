@@ -88,6 +88,12 @@
         },
         "regex": {
           "type": "string"
+        },
+        "value": {
+          "type": "string"
+        },
+        "untested": {
+          "type": "boolean"
         }
       },
       "additionalProperties": false,
@@ -96,7 +102,7 @@
         "key",
         "regex"
       ],
-      "description": "PackFact is a one-shot manifest fact read from the log: the named group \"v\" of the first matching line."
+      "description": "PackFact is a one-shot manifest fact read from the log: the named group \"v\" of the first matching line, or Value when set, for a line that means a value without printing it (a cache hit)."
     },
     "PackMarker": {
       "properties": {

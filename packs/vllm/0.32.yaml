@@ -9,7 +9,10 @@
 #   - graph-capture: CPU vLLM captures no CUDA graphs, and eager mode turns them off; the
 #     capture shows the same "skipped" line.
 #   - kv-alloc on GPU: the CPU worker logs its own KV cache lines, which are tested.
-# A GPU capture should replace each with a tested marker. Several entries may share an id.
+# For the same reason the torch.compile cache state and the loaded-weight size are untested
+# facts (untested: true), each citing its source line too.
+# A GPU capture should replace each with a tested marker or fact. Several entries may share an
+# id.
 pack_version: 1
 engine: vllm
 # The captured version only; widen it with a fixture from each new version.
@@ -87,3 +90,27 @@ facts:
   # entrypoints/openai/api_utils.py: "non-default args: {..., 'model': 'facebook/opt-125m', ...}"
   - key: model.ref
     regex: "non-default args: .*'model': '(?P<v>[^']+)'"
+  # Untested: the CPU capture runs eager, so it compiles nothing and logs no cache line. A
+  # compile range loaded from the cache is a hit (compilation/backends.py:296, "%sDirectly
+  # load the compiled graph(s) for compile range %s from the cache, took %.3f s"), as is an
+  # AOT load (compilation/decorators.py:320, "%sDirectly load AOT compilation from path %s");
+  # one compiled is a miss (compilation/backends.py:399, "%sCompiling a graph for compile
+  # range %s takes %.2f s"). manifest keeps a miss over a later hit.
+  - key: caches.torch_compile
+    regex: 'Directly load the compiled graph\(s\) for compile range .* from the cache'
+    value: hit
+    untested: true
+  - key: caches.torch_compile
+    regex: 'Directly load AOT compilation from path'
+    value: hit
+    untested: true
+  - key: caches.torch_compile
+    regex: 'Compiling a graph for compile range .* takes [0-9.]+ s'
+    value: miss
+    untested: true
+  # Untested, GPU: v1/worker/gpu_model_runner.py:5150 ("Model loading took %s GiB memory and
+  # %.6f seconds", the GiB from utils/mem_utils.py:30, rounded to two decimals). The CPU
+  # worker logs no such line.
+  - key: model.loaded_gib
+    regex: 'Model loading took (?P<v>[0-9.]+) GiB memory'
+    untested: true

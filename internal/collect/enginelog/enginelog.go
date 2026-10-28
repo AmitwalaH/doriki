@@ -22,8 +22,9 @@ type compiledMarker struct {
 }
 
 type compiledFact struct {
-	key string
-	re  *regexp.Regexp
+	key   string
+	re    *regexp.Regexp
+	value string // the fixed value, when the pack sets one
 }
 
 // compiled is a pack with its regular expressions compiled once.
@@ -68,7 +69,7 @@ func compile(p model.Pack) (compiled, error) {
 		if err != nil {
 			return fail("fact "+f.Key, err)
 		}
-		c.facts = append(c.facts, compiledFact{f.Key, re})
+		c.facts = append(c.facts, compiledFact{f.Key, re, f.Value})
 	}
 	return c, nil
 }
@@ -124,7 +125,7 @@ func Apply(pack model.Pack, events []model.Event) ([]model.Event, []model.Warnin
 			if factDone[i] {
 				continue
 			}
-			if v := group(f.re, text, "v"); v != "" {
+			if v := f.read(text); v != "" {
 				factDone[i] = true
 				out = append(out, model.Event{TS: e.TS, Source: model.SourceManifest, Kind: model.KindFact, Raw: e.Raw, Confidence: 1,
 					Attrs: map[string]string{model.AttrFactKey: f.key, model.AttrFactValue: v}})
@@ -244,6 +245,18 @@ func containerStart(events []model.Event) time.Time {
 		}
 	}
 	return start
+}
+
+// read is the fact's value on this line: its fixed value when the line matches, else the
+// named group v; "" when the line does not give it.
+func (f compiledFact) read(text string) string {
+	if f.value != "" {
+		if f.re.MatchString(text) {
+			return f.value
+		}
+		return ""
+	}
+	return group(f.re, text, "v")
 }
 
 func group(re *regexp.Regexp, s, name string) string {

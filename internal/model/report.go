@@ -104,6 +104,9 @@ type ManifestModel struct {
 	// Source is the host the weights download from, derived from Ref by manifest.ModelSource;
 	// omitted when Ref is a local path or unknown.
 	Source string `json:"source,omitempty"`
+	// LoadedGiB is the memory the engine reported for the loaded weights: the model's size in
+	// memory, which differs from its size on disk when the dtype or quantization changes.
+	LoadedGiB float64 `json:"loaded_gib,omitempty"`
 }
 
 // ManifestAccelerator comes from node labels and container limits only; doriki reads no GPU.

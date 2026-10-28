@@ -24,6 +24,14 @@ var facts = map[string]func(m *model.Manifest, v string){
 		}
 		m.Model.Ref = v
 	},
+	"model.loaded_gib": func(m *model.Manifest, v string) {
+		if gib, err := strconv.ParseFloat(v, 64); err == nil && gib > 0 {
+			if m.Model == nil {
+				m.Model = &model.ManifestModel{}
+			}
+			m.Model.LoadedGiB = gib
+		}
+	},
 	// hit or miss. A pack may log both (one compile range from the cache, another compiled);
 	// any miss means the boot paid for compilation, so a later hit does not undo it.
 	"caches.torch_compile": func(m *model.Manifest, v string) {

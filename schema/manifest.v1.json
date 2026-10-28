@@ -115,6 +115,10 @@
         "source": {
           "type": "string",
           "description": "Source is the host the weights download from, derived from Ref by manifest.ModelSource;\nomitted when Ref is a local path or unknown."
+        },
+        "loaded_gib": {
+          "type": "number",
+          "description": "LoadedGiB is the memory the engine reported for the loaded weights: the model's size in\nmemory, which differs from its size on disk when the dtype or quantization changes."
         }
       },
       "additionalProperties": false,

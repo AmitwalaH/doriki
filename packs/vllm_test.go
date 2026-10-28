@@ -51,7 +51,7 @@ func vllmPack(t *testing.T) model.Pack {
 // The fixture-first rule (M1b task item 4, DESIGN.md section 5.4): a tested marker
 // (confidence 1.0) matches at least one real line of the capture; an untested one (below
 // 1.0, kept for phases this CPU capture cannot show) matches none, so the label stays true.
-// Each fact also reads a real line.
+// Facts follow the same rule: a tested fact reads a real line, an untested one matches none.
 func TestVLLMMarkersAgainstFixture(t *testing.T) {
 	p, lines := vllmPack(t), fixtureLines(t)
 	count := func(regex string) int {
@@ -75,8 +75,11 @@ func TestVLLMMarkersAgainstFixture(t *testing.T) {
 		}
 	}
 	for _, f := range p.Facts {
-		if count(f.Regex) == 0 {
+		switch n := count(f.Regex); {
+		case !f.Untested && n == 0:
 			t.Errorf("fact %s matches no fixture line", f.Key)
+		case f.Untested && n > 0:
+			t.Errorf("untested fact %s matches %d fixture lines; make it tested", f.Key, n)
 		}
 		if !slices.Contains(manifest.FactKeys(), f.Key) {
 			t.Errorf("fact %s is not a manifest field; known: %v", f.Key, manifest.FactKeys())
