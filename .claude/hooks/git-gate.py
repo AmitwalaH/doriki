@@ -15,8 +15,6 @@ message shown to the agent) when the command would:
     proven by a .gate-ok marker that the Makefile writes on success);
   - regenerate goldens with -update without the owner's one-time approval marker
     (.doriki-approve-update in the repo root; consumed on use).
-    The marker is consumed when the hook approves the command, before the command runs, so
-    run the -update command alone: a check for the marker in the same command finds it gone.
 
 Everything else passes. Allowed git verbs: status, log, diff, show, grep, add, commit
 (under the conditions above), push to task/* without force, fetch, remote -v, rev-parse,
@@ -98,12 +96,37 @@ def strip_heredocs(cmd):
 
 
 def split_commands(cmd):
-    """Split on shell separators so chained commands are judged one by one.
-
-    Heredoc bodies are data, not commands, and are removed first; everything else,
-    including commands on lines after a heredoc, is judged."""
+    """Split on shell separators (&&, ||, ;, |, newline) so chained commands are judged one
+    by one. Quote-aware: a separator inside single or double quotes is part of an argument
+    (a `-run 'a|b'` regex, for example), not a command boundary. Heredoc bodies are data and
+    are removed first; everything else, including commands after a heredoc, is judged."""
     cmd = strip_heredocs(cmd)
-    parts = re.split(r"\s*(?:&&|\|\||;|\|)\s*|\n", cmd)
+    parts, buf, quote, i = [], [], None, 0
+    while i < len(cmd):
+        c = cmd[i]
+        if quote:
+            buf.append(c)
+            if c == quote:
+                quote = None
+            i += 1
+            continue
+        if c in ("'", '"'):
+            quote = c
+            buf.append(c)
+            i += 1
+            continue
+        if c == "\\" and i + 1 < len(cmd):
+            buf.append(c); buf.append(cmd[i + 1]); i += 2
+            continue
+        if cmd.startswith("&&", i) or cmd.startswith("||", i):
+            parts.append("".join(buf)); buf = []; i += 2
+            continue
+        if c in (";", "|", "\n"):
+            parts.append("".join(buf)); buf = []; i += 1
+            continue
+        buf.append(c)
+        i += 1
+    parts.append("".join(buf))
     return [p.strip() for p in parts if p and p.strip()]
 
 
@@ -239,14 +262,24 @@ def judge_gh(toks):
 
 
 def judge_update(segment, cwd):
-    if re.search(r"\bgo\s+test\b.*\s-update\b", segment) or re.search(r"\bmake\s+.*update", segment):
-        marker = os.path.join(cwd, UPDATE_MARKER)
-        if not os.path.exists(marker):
-            block("regenerating goldens with -update needs the owner's approval under METHOD.md "
-                  f"Step 11. The owner creates `{UPDATE_MARKER}` in the repo root once; it is "
-                  "consumed by this run.")
-        os.remove(marker)
-        sys.stderr.write("git-gate: -update approved once; marker consumed.\n")
+    """Golden regeneration (`go test ... -update`, `make ... update`) needs the owner's one-time
+    marker. Only a segment whose command word is `go` or `make` counts: the string "-update"
+    inside an echo, a comment or a loop body is text, not a run, and must not consume it."""
+    toks = tokens(segment)
+    if not toks:
+        return
+    head = os.path.basename(toks[0])
+    is_update = (head == "go" and len(toks) > 1 and toks[1] == "test" and "-update" in toks) or \
+                (head == "make" and any("update" in t for t in toks[1:]))
+    if not is_update:
+        return
+    marker = os.path.join(cwd, UPDATE_MARKER)
+    if not os.path.exists(marker):
+        block("regenerating goldens with -update needs the owner's approval under METHOD.md "
+              f"Step 11. The owner creates `{UPDATE_MARKER}` in the repo root once; it is "
+              "consumed by this run.")
+    os.remove(marker)
+    sys.stderr.write("git-gate: -update approved once; marker consumed.\n")
 
 
 def main():
