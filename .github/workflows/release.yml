@@ -1,0 +1,61 @@
+name: release
+
+# A v* tag pushed by the owner makes a draft GitHub release with GoReleaser (.goreleaser.yaml,
+# DESIGN.md section 10.1): binaries, archives, SBOMs, checksums signed with cosign keyless, the
+# ghcr.io image (signed), the Homebrew cask pushed to AmitwalaH/homebrew-tap, and the krew
+# manifest as a workflow artifact for a hand-made krew-index pull request.
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    # The environment holds HOMEBREW_TAP_TOKEN and admits only v* tags, so no other workflow or
+    # branch can read the token.
+    environment: release
+    permissions:
+      contents: write # the release and its assets
+      packages: write # the image on ghcr.io
+      id-token: write # the OIDC identity cosign signs with, keyless
+    steps:
+      # Actions are pinned to commit SHAs (DESIGN.md section 10.3).
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # GoReleaser reads the tags for the version and the changelog.
+          fetch-depth: 0
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+      - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+        with:
+          cosign-release: v3.1.4
+      # syft, which GoReleaser runs for the SBOMs.
+      - uses: anchore/sbom-action/download-syft@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
+      # A multi-platform builder for the amd64 and arm64 image. The Dockerfile only copies the
+      # binary, so no emulation is needed.
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: goreleaser/goreleaser-action@a4f02ab5355a589de60d917a659ce617ed19b3de # v7.3.0
+        with:
+          distribution: goreleaser
+          version: v2.19.0
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # A fine-grained token with Contents read and write on AmitwalaH/homebrew-tap only; the
+          # workflow's own token cannot push to another repository.
+          HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: krew-manifest
+          path: dist/krew/doriki.yaml
+          if-no-files-found: error

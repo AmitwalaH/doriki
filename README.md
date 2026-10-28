@@ -162,6 +162,10 @@ None of these are published yet. They are the channels v0.1.0 will ship on.
 | Go | `go install github.com/AmitwalaH/doriki/cmd/doriki@latest` | not yet published |
 | GitHub Releases | download a signed binary, then `cosign verify-blob` | not yet published |
 
+On macOS the Homebrew cask removes the download quarantine flag from the doriki binary at
+install, because the binary is signed with cosign but not notarized by Apple; without that,
+macOS would refuse to run it.
+
 Until then, build from source with Go 1.26:
 
 ```sh

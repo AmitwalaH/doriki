@@ -421,7 +421,7 @@ Real GPU timing accuracy. The README states this and asks users to share `doriki
 
 1. Conventional commits on `main`; `release-please` opens a release PR with the changelog.
 2. Merging it tags `vX.Y.Z`; `release.yml` runs `goreleaser` for `linux|darwin|windows × amd64|arm64`, builds a multi-arch image to `ghcr.io/<org>/doriki`, and signs binaries, checksums and image with `cosign` (keyless, GitHub OIDC). SBOM via `syft`, attached to the release.
-3. `goreleaser` updates the Homebrew tap and opens the krew index PR (`krew-release-bot`).
+3. `goreleaser` updates the Homebrew tap (a cask, which also carries the Linux archives) and writes the krew manifest; for v0.1 the owner opens the krew-index PR by hand.
 4. Pre-1.0: minor versions may break the pack schema; the report schema is append-only from 0.1 and bumps `report_version` only with a migration note.
 
 ### 10.2 Install matrix
