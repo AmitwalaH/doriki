@@ -103,8 +103,8 @@ func glob(t *testing.T, pattern string, atLeast int) []string {
 
 // Every document doriki commits validates (DESIGN.md section 9.1, schema layer): each CLI JSON
 // golden against the report schema and its manifest against the manifest schema; each pack
-// fixture's expected.json, which holds only phases, gaps and totals, against those parts of
-// the report schema; each pack against the pack schema.
+// fixture's expected.json, which holds phases, gaps, totals and the manifest, against those
+// parts of the report schema and the manifest schema; each pack against the pack schema.
 func TestDocumentsValidate(t *testing.T) {
 	report, manifest := compile(t, "report.v1.json"), compile(t, "manifest.v1.json")
 	for _, path := range glob(t, "../internal/cli/testdata/*.json", 3) {
@@ -118,9 +118,10 @@ func TestDocumentsValidate(t *testing.T) {
 	}
 
 	parts := map[string]*jsonschema.Schema{
-		"phases": compile(t, "report.v1.json#/$defs/Report/properties/phases"),
-		"gaps":   compile(t, "report.v1.json#/$defs/Report/properties/gaps"),
-		"totals": compile(t, "report.v1.json#/$defs/Report/properties/totals"),
+		"phases":   compile(t, "report.v1.json#/$defs/Report/properties/phases"),
+		"gaps":     compile(t, "report.v1.json#/$defs/Report/properties/gaps"),
+		"totals":   compile(t, "report.v1.json#/$defs/Report/properties/totals"),
+		"manifest": compile(t, "manifest.v1.json"),
 	}
 	for _, path := range glob(t, "../packs/*/testdata/*/expected.json", 3) {
 		doc := readJSON(t, path)

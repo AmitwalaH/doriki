@@ -144,5 +144,37 @@
   ],
   "totals": {
     "pending_to_ready_seconds": 456
+  },
+  "manifest": {
+    "manifest_version": 1,
+    "pod": {
+      "namespace": "default",
+      "name": "vllm-785fb8997d-bvsz4",
+      "uid": "545cae50-e8b9-4a82-9c4c-b71840b1919a",
+      "owner": "Deployment/vllm",
+      "owner_ref": "ReplicaSet/vllm-785fb8997d"
+    },
+    "node": {
+      "name": "doriki-control-plane"
+    },
+    "container": {
+      "image": "ghcr.io/mekayelanik/vllm-cpu@sha256:8ef8561070bd1bd06e15420b76cc55834086e8bcf6dc860dd65b793f2ff8bf5b",
+      "image_digest": "sha256:8ef8561070bd1bd06e15420b76cc55834086e8bcf6dc860dd65b793f2ff8bf5b",
+      "env_allowlist": {
+        "VLLM_CPU_KVCACHE_SPACE": "1",
+        "VLLM_EXTRA_ARGS": "--enforce-eager",
+        "VLLM_MODEL": "facebook/opt-125m"
+      }
+    },
+    "engine": {
+      "name": "vllm",
+      "version": "0.32.0",
+      "parser_pack": "vllm/0.32"
+    },
+    "model": {
+      "ref": "facebook/opt-125m",
+      "source": "huggingface.co"
+    },
+    "fingerprint": "sha256:ef83cb89a91c2340e9430812e1ed1518cacaf32ec241bff58bbc24829f9fe881"
   }
 }

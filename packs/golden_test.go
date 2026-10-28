@@ -14,12 +14,14 @@ import (
 )
 
 // expected is the part of the report a pack fixture freezes (DESIGN.md section 5.4, owner
-// decision Q4): phases, gaps and totals, plus the manifest once M3 fills it. Version, time,
-// warnings and events are left out so wording changes do not force a re-record.
+// decision Q4): phases, gaps and totals, and the manifest, so a fact that reads the wrong value
+// fails here (DK-PACK-ENH-20261026-manifest-in-expected). Version, time, warnings, advice and
+// events are left out so wording changes do not force a re-record.
 type expected struct {
-	Phases []model.Phase `json:"phases"`
-	Gaps   []model.Gap   `json:"gaps,omitempty"`
-	Totals model.Totals  `json:"totals,omitzero"`
+	Phases   []model.Phase   `json:"phases"`
+	Gaps     []model.Gap     `json:"gaps,omitempty"`
+	Totals   model.Totals    `json:"totals,omitzero"`
+	Manifest *model.Manifest `json:"manifest,omitempty"`
 }
 
 // Every fixture under packs/*/testdata/ runs through the full offline pipeline, and the
@@ -50,7 +52,7 @@ func TestFixtures(t *testing.T) {
 				t.Fatal(err)
 			}
 			g := goldie.New(t, goldie.WithFixtureDir(dir), goldie.WithNameSuffix(".json"))
-			g.AssertJson(t, "expected", expected{Phases: r.Phases, Gaps: r.Gaps, Totals: r.Totals})
+			g.AssertJson(t, "expected", expected{Phases: r.Phases, Gaps: r.Gaps, Totals: r.Totals, Manifest: r.Manifest})
 		})
 	}
 }
