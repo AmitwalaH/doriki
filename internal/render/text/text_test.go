@@ -236,7 +236,7 @@ func TestAdvice(t *testing.T) {
 		r.Advice = append(r.Advice, model.Advice{Rule: "r", Text: "advice " + string(rune('A'+i))})
 	}
 	out := render(t, r, false)
-	if !strings.Contains(out, "\nAdvice\n  1. advice A\n  2. advice B\n  3. advice C\n") || strings.Contains(out, "advice D") {
+	if !strings.Contains(out, "\nAdvice\n  1. r: advice A\n  2. r: advice B\n  3. r: advice C\n") || strings.Contains(out, "advice D") {
 		t.Errorf("advice block:\n%s", out)
 	}
 }

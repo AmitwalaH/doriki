@@ -253,7 +253,7 @@ Rules are Go functions over the report, each returning zero or one `Advice`. v0.
 
 | Rule id | Trigger | Advice (abridged) |
 | --- | --- | --- |
-| `pull-dominant` | `image-pull` ≥ 35% of total and image not previously on node | Prepull DaemonSet; OCI image volume (K8s ≥1.31); SOCI/estargz lazy pull; slim the image (vLLM images are 8–18 GB) |
+| `pull-dominant` | `image-pull` ≥ 35% of total and image not previously on node | Prepull DaemonSet; OCI image volume only when `node.kubelet` ≥ 1.35 (alpha in 1.31–1.32, beta and off by default in 1.33–1.34; below 1.35 or when unknown, say why it is not suggested); SOCI/estargz lazy pull; slim the image (vLLM images are 8–18 GB) |
 | `pull-small-node` | `image-pull` ≥ 35% and node vCPU < 16 | Decompression is CPU-bound; larger node or pre-decompressed image |
 | `fetch-remote-hub` | `weight-fetch` ≥ 25% and source host is `huggingface.co` | Cluster-local mirror, Dragonfly `hf://`, or ModelCar/OCI artifact; pin `revision` |
 | `fetch-rate-limited` | log contains HTTP 429 from the Hub | Shared egress IP hit the 5-minute window; stagger ranks or use a mirror |

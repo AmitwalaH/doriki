@@ -107,12 +107,15 @@ type ManifestAccelerator struct {
 	Count   int    `json:"count,omitempty"`
 }
 
-// Advice is one rule's finding (DESIGN.md section 6.2). No rules run until M3.
+// Advice is one rule's finding (DESIGN.md section 6.2). Text is the one sentence the terminal
+// prints, fix included; Evidence holds the numbers the rule used; Fix names the flag, resource
+// or setting to change.
 type Advice struct {
 	Rule     string         `json:"rule"`
 	Severity string         `json:"severity"`
 	Text     string         `json:"text"`
 	Evidence map[string]any `json:"evidence,omitempty"`
+	Fix      string         `json:"fix,omitempty"`
 }
 
 // WarnPhaseUnobserved is the warning code for an expected engine phase still absent once the

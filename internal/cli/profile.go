@@ -18,6 +18,7 @@ import (
 	"github.com/AmitwalaH/doriki/internal/phase"
 	renderjson "github.com/AmitwalaH/doriki/internal/render/json"
 	rendertext "github.com/AmitwalaH/doriki/internal/render/text"
+	"github.com/AmitwalaH/doriki/internal/rules"
 	"github.com/AmitwalaH/doriki/packs"
 )
 
@@ -34,6 +35,7 @@ type profileFlags struct {
 	allAttempts   bool
 	follow        bool
 	timeout       time.Duration
+	noAdvice      bool
 	kube          *genericclioptions.ConfigFlags // --kubeconfig, --context, -n and the rest of kubectl's
 }
 
@@ -46,6 +48,7 @@ func addProfileFlags(cmd *cobra.Command, f *profileFlags) {
 	cmd.Flags().BoolVar(&f.allAttempts, "all-attempts", false, "also report every observed boot attempt")
 	cmd.Flags().BoolVar(&f.follow, "follow", false, "watch the pod boot, redrawing the waterfall as phases complete, until it is ready or --timeout")
 	cmd.Flags().DurationVar(&f.timeout, "timeout", 15*time.Minute, "how long --follow watches before it reports what it has")
+	cmd.Flags().BoolVar(&f.noAdvice, "no-advice", false, "run no advice rules: no Advice block, no advice in the JSON report")
 	f.kube = genericclioptions.NewConfigFlags(true)
 	f.kube.AddFlags(cmd.Flags())
 }
@@ -55,7 +58,12 @@ type reportOptions struct {
 	includeEvents bool
 	attempt       *int
 	allAttempts   bool
+	noAdvice      bool
 }
+
+// advise is the rules engine, a variable so a test can see what reaches the renderers before
+// any rule fires on a fixture.
+var advise = rules.Evaluate
 
 func runProfile(cmd *cobra.Command, args []string, f *profileFlags) error {
 	if f.output != "text" && f.output != "json" {
@@ -64,7 +72,7 @@ func runProfile(cmd *cobra.Command, args []string, f *profileFlags) error {
 	if f.since < 0 {
 		return fmt.Errorf("--since must be a positive duration, got %s", f.since)
 	}
-	opts := reportOptions{includeEvents: f.includeEvents, allAttempts: f.allAttempts}
+	opts := reportOptions{includeEvents: f.includeEvents, allAttempts: f.allAttempts, noAdvice: f.noAdvice}
 	if cmd.Flags().Changed("attempt") {
 		opts.attempt = &f.attempt
 	}
@@ -178,6 +186,11 @@ func buildReport(collected []model.Event, collectWarnings []model.Warning, opts 
 	r.Manifest = manifest.Build(events, pack)
 	r.Manifest.Fingerprint = manifest.Fingerprint(r.Manifest)
 	r.Warnings = slices.Concat(collectWarnings, packWarnings, logWarnings, normalizeWarnings, r.Warnings)
+	// Rules read the finished report and nothing else (DESIGN.md section 6.2), so they run
+	// last, before the events are attached.
+	if !opts.noAdvice {
+		r.Advice = advise(r)
+	}
 	if opts.includeEvents {
 		r.Events = events
 	}

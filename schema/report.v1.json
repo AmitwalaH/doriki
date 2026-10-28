@@ -16,6 +16,9 @@
         },
         "evidence": {
           "type": "object"
+        },
+        "fix": {
+          "type": "string"
         }
       },
       "additionalProperties": false,
