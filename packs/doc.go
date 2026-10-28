@@ -72,6 +72,14 @@ func All() ([]model.Pack, error) {
 	return out, nil
 }
 
+// Parse reads a pack file outside the binary, for doriki pack test, with the same rules as the
+// embedded packs. name becomes its Name.
+func Parse(b []byte, name string) (model.Pack, error) {
+	pack, err := parse(b)
+	pack.Name = name
+	return pack, err
+}
+
 func parse(b []byte) (model.Pack, error) {
 	dec := yaml.NewDecoder(bytes.NewReader(b))
 	dec.KnownFields(true)

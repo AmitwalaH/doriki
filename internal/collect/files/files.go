@@ -85,6 +85,16 @@ func LoadDir(dir string) ([]model.Event, []model.Warning, error) {
 	return readObjects(readers[PodFile], readers[EventsFile], readers[LogFile], readers[PreviousLogFile], node)
 }
 
+// ReadLog reads a container log alone (`kubectl logs`, timestamps optional) into log-line
+// events, for doriki pack test: no pod, so lines without a runtime timestamp stay untimed.
+func ReadLog(log io.Reader) ([]model.Event, error) {
+	events, err := logLines(log, "")
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", nameOf(log, "log"), err)
+	}
+	return events, nil
+}
+
 // namedReader lets Read name the file in its errors.
 type namedReader struct {
 	io.Reader
