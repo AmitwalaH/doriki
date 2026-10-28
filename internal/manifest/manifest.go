@@ -24,6 +24,16 @@ var facts = map[string]func(m *model.Manifest, v string){
 		}
 		m.Model.Ref = v
 	},
+	// hit or miss. A pack may log both (one compile range from the cache, another compiled);
+	// any miss means the boot paid for compilation, so a later hit does not undo it.
+	"caches.torch_compile": func(m *model.Manifest, v string) {
+		if m.Caches == nil {
+			m.Caches = &model.ManifestCaches{}
+		}
+		if m.Caches.TorchCompile != model.CacheMiss {
+			m.Caches.TorchCompile = v
+		}
+	},
 }
 
 // objectFacts maps each fact key the collector reads from the Kubernetes objects (model.Fact*)

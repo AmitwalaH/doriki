@@ -2,7 +2,7 @@
 
 **Date Discovered:** 2026-10-28
 **Severity:** HIGH
-**Status:** OPEN
+**Status:** CLOSED (2026-10-28)
 **Label:** [ticket]
 **Found by:** the M3 agent, measured: the owner's `.doriki-approve-update` marker was still present
 after an approved `-update` run; the hook was then replayed on scratch directories
@@ -41,3 +41,12 @@ left behind would approve the next `-update` too.
 
 ## Related
 `DK-REL-BUG-20261026-git-gate-stash-list`; `tasks/2026-10-28-hooks-git-gate.md` (hook v4).
+
+## Resolution
+Fixed by hook v5 (`4ee5fd6`, the owner): command splitting is quote-aware, and the `-update`
+check applies only where `go` or `make` is the command word, so `-update` quoted as text no
+longer consumes the marker. `bash .claude/hooks/git-gate_test.sh` on 2026-10-28:
+`git-gate: pass=86 fail=0`; its v5 cases cover a quoted `|` in single and double quotes and
+the text-only case. The three commands under Problem, replayed against v5 on a scratch
+directory by the M3 agent: each blocked (exit 2) without the marker, allowed with it, and the
+marker consumed.

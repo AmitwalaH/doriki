@@ -60,6 +60,7 @@ type Manifest struct {
 	Engine          *ManifestEngine      `json:"engine,omitempty"`
 	Model           *ManifestModel       `json:"model,omitempty"`
 	Accelerator     *ManifestAccelerator `json:"accelerator,omitempty"`
+	Caches          *ManifestCaches      `json:"caches,omitempty"`
 	// Fingerprint is "sha256:" and the hash of every other field except the pod's name and
 	// UID, so two boots of the same deployment share it (DESIGN.md section 4.3).
 	Fingerprint string `json:"fingerprint,omitempty"`
@@ -111,6 +112,16 @@ type ManifestAccelerator struct {
 	Product string `json:"product,omitempty"`
 	Count   int    `json:"count,omitempty"`
 }
+
+// ManifestCaches is what the engine log said about its caches. TorchCompile is "hit" or
+// "miss", set by a pack fact; a miss anywhere in the boot is a miss.
+type ManifestCaches struct {
+	TorchCompile string `json:"torch_compile,omitempty"`
+}
+
+// CacheMiss is the ManifestCaches value for a cache the boot could not use; manifest keeps it
+// over a later hit, and compile-miss fires on it.
+const CacheMiss = "miss"
 
 // Advice is one rule's finding (DESIGN.md section 6.2). Text is the one sentence the terminal
 // prints, fix included; Evidence holds the numbers the rule used; Fix names the flag, resource

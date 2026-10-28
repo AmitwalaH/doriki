@@ -26,6 +26,9 @@
         "accelerator": {
           "$ref": "#/$defs/ManifestAccelerator"
         },
+        "caches": {
+          "$ref": "#/$defs/ManifestCaches"
+        },
         "fingerprint": {
           "type": "string",
           "description": "Fingerprint is \"sha256:\" and the hash of every other field except the pod's name and\nUID, so two boots of the same deployment share it (DESIGN.md section 4.3)."
@@ -53,6 +56,16 @@
       "additionalProperties": false,
       "type": "object",
       "description": "ManifestAccelerator comes from node labels and container limits only; doriki reads no GPU."
+    },
+    "ManifestCaches": {
+      "properties": {
+        "torch_compile": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "description": "ManifestCaches is what the engine log said about its caches."
     },
     "ManifestContainer": {
       "properties": {

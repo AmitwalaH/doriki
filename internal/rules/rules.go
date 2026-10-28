@@ -23,7 +23,7 @@ const evidenceShare = "share"
 type rule func(model.Report) (model.Advice, bool)
 
 // all is every rule doriki runs. The order here does not matter: Evaluate sorts.
-var all = []rule{pullDominant, fetchRemoteHub}
+var all = []rule{pullDominant, fetchRemoteHub, compileMiss, restartLoop}
 
 // Evaluate runs every rule over r and returns the advice that fired, highest share first,
 // each with its severity set. Renderers print it in this order and never sort it.
