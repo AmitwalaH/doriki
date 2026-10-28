@@ -4,15 +4,16 @@ doriki answers the question operators of LLM serving on Kubernetes ask every wee
 inference pod take six minutes to become ready, and which phase ate the time? It reads a pod's
 Kubernetes events, its container statuses and the inference engine's own log, turns them into a
 startup waterfall (scheduling, image pull, engine start-up, weight download, weight load,
-compile, graph capture, KV cache, server ready) and, from v0.1.0, prints advice on which fix
-applies. It is a single static binary that also runs as a kubectl plugin, stores nothing, calls
+compile, graph capture, KV cache, server ready) and prints up to three lines of advice on
+which fix applies. It is a single static binary that also runs as a kubectl plugin, stores nothing, calls
 no SaaS and sends no telemetry.
 
 **doriki measures and advises; it never changes the cluster.**
 
-**Status:** pre-release. doriki profiles a live pod, Deployment or StatefulSet, once or with
-`--follow` while it boots, and builds the same report from saved files (`--from-files`). The
-advice rules and the `capture` command arrive before v0.1.0, planned for 18 Nov 2026.
+**Status:** pre-release; v0.1.0 is planned for 18 Nov 2026, with a release candidate first.
+doriki profiles a live pod, Deployment or StatefulSet, once or with `--follow` while it boots,
+builds the same report from saved files (`--from-files`), ends it with advice, saves a redacted
+bundle to share (`capture`) and checks a parser pack against a log (`pack test`).
 
 ## What it shows
 
@@ -37,12 +38,21 @@ server-ready                                                │    0.0s
 skipped: compile, graph-capture (the engine said it skips them)
 absent: node-provision, first-token (not seen in the events or the log; pack vllm/0.32)
 ~ estimated: confidence below 1.0 (a start derived from a logged duration, or a heuristic marker)
+
+Advice
+  1. pull-dominant: image-pull took 59% of startup (268 s of 456 s) and the image was not on the
+     node; prepull it with a DaemonSet or pull lazily with SOCI or estargz (image volumes are not
+     suggested: the node's kubelet version could not be read).
 ```
 
 Bars are placed by when each phase ran and sized by its share of the time from pod creation to
 Ready; `gap` rows are time no phase accounts for. `~` marks an estimate: vLLM logs only how long
-the weight download and load took, so their starts are computed from those durations. `-o json`
-writes the same report as JSON, with every event behind it under `--include-events`.
+the weight download and load took, so their starts are computed from those durations. The
+Advice block names the phase that dominated and a fix that applies to this cluster: here the
+4:28 image pull. Image volumes are suggested only on a node whose kubelet is 1.35 or newer,
+where they are on by default; these saved files hold no node object, so the advice says the
+version could not be read. `-o json` writes the same report as JSON, advice included, with every
+event behind it under `--include-events`.
 
 To reproduce it from a clone:
 
@@ -73,6 +83,61 @@ doriki pod/vllm-7c9f -o json             # the report as JSON (--include-events 
 - **Exit codes:** `0` the report is complete; `1` a phase doriki expected is still open or not
   seen (the pod is still booting, or its events expired); `2` the pod cannot be read (not found,
   no permission, cluster unreachable), with the API's message; `64` a usage error.
+
+### Advice
+
+At most three lines are printed, highest share first; `-o json` carries every one, each with
+the numbers it used (`evidence`) and the setting to change (`fix`). Severity is `high` when the
+rule's share of the time to Ready is 40% or more, otherwise `medium`. `--no-advice` runs no rules.
+Advice says what to try and why; it never claims how much time a fix will save.
+
+| Rule | Fires when | Suggests |
+|---|---|---|
+| `pull-dominant` | image-pull is 35% or more of the time to Ready and the image was not already on the node | a prepull DaemonSet; lazy pulling (SOCI, estargz); an image volume for the weights, only from kubelet 1.35 |
+| `fetch-remote-hub` | weight-fetch is 25% or more and the model comes from huggingface.co | a cluster-local mirror (`HF_ENDPOINT` under vLLM), Dragonfly's `hf://` proxy or a ModelCar image; under vLLM, pin `--revision` |
+| `compile-miss` | compile is 20% or more and the engine logged a torch.compile cache miss | `VLLM_CACHE_ROOT` on a PersistentVolumeClaim; the same GPU type, tensor parallel size, dtype and engine version between boots |
+| `load-slow-storage` | weights load slower than 0.5 GB/s, the size estimated from the engine's loaded-weight memory | weights on local NVMe; under vLLM, `--load-format runai_streamer` or `tensorizer` |
+| `restart-loop` | the container restarted two or more times | find the crash first: `kubectl logs --previous` |
+
+An estimate (`~`) in a phase the rule used is called estimated in its advice.
+
+### Sharing a boot: `capture`
+
+```sh
+doriki capture pod/vllm-7c9f -n serving --out vllm-boot/                        # redacted bundle
+doriki capture pod/vllm-7c9f -n serving --out vllm-boot/ --redact-level strict  # names hashed too
+doriki --from-files vllm-boot/                                                  # the same report again
+```
+
+`capture` writes `pod.json`, `events.json`, `container.log` (and `container-previous.log` after a
+restart), `node.json`, `manifest.json`, `report.json` and a `SOURCE.md` saying what was removed.
+`--out` must be a new or empty directory. Everything is redacted before it is written:
+
+- **Removed at every level:** environment variables outside the allowlist (`VLLM_*`, `HF_*`,
+  `SGLANG_*`, `OLLAMA_*`, `LLAMA_*`, `CUDA_*`, `NCCL_*`); the value of a variable, flag or log
+  key whose name holds a secret word (such as token, key, secret, password, credential, auth); values shaped
+  like a known token (Hugging Face, OpenAI-style, GitHub, Slack, AWS key ids, JWTs) in every file
+  and log line; kubectl's last-applied annotation; everything in `node.json` but the name,
+  labels, system info (kubelet version) and capacity.
+- **Also with `--redact-level strict`:** pod, namespace, owner and node names and each image's
+  registry and org are replaced by salted hashes, the same in every file; the image name is kept
+  only when a parser pack recognises it. IP addresses are dropped. The fingerprint in the bundle
+  then differs from a live report's.
+- **Not removed:** a secret with no known shape that the engine prints without a secret-named
+  key in front of it. Read `container.log` before you share it.
+
+### Checking a parser pack: `pack test`
+
+```sh
+doriki pack test packs/vllm/0.32.yaml --log container.log
+doriki pack test my-pack.yaml --log container.log --pod pod.json --events events.json
+```
+
+It runs the pack against a log alone, with no cluster: every marker and fact is listed with the
+time and text of the first line it matched, or `no match`. It exits `1` when a tested marker
+(confidence 1.0) or tested fact matched nothing, and flags an untested one that matched, which is how a
+log from a GPU machine turns an untested marker into a tested one. Times come from the log's
+`--timestamps`, or else from the engine's own in-line times.
 
 ### As a kubectl plugin
 
@@ -109,11 +174,27 @@ today:
   that the version was not read.
 - Engines without a pack (anything other than vLLM 0.32.0 and llama.cpp today) get the
   Kubernetes phases only, with a warning naming the image.
+- **Advice: only `pull-dominant` has fired on a real capture** (vLLM 59%, llama.cpp 91%, the
+  nginx capture 95%), and always with the kubelet version unread, because none of the captures
+  holds a node object. The other four rules are tested on hand-made reports only:
+  `fetch-remote-hub` (the vLLM capture's download is 23.7% of its boot, just under 25%),
+  `restart-loop` (the restart capture restarted once, one short of the trigger), and
+  `compile-miss` and `load-slow-storage`, which need the torch.compile cache and loaded-memory
+  lines vLLM prints only on GPU; the pack reads them as written in the vLLM 0.32.0 source, but
+  no capture has exercised them.
 
 ### Please send a capture from a GPU vLLM pod
 
-One real startup from a GPU pod turns those unverified phases into tested ones. Right after the
-pod becomes Ready (Kubernetes keeps events for about an hour), save these three files:
+One real startup from a GPU pod turns those unverified phases and rules into tested ones. Right
+after the pod becomes Ready (Kubernetes keeps events for about an hour), run `capture`, read
+`container.log` and attach the directory to an issue, with the vLLM version, GPU model and
+image:
+
+```sh
+doriki capture pod/<your vLLM pod> -n <namespace> --out vllm-gpu-capture/
+```
+
+With a doriki older than v0.1.0-rc.1, save the three files with kubectl instead:
 
 ```sh
 POD=<your vLLM pod>
@@ -122,7 +203,7 @@ kubectl get pod "$POD" -o json > pod.json
 kubectl get events --field-selector involvedObject.name="$POD" -o json > events.json
 ```
 
-Before sharing them, redact, and say in the issue what you changed:
+and redact them by hand before sharing, saying in the issue what you changed:
 
 - **Secrets:** in `pod.json`, the values of any secret-looking `env` entries (`HF_TOKEN`, API
   keys, passwords) and any `--api-key` in `args`; search all three files with
@@ -133,7 +214,9 @@ Before sharing them, redact, and say in the issue what you changed:
 - **Never** change a timestamp, reorder lines or delete log lines: the timing is what doriki
   measures.
 
-Then open an issue with the files attached and the vLLM version, GPU model and image.
+A log alone, from a machine with no Kubernetes (a notebook, `docker logs`), still helps:
+`doriki pack test packs/vllm/0.32.yaml --log container.log` shows which untested markers it
+matches.
 
 ## Requirements
 
@@ -153,20 +236,32 @@ kubectl create clusterrolebinding doriki-reader --clusterrole=doriki-reader --us
 
 ## Install
 
-None of these are published yet. They are the channels v0.1.0 will ship on.
-
 | Channel | Command | Status |
 |---|---|---|
-| krew | `kubectl krew install doriki` | not yet published |
-| Homebrew | `brew install AmitwalaH/tap/doriki` | not yet published |
-| Go | `go install github.com/AmitwalaH/doriki/cmd/doriki@latest` | not yet published |
-| GitHub Releases | download a signed binary, then `cosign verify-blob` | not yet published |
+| GitHub Releases | download an archive and `checksums.txt`, then verify (below) | available after v0.1.0-rc.1 |
+| Homebrew | `brew install AmitwalaH/tap/doriki` | available after v0.1.0-rc.1 |
+| Container | `docker run --rm ghcr.io/amitwalah/doriki:0.1.0-rc.1 version` | available after v0.1.0-rc.1 |
+| Go | `go install github.com/AmitwalaH/doriki/cmd/doriki@v0.1.0-rc.1` | available after v0.1.0-rc.1 |
+| krew | `kubectl krew install doriki` | after v0.1.0, once the krew-index pull request is merged |
+
+Every release's `checksums.txt` is signed with cosign, keyless, by the release workflow; each
+archive also has an SPDX SBOM. To verify a download:
+
+```sh
+cosign verify-blob \
+  --certificate-identity 'https://github.com/AmitwalaH/doriki/.github/workflows/release.yml@refs/tags/v0.1.0-rc.1' \
+  --certificate-oidc-issuer 'https://token.actions.githubusercontent.com' \
+  --bundle checksums.txt.sigstore.json checksums.txt
+sha256sum --check --ignore-missing checksums.txt
+```
+
+A binary built with `go install` carries no release stamp, so `doriki version` says `dev`.
 
 On macOS the Homebrew cask removes the download quarantine flag from the doriki binary at
 install, because the binary is signed with cosign but not notarized by Apple; without that,
 macOS would refuse to run it.
 
-Until then, build from source with Go 1.26:
+Or build from source with Go 1.26:
 
 ```sh
 git clone https://github.com/AmitwalaH/doriki.git
@@ -177,8 +272,8 @@ make build
 
 ## Roadmap
 
-v0.1.0 is planned for **18 Nov 2026**: what is above, plus the `capture` command for shareable
-redacted bundles and the first five advice rules. The Ollama pack is cut from v0.1: Ollama loads
+v0.1.0 is planned for **18 Nov 2026**: what is above, after a release candidate and a period
+of validation on real clusters. The Ollama pack is cut from v0.1: Ollama loads
 its model on the first request, after the pod is Ready, which the fixed phase order cannot show
 yet ([`DK-PHASE-ENH-20261026-lazy-load-phase-order`](tickets/DK-PHASE-ENH-20261026-lazy-load-phase-order.md)). Everything cut from v0.1, and why, is in
 [`docs/v0.2-backlog.md`](docs/v0.2-backlog.md): `diff` with a CI exit code, the Prometheus
