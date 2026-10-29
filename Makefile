@@ -10,7 +10,7 @@ LDFLAGS := -s -w \
 # doriki is a single static binary; no package may need cgo.
 export CGO_ENABLED := 0
 
-.PHONY: build test lint gate e2e e2e-up schema
+.PHONY: build test lint lint-canary gate e2e e2e-up schema
 
 build:
 	go build ./...
@@ -22,6 +22,12 @@ test:
 
 lint:
 	golangci-lint run ./...
+
+# The purity bans still catch what they must: golangci-lint on planted calls in test/lintcanary,
+# built only with the lintcanary tag. -count=1 because the test cache cannot see the config or
+# the linter, which are what it checks. LINT_CANARY_CONFIG=<file> checks another config.
+lint-canary:
+	go test -tags lintcanary -count=1 ./test/lintcanary/
 
 # .gate-ok is the proof .claude/hooks/git-gate.py checks before an agent commit. Remove it first
 # and recreate it only after every check passes, so a failed gate never leaves a marker.
