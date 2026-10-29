@@ -32,7 +32,8 @@ func newPackTestCmd() *cobra.Command {
 		Long: "Runs a parser pack against a container log alone, with times from the log's runtime timestamps\n" +
 			"or else the engine's own in-line times, and lists every marker and fact with the first line it\n" +
 			"matched, or \"no match\". Exits 1 when a tested marker (confidence 1.0) or fact matched nothing. An\n" +
-			"untested marker that matches is flagged for promotion (DESIGN.md section 5.4).",
+			"untested marker that matches is flagged for promotion (DESIGN.md section 5.4). A marker or fact whose\n" +
+			"min_log_level the log's level does not reach is listed as skipped, not failed (decision 0010).",
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runPackTest(cmd.OutOrStdout(), args[0], log, pod, events)
@@ -89,7 +90,20 @@ func runPackTest(w io.Writer, packPath, logPath, podPath, eventsPath string) err
 		return err
 	}
 
-	fmt.Fprintf(w, "pack %s against %s: %d lines, times from %s\n\nmarkers\n", pack.Name, filepath.Base(logPath), len(lines), source) //nolint:errcheck // checked at the end
+	texts := make([]string, len(lines))
+	for i, l := range lines {
+		texts[i] = l.text
+	}
+	level, err := packs.LogLevel(pack, texts)
+	if err != nil {
+		return err
+	}
+
+	fmt.Fprintf(w, "pack %s against %s: %d lines, times from %s\n", pack.Name, filepath.Base(logPath), len(lines), source) //nolint:errcheck // checked at the end
+	if pack.Detect.LogLevelRegex != "" {
+		fmt.Fprintf(w, "%s\n", levelLine(pack, level)) //nolint:errcheck // checked at the end
+	}
+	fmt.Fprintf(w, "\nmarkers\n") //nolint:errcheck // checked at the end
 	idWidth := 0
 	for _, m := range pack.Markers {
 		idWidth = max(idWidth, len(m.ID))
@@ -110,6 +124,8 @@ func runPackTest(w io.Writer, packPath, logPath, podPath, eventsPath string) err
 		}
 		first, n := firstMatch(re, lines)
 		switch {
+		case !level.Reaches(m.MinLogLevel):
+			fmt.Fprintf(w, "%s\n", fit(fmt.Sprintf("skipped   %-*s  %s  needs log level %d", idWidth, m.ID, conf, m.MinLogLevel), terminalWidth)) //nolint:errcheck // checked at the end
 		case n == 0 && tested:
 			failed = append(failed, m.ID)
 			fmt.Fprintf(w, "%s\n", fit(fmt.Sprintf("no match  %-*s  %s  tested", idWidth, m.ID, conf), terminalWidth)) //nolint:errcheck // checked at the end
@@ -133,6 +149,10 @@ func runPackTest(w io.Writer, packPath, logPath, podPath, eventsPath string) err
 		label := "tested"
 		if f.Untested {
 			label = "untested"
+		}
+		if !level.Reaches(f.MinLogLevel) {
+			fmt.Fprintf(w, "%s\n", fit(fmt.Sprintf("skipped   %-*s  needs log level %d", idWidth, f.Key, f.MinLogLevel), terminalWidth)) //nolint:errcheck // checked at the end
+			continue
 		}
 		first, n := firstMatch(re, lines)
 		if n == 0 {
@@ -172,6 +192,44 @@ func runPackTest(w io.Writer, packPath, logPath, podPath, eventsPath string) err
 	}
 	_, err = fmt.Fprintf(w, "\nevery tested marker and fact matched\n")
 	return err
+}
+
+// levelLine says the log level pack test read and how many gated markers and facts it did
+// not check because the level does not reach them (decision 0010).
+func levelLine(pack model.Pack, level packs.Level) string {
+	markers, facts := 0, 0
+	for _, m := range pack.Markers {
+		if !level.Reaches(m.MinLogLevel) {
+			markers++
+		}
+	}
+	for _, f := range pack.Facts {
+		if !level.Reaches(f.MinLogLevel) {
+			facts++
+		}
+	}
+	s := "log level unknown"
+	if level.Known {
+		s = fmt.Sprintf("log level %d", level.N)
+	}
+	var skipped []string
+	if markers > 0 {
+		skipped = append(skipped, plural(markers, "marker"))
+	}
+	if facts > 0 {
+		skipped = append(skipped, plural(facts, "fact"))
+	}
+	if len(skipped) > 0 {
+		s += "; " + strings.Join(skipped, " and ") + " not checked"
+	}
+	return s
+}
+
+func plural(n int, noun string) string {
+	if n == 1 {
+		return "1 " + noun
+	}
+	return fmt.Sprintf("%d %ss", n, noun)
 }
 
 // terminalWidth is DESIGN.md section 7.5's 100 columns.

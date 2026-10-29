@@ -216,7 +216,7 @@ facts:                                  # one-shot manifest facts pulled from lo
     regex: "CUDA (?P<v>[0-9.]+)"
 ```
 
-Rules: every regex uses Go RE2 syntax; named groups become `Event.Attrs`; a marker may list several alternatives; `confidence` below 1.0 marks heuristic matches, which the renderer shows with a `~`. Packs are embedded in the binary at build time (`//go:embed packs/**`) and can be overridden or extended from `~/.config/doriki/packs/` or `--pack-dir`.
+Rules: every regex uses Go RE2 syntax; named groups become `Event.Attrs`; a marker may list several alternatives; `confidence` below 1.0 marks heuristic matches, which the renderer shows with a `~`; `min_log_level: N` on a marker or fact drops it unless `detect.log_level_regex` reads level N or higher from the first 200 lines (decision 0010). Packs are embedded in the binary at build time (`//go:embed packs/**`) and can be overridden or extended from `~/.config/doriki/packs/` or `--pack-dir`.
 
 ### 5.3 Selection
 

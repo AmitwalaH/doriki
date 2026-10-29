@@ -28,6 +28,11 @@ type PackDetect struct {
 	// VersionNote is added to the warning when log_regex finds no version, to say why: for
 	// example, that the engine prints its version only at a higher log level.
 	VersionNote string `yaml:"version_note,omitempty"`
+	// LogLevelRegex reads the engine's log level, the named group "level" as a number, from
+	// the first matching line in the first 200. Markers and facts with a MinLogLevel the level
+	// does not reach are dropped for that log; a log with no level line counts as the
+	// engine's default level (decision 0010).
+	LogLevelRegex string `yaml:"log_level_regex,omitempty"`
 }
 
 // PackTimestamp parses the engine's own timestamp from a log line: Regex has a named group
@@ -51,6 +56,9 @@ type PackMarker struct {
 	// matching line also yields the ".start" marker, stamped that many seconds earlier, with
 	// confidence at most DerivedStartConfidence and the attribute AttrStartDerived.
 	StartFromDuration string `yaml:"start_from_duration,omitempty"`
+	// MinLogLevel is the log level, above the engine's default, from which the engine prints
+	// this line. Below it the marker is neither matched nor expected (decision 0010).
+	MinLogLevel int `yaml:"min_log_level,omitempty"`
 }
 
 // DerivedStartID is the ".start" marker a StartFromDuration marker also yields: "x.y.end"
@@ -76,4 +84,6 @@ type PackFact struct {
 	Regex    string `yaml:"regex"`
 	Value    string `yaml:"value,omitempty"`
 	Untested bool   `yaml:"untested,omitempty"`
+	// MinLogLevel gates a fact as it gates a marker (decision 0010).
+	MinLogLevel int `yaml:"min_log_level,omitempty"`
 }

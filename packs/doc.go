@@ -11,6 +11,7 @@ import (
 	"path"
 	"regexp"
 	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/Masterminds/semver/v3"
@@ -94,8 +95,9 @@ const detectLines = 200
 
 // Select picks the pack for a container image and its log lines (DESIGN.md section 5.3). The
 // image narrows the packs; log_regex on the first 200 lines reads the engine version, and the
-// pack whose versions range holds it wins. With no match it falls back to the generic pack
-// and warns, naming the image or the version.
+// pack whose versions range holds it wins, without the markers and facts the log's level does
+// not reach (decision 0010). With no match it falls back to the generic pack and warns,
+// naming the image or the version.
 func Select(image string, lines ...string) (model.Pack, []model.Warning, error) {
 	all, err := All()
 	if err != nil {
@@ -124,7 +126,15 @@ func selectFrom(all []model.Pack, image string, lines ...string) (model.Pack, []
 		}
 	}
 	if len(matched) > 0 {
-		return selectByVersion(matched, generic, image, lines)
+		p, warnings, err := selectByVersion(matched, generic, image, lines)
+		if err != nil {
+			return model.Pack{}, nil, err
+		}
+		level, err := LogLevel(p, lines)
+		if err != nil {
+			return model.Pack{}, nil, err
+		}
+		return AtLevel(p, level), warnings, nil
 	}
 	if generic == nil {
 		return model.Pack{}, nil, fmt.Errorf("no pack matches image %q and the generic pack is missing", image)
@@ -208,6 +218,61 @@ func logVersion(p model.Pack, lines []string) (string, error) {
 		}
 	}
 	return "", nil
+}
+
+// Level is the engine's log level as a pack's log_level_regex read it from the first 200 log
+// lines. Known is false when no line says it, which counts as the engine's default level
+// (decision 0010).
+type Level struct {
+	N     int
+	Known bool
+}
+
+// Reaches says whether an entry with this min_log_level is expected at the level. An entry
+// with none always is; a gated one needs a known level at least its own, since min_log_level
+// names a level above the engine's default.
+func (l Level) Reaches(minLevel int) bool {
+	return minLevel == 0 || l.Known && l.N >= minLevel
+}
+
+// LogLevel reads the log level with the pack's log_level_regex. A pack that gates an entry
+// but cannot read the level is an error: the entry could never be expected.
+func LogLevel(p model.Pack, lines []string) (Level, error) {
+	gated := slices.ContainsFunc(p.Markers, func(m model.PackMarker) bool { return m.MinLogLevel > 0 }) ||
+		slices.ContainsFunc(p.Facts, func(f model.PackFact) bool { return f.MinLogLevel > 0 })
+	if p.Detect.LogLevelRegex == "" {
+		if gated {
+			return Level{}, fmt.Errorf("pack %s: min_log_level needs detect.log_level_regex", p.Name)
+		}
+		return Level{}, nil
+	}
+	re, err := regexp.Compile(p.Detect.LogLevelRegex)
+	if err != nil {
+		return Level{}, fmt.Errorf("pack %s: log_level_regex: %w", p.Name, err)
+	}
+	i := re.SubexpIndex("level")
+	if i < 0 {
+		return Level{}, fmt.Errorf("pack %s: log_level_regex has no named group level", p.Name)
+	}
+	for _, l := range lines[:min(len(lines), detectLines)] {
+		if m := re.FindStringSubmatch(l); m != nil {
+			n, err := strconv.Atoi(m[i])
+			if err != nil {
+				return Level{}, fmt.Errorf("pack %s: log_level_regex read level %q, not a number", p.Name, m[i])
+			}
+			return Level{N: n, Known: true}, nil
+		}
+	}
+	return Level{}, nil
+}
+
+// AtLevel is the pack without the markers and facts the level does not reach: the engine does
+// not print their lines at that level, so they are neither matched nor expected, and the
+// phases they bound stay as the lower level reports them (decision 0010).
+func AtLevel(p model.Pack, l Level) model.Pack {
+	p.Markers = slices.DeleteFunc(slices.Clone(p.Markers), func(m model.PackMarker) bool { return !l.Reaches(m.MinLogLevel) })
+	p.Facts = slices.DeleteFunc(slices.Clone(p.Facts), func(f model.PackFact) bool { return !l.Reaches(f.MinLogLevel) })
+	return p
 }
 
 // covers reports whether the pack's versions range holds v.
