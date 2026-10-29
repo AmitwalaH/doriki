@@ -14,9 +14,10 @@ import (
 // checksumLine is one entry of a fixture SOURCE.md's "## Checksums" section.
 var checksumLine = regexp.MustCompile("^- `([^`]+)`: `sha256:([0-9a-f]{64})`$")
 
-// notCaptures are the files of a fixture directory that are not what kubectl wrote: the notes,
-// and the golden that -update rewrites after review.
-var notCaptures = []string{"SOURCE.md", "expected.json"}
+// notCaptures are the files of a fixture directory that are not captured inputs: the notes,
+// and the goldens that -update rewrites after review: expected.json, and the report.json a
+// fixture made by doriki capture holds.
+var notCaptures = []string{"SOURCE.md", "expected.json", "report.json"}
 
 // Every captured file of every fixture has the sha256 its SOURCE.md records, and SOURCE.md
 // lists no file that is not there. Fixtures are never edited by hand (DESIGN.md section 9.2);

@@ -155,6 +155,18 @@ func ReportFromFiles(podPath, eventsPath, logPath, previousLogPath string, inclu
 	return r, err
 }
 
+// ReportFromDir runs the offline pipeline on a capture directory, as --from-files <dir> does:
+// with the previous container's log and the node object when the directory has them, so a
+// fixture made by doriki capture is read with its node.json.
+func ReportFromDir(dir string, includeEvents bool, now time.Time) (model.Report, error) {
+	collected, warnings, err := files.LoadDir(dir)
+	if err != nil {
+		return model.Report{}, err
+	}
+	r, _, err := buildReport(collected, warnings, reportOptions{includeEvents: includeEvents}, now)
+	return r, err
+}
+
 func loadFiles(podPath, eventsPath, logPath, previousLogPath string) ([]model.Event, []model.Warning, error) {
 	var previous []string
 	if previousLogPath != "" {

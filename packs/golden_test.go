@@ -2,7 +2,6 @@ package packs_test
 
 import (
 	"flag"
-	"os"
 	"path/filepath"
 	"testing"
 	"time"
@@ -41,13 +40,8 @@ func TestFixtures(t *testing.T) {
 	for _, pod := range dirs {
 		dir := filepath.Dir(pod)
 		t.Run(dir, func(t *testing.T) {
-			// A restart fixture also has the previous container's log.
-			previous := filepath.Join(dir, "container-previous.log")
-			if _, err := os.Stat(previous); err != nil {
-				previous = ""
-			}
-			r, err := cli.ReportFromFiles(pod, filepath.Join(dir, "events.json"), filepath.Join(dir, "container.log"), previous, false,
-				time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC))
+			// As a capture directory: the previous container's log and node.json when present.
+			r, err := cli.ReportFromDir(dir, false, time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC))
 			if err != nil {
 				t.Fatal(err)
 			}

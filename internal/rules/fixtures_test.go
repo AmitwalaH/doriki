@@ -1,7 +1,6 @@
 package rules_test
 
 import (
-	"os"
 	"path/filepath"
 	"testing"
 	"time"
@@ -11,17 +10,12 @@ import (
 	"github.com/AmitwalaH/doriki/internal/rules"
 )
 
-// fixture is the report of a real pack fixture through the full offline pipeline, with no
-// advice yet, so a test sees exactly what Evaluate makes of it.
+// fixture is the report of a real pack fixture through the full offline pipeline, read as a
+// capture directory (with node.json when it has one), with no advice yet, so a test sees
+// exactly what Evaluate makes of it.
 func fixture(t *testing.T, dir string) model.Report {
 	t.Helper()
-	dir = filepath.Join("../../packs", dir)
-	previous := filepath.Join(dir, "container-previous.log")
-	if _, err := os.Stat(previous); err != nil {
-		previous = ""
-	}
-	r, err := cli.ReportFromFiles(filepath.Join(dir, "pod.json"), filepath.Join(dir, "events.json"), filepath.Join(dir, "container.log"),
-		previous, false, time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC))
+	r, err := cli.ReportFromDir(filepath.Join("../../packs", dir), false, time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC))
 	if err != nil {
 		t.Fatal(err)
 	}
