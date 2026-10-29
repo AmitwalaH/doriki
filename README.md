@@ -118,7 +118,7 @@ restart), `node.json`, `manifest.json`, `report.json` and a `SOURCE.md` saying w
   key whose name holds a secret word (such as token, key, secret, password, credential, auth); values shaped
   like a known token (Hugging Face, OpenAI-style, GitHub, Slack, AWS key ids, JWTs) in every file
   and log line; kubectl's last-applied annotation; everything in `node.json` but the name,
-  labels, system info (kubelet version) and capacity.
+  labels, system info (kubelet version; not the machine ID, system UUID or boot ID) and capacity.
 - **Also with `--redact-level strict`:** pod, namespace, owner and node names and each image's
   registry and org are replaced by salted hashes, the same in every file; the image name is kept
   only when a parser pack recognises it. IP addresses are dropped. The fingerprint in the bundle
@@ -137,7 +137,9 @@ It runs the pack against a log alone, with no cluster: every marker and fact is 
 time and text of the first line it matched, or `no match`. It exits `1` when a tested marker
 (confidence 1.0) or tested fact matched nothing, and flags an untested one that matched, which is how a
 log from a GPU machine turns an untested marker into a tested one. Times come from the log's
-`--timestamps`, or else from the engine's own in-line times.
+`--timestamps`, or else from the engine's own in-line times. A marker or fact the pack gates
+by log level (`min_log_level`, such as llama.cpp's `-lv 4` lines) is listed as `skipped` when
+the log's level is lower, and the output says the level it read.
 
 ### As a kubectl plugin
 
@@ -165,18 +167,28 @@ today:
   lower confidence, but no capture has exercised them.
 - **GPU vLLM images (`vllm/vllm-openai`) are matched by the pack's image pattern but unverified.**
   On a GPU pod doriki will try, and the waterfall may miss or misplace phases.
-- **llama.cpp server build 11889 on CPU, at its default log level.** One real capture in `kind`
-  ([`SOURCE.md`](packs/llamacpp/testdata/11889/SOURCE.md)): engine start-up, weight download,
-  weight load and server ready are observed. llama-server prints nothing while it downloads a
-  model, so the download is the silent interval before it starts loading, marked `~` (measured:
-  10.86 s with the model not cached, 0 s cached). Compile and graph capture are shown as not
-  applicable to this engine. The server prints its build only at `-lv 4`, so the report warns
-  that the version was not read.
+- **llama.cpp server build 11889 on CPU, at its default log level and at `-lv 4`.** Two real
+  captures in `kind` ([default](packs/llamacpp/testdata/11889/SOURCE.md),
+  [`-lv 4`](packs/llamacpp/testdata/11889-lv4/SOURCE.md), the second taken with `doriki capture`
+  itself): engine start-up, weight download, weight load and server ready are observed.
+  llama-server prints nothing while it downloads a model, so the download is the silent interval
+  before it starts loading, marked `~` (measured: 10.86 s with the model not cached, 0 s cached).
+  Compile and graph capture are shown as not applicable to this engine. At the default level the
+  server does not print its build, so the report warns that the version was not read. At
+  `-lv 4` it does: the report names build 11889 with no warning, weight-load ends where the
+  context is built, and kv-alloc is observed, with the KV buffer size in the JSON report.
+  With llama.cpp's default mmap load on Linux the model file is read in full before the context
+  is built, so weight-load includes the disk read; with `--numa`, or a tensor read lazily
+  (`--lazy-mode`), pages are read on demand later and that time is not in weight-load.
 - Engines without a pack (anything other than vLLM 0.32.0 and llama.cpp today) get the
   Kubernetes phases only, with a warning naming the image.
-- **Advice: only `pull-dominant` has fired on a real capture** (vLLM 59%, llama.cpp 91%, the
-  nginx capture 95%), and always with the kubelet version unread, because none of the captures
-  holds a node object. The other four rules are tested on hand-made reports only:
+- **Advice: only `pull-dominant` has fired on a real capture** (vLLM 59%, llama.cpp 91% and 95%
+  at `-lv 4`, the nginx capture 95%). The `-lv 4` llama.cpp capture is the only one that holds a
+  node object; there it read kubelet v1.37.0 and printed: "image-pull took 95% of startup (275 s
+  of 290 s) and the image was not on the node; move the model weights into an image volume,
+  prepull the image with a DaemonSet, or pull lazily with SOCI or estargz." On the others the
+  kubelet version is unread, so image volumes are not suggested. The other four rules are tested
+  on hand-made reports only:
   `fetch-remote-hub` (the vLLM capture's download is 23.7% of its boot, just under 25%),
   `restart-loop` (the restart capture restarted once, one short of the trigger), and
   `compile-miss` and `load-slow-storage`, which need the torch.compile cache and loaded-memory

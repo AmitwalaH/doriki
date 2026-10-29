@@ -13,14 +13,16 @@ import (
 
 // goldenFixtures are the CLI goldens (M1b task item 9): every real fixture, by golden name.
 var goldenFixtures = map[string]string{
-	"kind-nginx":      "../../packs/generic/testdata/kind-nginx/",
-	"kind-nginx-warm": "../../packs/generic/testdata/kind-nginx-warm/",
-	"llamacpp-11889":  "../../packs/llamacpp/testdata/11889/",
-	"vllm-0.32":       "../../packs/vllm/testdata/0.32/",
+	"kind-nginx":         "../../packs/generic/testdata/kind-nginx/",
+	"kind-nginx-warm":    "../../packs/generic/testdata/kind-nginx-warm/",
+	"llamacpp-11889":     "../../packs/llamacpp/testdata/11889/",
+	"llamacpp-11889-lv4": "../../packs/llamacpp/testdata/11889-lv4/",
+	"vllm-0.32":          "../../packs/vllm/testdata/0.32/",
 }
 
-// The whole command's output for each fixture, in text and JSON, against goldens in
-// testdata/. Text goldens are recorded with NO_COLOR=1, so they hold no escape codes.
+// The whole command's output for each fixture directory (--from-files <dir>, which reads
+// node.json when present), in text and JSON, against goldens in testdata/. Text goldens are
+// recorded with NO_COLOR=1, so they hold no escape codes.
 // Regenerate with -update only after approval (METHOD.md Step 11).
 func TestCLIGoldens(t *testing.T) {
 	if f := flag.Lookup("clean"); f != nil && f.Value.String() == "true" {
@@ -28,10 +30,9 @@ func TestCLIGoldens(t *testing.T) {
 	}
 	t.Setenv("NO_COLOR", "1")
 	for name, dir := range goldenFixtures {
-		files := []string{dir + "pod.json", dir + "events.json", dir + "container.log"}
 		for _, format := range []string{"text", "json"} {
 			t.Run(name+"/"+format, func(t *testing.T) {
-				out, err := run(t, append([]string{"--from-files", "-o", format}, files...)...)
+				out, err := run(t, "--from-files", "-o", format, dir)
 				if code, msg := Exit(err); code != 0 {
 					t.Fatalf("exit %d %q", code, msg)
 				}

@@ -1,0 +1,388 @@
+{
+  "apiVersion": "v1",
+  "items": [
+    {
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-10-29T12:19:47Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "kind": "Pod",
+        "name": "llamacpp-6f8fbbc7b4-ldmpw",
+        "namespace": "doriki",
+        "resourceVersion": "28757",
+        "uid": "0793ab98-318d-4cb1-aba5-74d0a0e07706"
+      },
+      "lastTimestamp": "2026-10-29T12:19:47Z",
+      "message": "Successfully assigned doriki/llamacpp-6f8fbbc7b4-ldmpw to doriki-control-plane",
+      "metadata": {
+        "creationTimestamp": "2026-10-29T12:19:47Z",
+        "managedFields": [
+          {
+            "apiVersion": "v1",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:reportingComponent": {},
+              "f:source": {
+                "f:component": {}
+              },
+              "f:type": {}
+            },
+            "manager": "kube-scheduler",
+            "operation": "Update",
+            "time": "2026-10-29T12:19:47Z"
+          }
+        ],
+        "name": "llamacpp-6f8fbbc7b4-ldmpw.18e2ff5f79579950",
+        "namespace": "doriki",
+        "resourceVersion": "28766",
+        "uid": "e07fb290-6851-4f61-8e40-9b0e28ded365"
+      },
+      "reason": "Scheduled",
+      "reportingComponent": "default-scheduler",
+      "reportingInstance": "",
+      "source": {
+        "component": "default-scheduler"
+      },
+      "type": "Normal"
+    },
+    {
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-10-29T12:19:48Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.containers{llamacpp}",
+        "kind": "Pod",
+        "name": "llamacpp-6f8fbbc7b4-ldmpw",
+        "namespace": "doriki",
+        "resourceVersion": "28762",
+        "uid": "0793ab98-318d-4cb1-aba5-74d0a0e07706"
+      },
+      "lastTimestamp": "2026-10-29T12:19:48Z",
+      "message": "Pulling image \"ghcr.io/ggml-org/llama.cpp:server@sha256:5741ab30aae42af23ca57d9b98a6d4544cb09c21f372f92c5ee55312fa8b8b0c\"",
+      "metadata": {
+        "creationTimestamp": "2026-10-29T12:19:48Z",
+        "managedFields": [
+          {
+            "apiVersion": "v1",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:reportingComponent": {},
+              "f:reportingInstance": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            },
+            "manager": "kubelet",
+            "operation": "Update",
+            "time": "2026-10-29T12:19:48Z"
+          }
+        ],
+        "name": "llamacpp-6f8fbbc7b4-ldmpw.18e2ff5fb343cdba",
+        "namespace": "doriki",
+        "resourceVersion": "28768",
+        "uid": "9c54fbcc-a7d4-49e7-8eb4-1dd90feaec3c"
+      },
+      "reason": "Pulling",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "doriki-control-plane",
+      "source": {
+        "component": "kubelet",
+        "host": "doriki-control-plane"
+      },
+      "type": "Normal"
+    },
+    {
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-10-29T12:24:23Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.containers{llamacpp}",
+        "kind": "Pod",
+        "name": "llamacpp-6f8fbbc7b4-ldmpw",
+        "namespace": "doriki",
+        "resourceVersion": "28762",
+        "uid": "0793ab98-318d-4cb1-aba5-74d0a0e07706"
+      },
+      "lastTimestamp": "2026-10-29T12:24:23Z",
+      "message": "Successfully pulled image \"ghcr.io/ggml-org/llama.cpp:server@sha256:5741ab30aae42af23ca57d9b98a6d4544cb09c21f372f92c5ee55312fa8b8b0c\" in 4m35.617s (4m35.617s including waiting). Image size: 309693025 bytes.",
+      "metadata": {
+        "creationTimestamp": "2026-10-29T12:24:23Z",
+        "managedFields": [
+          {
+            "apiVersion": "v1",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:reportingComponent": {},
+              "f:reportingInstance": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            },
+            "manager": "kubelet",
+            "operation": "Update",
+            "time": "2026-10-29T12:24:23Z"
+          }
+        ],
+        "name": "llamacpp-6f8fbbc7b4-ldmpw.18e2ff9fde6b3475",
+        "namespace": "doriki",
+        "resourceVersion": "29156",
+        "uid": "bd7f7510-bc89-4c6b-8d8f-3d8dab077489"
+      },
+      "reason": "Pulled",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "doriki-control-plane",
+      "source": {
+        "component": "kubelet",
+        "host": "doriki-control-plane"
+      },
+      "type": "Normal"
+    },
+    {
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-10-29T12:24:23Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.containers{llamacpp}",
+        "kind": "Pod",
+        "name": "llamacpp-6f8fbbc7b4-ldmpw",
+        "namespace": "doriki",
+        "resourceVersion": "28762",
+        "uid": "0793ab98-318d-4cb1-aba5-74d0a0e07706"
+      },
+      "lastTimestamp": "2026-10-29T12:24:23Z",
+      "message": "Container created",
+      "metadata": {
+        "creationTimestamp": "2026-10-29T12:24:23Z",
+        "managedFields": [
+          {
+            "apiVersion": "v1",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:reportingComponent": {},
+              "f:reportingInstance": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            },
+            "manager": "kubelet",
+            "operation": "Update",
+            "time": "2026-10-29T12:24:23Z"
+          }
+        ],
+        "name": "llamacpp-6f8fbbc7b4-ldmpw.18e2ff9fe2c23b90",
+        "namespace": "doriki",
+        "resourceVersion": "29157",
+        "uid": "a330a64f-f571-4eb3-b310-712e7c50e0c3"
+      },
+      "reason": "Created",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "doriki-control-plane",
+      "source": {
+        "component": "kubelet",
+        "host": "doriki-control-plane"
+      },
+      "type": "Normal"
+    },
+    {
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-10-29T12:24:23Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.containers{llamacpp}",
+        "kind": "Pod",
+        "name": "llamacpp-6f8fbbc7b4-ldmpw",
+        "namespace": "doriki",
+        "resourceVersion": "28762",
+        "uid": "0793ab98-318d-4cb1-aba5-74d0a0e07706"
+      },
+      "lastTimestamp": "2026-10-29T12:24:23Z",
+      "message": "Container started",
+      "metadata": {
+        "creationTimestamp": "2026-10-29T12:24:23Z",
+        "managedFields": [
+          {
+            "apiVersion": "v1",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:reportingComponent": {},
+              "f:reportingInstance": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            },
+            "manager": "kubelet",
+            "operation": "Update",
+            "time": "2026-10-29T12:24:23Z"
+          }
+        ],
+        "name": "llamacpp-6f8fbbc7b4-ldmpw.18e2ff9fed143ede",
+        "namespace": "doriki",
+        "resourceVersion": "29158",
+        "uid": "21617851-9cea-4a49-853c-00a22355143b"
+      },
+      "reason": "Started",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "doriki-control-plane",
+      "source": {
+        "component": "kubelet",
+        "host": "doriki-control-plane"
+      },
+      "type": "Normal"
+    },
+    {
+      "count": 7,
+      "eventTime": null,
+      "firstTimestamp": "2026-10-29T12:24:23Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.containers{llamacpp}",
+        "kind": "Pod",
+        "name": "llamacpp-6f8fbbc7b4-ldmpw",
+        "namespace": "doriki",
+        "resourceVersion": "28762",
+        "uid": "0793ab98-318d-4cb1-aba5-74d0a0e07706"
+      },
+      "lastTimestamp": "2026-10-29T12:24:33Z",
+      "message": "Readiness probe failed: Get \"http://10.244.0.7:8080/health\": dial tcp 10.244.0.7:8080: connect: connection refused",
+      "metadata": {
+        "creationTimestamp": "2026-10-29T12:24:23Z",
+        "managedFields": [
+          {
+            "apiVersion": "v1",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:reportingComponent": {},
+              "f:reportingInstance": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            },
+            "manager": "kubelet",
+            "operation": "Update",
+            "time": "2026-10-29T12:24:33Z"
+          }
+        ],
+        "name": "llamacpp-6f8fbbc7b4-ldmpw.18e2ff9fed667d89",
+        "namespace": "doriki",
+        "resourceVersion": "29181",
+        "uid": "a2d0dee3-407b-4ba5-997a-ed24df633143"
+      },
+      "reason": "Unhealthy",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "doriki-control-plane",
+      "source": {
+        "component": "kubelet",
+        "host": "doriki-control-plane"
+      },
+      "type": "Warning"
+    },
+    {
+      "count": 1,
+      "eventTime": null,
+      "firstTimestamp": "2026-10-29T12:24:35Z",
+      "involvedObject": {
+        "apiVersion": "v1",
+        "fieldPath": "spec.containers{llamacpp}",
+        "kind": "Pod",
+        "name": "llamacpp-6f8fbbc7b4-ldmpw",
+        "namespace": "doriki",
+        "resourceVersion": "28762",
+        "uid": "0793ab98-318d-4cb1-aba5-74d0a0e07706"
+      },
+      "lastTimestamp": "2026-10-29T12:24:35Z",
+      "message": "Readiness probe failed: HTTP probe failed with statuscode: 503",
+      "metadata": {
+        "creationTimestamp": "2026-10-29T12:24:36Z",
+        "managedFields": [
+          {
+            "apiVersion": "v1",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:reportingComponent": {},
+              "f:reportingInstance": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            },
+            "manager": "kubelet",
+            "operation": "Update",
+            "time": "2026-10-29T12:24:36Z"
+          }
+        ],
+        "name": "llamacpp-6f8fbbc7b4-ldmpw.18e2ffa2b8e767d9",
+        "namespace": "doriki",
+        "resourceVersion": "29184",
+        "uid": "35ed6391-0134-408b-bb67-4f27292564b2"
+      },
+      "reason": "Unhealthy",
+      "reportingComponent": "kubelet",
+      "reportingInstance": "doriki-control-plane",
+      "source": {
+        "component": "kubelet",
+        "host": "doriki-control-plane"
+      },
+      "type": "Warning"
+    }
+  ],
+  "kind": "EventList",
+  "metadata": {}
+}

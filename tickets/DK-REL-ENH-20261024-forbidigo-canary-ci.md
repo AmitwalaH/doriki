@@ -2,7 +2,7 @@
 
 **Date Discovered:** 2026-10-24
 **Severity:** LOW
-**Status:** OPEN
+**Status:** CLOSED (2026-10-29), by `build(lint): canary for the purity bans`
 **Label:** [ticket]
 **Found by:** the M1a agent, measured by running a canary script against `.golangci.yml`
 **Filed by:** the M1a agent
@@ -33,3 +33,15 @@ pod, and lint still reports green.
 
 ## Related
 `DK-PHASE-ENH-20261024-forbidigo-purity` (closed); `DK-PHASE-ENH-20261024-nondeterminism-pure`.
+
+## Resolution
+Option 1. `test/lintcanary/` holds Go source behind the `lintcanary` build tag: every call the
+forbidigo bans name, planted once where `internal/phase` lives, one call per ban and one
+disallowed import in each other pure package (`rules`, `diff`, `normalize`, `render`), and the
+same calls unflagged in a pure package's `_test.go` and in a `cli` position. Each line that
+must be flagged says so in a `// want <linter>` comment. `TestPurityBans` runs the real
+golangci-lint with `.golangci.yml` (or `LINT_CANARY_CONFIG`) and fails on any line flagged and
+not planted, or planted and not flagged; it also fails when the linter on PATH is not the
+version `ci.yml` pins. `make lint-canary` runs it, and CI's `gate` job calls it after `make
+gate`. A copy of `.golangci.yml` with `rules` dropped from forbidigo's scope made it fail on
+exactly the four `rules` plants (2026-10-29).

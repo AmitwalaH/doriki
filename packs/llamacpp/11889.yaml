@@ -1,11 +1,14 @@
-# llama.cpp server, build 11889 (DESIGN.md section 5). Written from the real capture in
-# testdata/11889 (ghcr.io/ggml-org/llama.cpp:server, CPU, in kind, the default log level) and
-# nothing else: every marker matches a line of that capture, and packs/llamacpp_test.go checks
-# it. Line numbers below are the capture's.
+# llama.cpp server, build 11889 (DESIGN.md section 5). Written from two real captures of the
+# same image (ghcr.io/ggml-org/llama.cpp:server, CPU, in kind) and nothing else: testdata/11889
+# at the default log level, and testdata/11889-lv4 at -lv 4. Every marker matches a line of the
+# capture it cites; packs/llamacpp_test.go and packs/llamacpp_lv4_test.go check it. "L6" is a
+# line of the default-level capture, "lv4 L6" a line of the -lv 4 one.
 #
 # At the default level (verbosity 3) llama-server logs 15 lines. It prints no version, no
-# tensor or KV cache lines, and nothing while it downloads a model; those appear only at -lv 4,
-# except the download, which no level prints (DK-PACK-ENH-20261026-llamacpp-verbose).
+# tensor or KV cache lines, and nothing while it downloads a model. At -lv 4 it prints the
+# build and the KV cache; the markers and the fact for them carry min_log_level: 4, so a
+# default-level log neither matches nor expects them (decision 0010). No level prints the
+# download.
 pack_version: 1
 engine: llamacpp
 # The captured build only; widen it with a fixture from each new build.
@@ -17,6 +20,8 @@ detect:
   # GNU 14.2.0 for Linux x86_64". The default-level capture has no such line.
   log_regex: 'common_params_print_info: build (?P<version>[0-9]+) \('
   version_note: llama.cpp prints its build only at -lv 4 or above
+  # Printed at every level: "verbosity = 3" (L4) by default, "verbosity = 4" (lv4 L6) at -lv 4.
+  log_level_regex: 'common_params_print_info: verbosity = (?P<level>[0-9]+)'
 # No timestamp block: the in-line times ("0.12.437.395") count from the process start, not a
 # wall clock, so the runtime timestamps (kubectl logs --timestamps) are the only times.
 markers:
@@ -45,18 +50,46 @@ markers:
   - id: llamacpp.weights.load.end
     regex: ": model loaded$"
 
+  # At -lv 4, weight-load ends earlier, where the context is built (lv4 L131): the phase engine
+  # takes the earliest end event at or after the start (internal/phase/assign.go:373), and this
+  # id ends in .weights.load.end, so it wins over "model loaded" (lv4 L186). At the default
+  # level it is dropped and "model loaded" ends the phase as before. No load_tensors line marks
+  # the end of the load: lv4 L116-129 print the buffer sizes before the data is read. The file
+  # is read in full before this line: load_tensors calls init_mappings(true)
+  # (src/llama-model.cpp:1906), and on Linux the mmap is created with MAP_POPULATE
+  # (src/llama-mmap.cpp:493). Not with --numa (no prefetch, src/llama-mmap.cpp:486), nor when a
+  # tensor is read lazily (--lazy-mode on, or auto for an arch-marked tensor over 4 GiB; the
+  # log says "lazy read enabled"): the pages are then read on demand later, after this line.
+  - id: llamacpp.context.weights.load.end
+    regex: "llama_context: constructing llama_context$"
+    min_log_level: 4
+
+  # kv-alloc, at -lv 4 only: from building the context (lv4 L131) to the KV buffer allocated
+  # (lv4 L147, printed after the allocation), with its size in MiB as the phase's mib attribute.
+  # Warmup and slot setup (lv4 L161-185) print no phase boundary and stay unattributed.
+  - id: llamacpp.kv.start
+    regex: "llama_context: constructing llama_context$"
+    min_log_level: 4
+  - id: llamacpp.kv.end
+    regex: 'llama_kv_cache: +CPU KV buffer size = +(?P<mib>[0-9.]+) MiB'
+    min_log_level: 4
+
   # server-ready starts here and ends at the pod's Ready condition (/health answers 503 until
   # the model is loaded). Line 15, printed after "model loaded"; this build prints no earlier
   # listening line.
   - id: llamacpp.server.listening
     regex: ": listening on https?://"
 
-# No kv.* markers: kv-alloc prints nothing separate at the default level, so it is absent
-# without a warning (decision 0003).
+# At the default level kv-alloc prints nothing separate and the kv markers are dropped, so it
+# is absent without a warning (decisions 0003 and 0010).
 facts:
-  # Line 6: the --hf-repo, or the model path.
+  # L6, lv4 L14: the --hf-repo, or the model path.
   - key: model.ref
     regex: "load_model: loading model '(?P<v>[^']+)'"
+  # lv4 L5: "build 11889 (d854d98ba)"; the default level does not print it.
+  - key: engine.version
+    regex: 'common_params_print_info: build (?P<v>[0-9]+) \('
+    min_log_level: 4
 
 # llama.cpp has no torch.compile and no CUDA graph capture step, and says nothing about them.
 not_applicable: [compile, graph-capture]

@@ -191,11 +191,14 @@ func redactObjects(o k8s.Objects, strict bool) (captured, error) {
 	}
 	if o.Node != nil {
 		// Only what the manifest reads: labels (instance type, zone, GPU product), the kubelet
-		// version, capacity. Not the node's addresses, annotations or its other images.
+		// version, capacity. Not the node's addresses, annotations or its other images, and not
+		// the IDs that name the host (DK-CLI-BUG-20261029-capture-node-host-ids).
+		info := o.Node.Status.NodeInfo
+		info.MachineID, info.SystemUUID, info.BootID = "", "", ""
 		objects[files.NodeFile] = corev1.Node{
 			TypeMeta:   metav1.TypeMeta{Kind: "Node", APIVersion: "v1"},
 			ObjectMeta: metav1.ObjectMeta{Name: o.Node.Name, Labels: o.Node.Labels},
-			Status:     corev1.NodeStatus{NodeInfo: o.Node.Status.NodeInfo, Capacity: o.Node.Status.Capacity, Allocatable: o.Node.Status.Allocatable},
+			Status:     corev1.NodeStatus{NodeInfo: info, Capacity: o.Node.Status.Capacity, Allocatable: o.Node.Status.Allocatable},
 		}
 	}
 	c := captured{files: map[string][]byte{}, target: ""}
@@ -394,7 +397,8 @@ Every level:
   ` + "`[redacted]`" + `.
 - The value of a secret-named flag (` + "`--api-key x`, `--hf-token=x`" + `) in args and command.
 - The ` + "`" + lastApplied + "`" + ` annotation and managedFields.
-- From node.json, everything but its name, labels, kubelet and system info, and capacity.
+- From node.json, everything but its name, labels, kubelet and system info, and capacity;
+  the system info without the machine ID, system UUID and boot ID.
 - In every string of every file and every log line: values shaped like a known token (Hugging
   Face, OpenAI-style, GitHub, Slack, AWS access key ids, JWTs).
 

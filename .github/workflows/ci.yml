@@ -26,6 +26,8 @@ jobs:
       - run: bash .claude/hooks/git-gate_test.sh
       # The same target developers run, so CI and a local gate cannot drift apart.
       - run: make gate
+      # The purity bans are a judge too; a later .golangci.yml edit that narrows them must fail.
+      - run: make lint-canary
 
   # The live path end to end on a CPU kind cluster (DESIGN.md section 9.1). Not in gate, so
   # gate stays fast; only on pull requests to main.

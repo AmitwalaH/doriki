@@ -75,6 +75,10 @@
         "version_note": {
           "type": "string",
           "description": "VersionNote is added to the warning when log_regex finds no version, to say why: for\nexample, that the engine prints its version only at a higher log level."
+        },
+        "log_level_regex": {
+          "type": "string",
+          "description": "LogLevelRegex reads the engine's log level, the named group \"level\" as a number, from\nthe first matching line in the first 200. Markers and facts with a MinLogLevel the level\ndoes not reach are dropped for that log; a log with no level line counts as the\nengine's default level (decision 0010)."
         }
       },
       "additionalProperties": false,
@@ -94,6 +98,10 @@
         },
         "untested": {
           "type": "boolean"
+        },
+        "min_log_level": {
+          "type": "integer",
+          "description": "MinLogLevel gates a fact as it gates a marker (decision 0010)."
         }
       },
       "additionalProperties": false,
@@ -125,6 +133,10 @@
         "start_from_duration": {
           "type": "string",
           "description": "StartFromDuration names a group holding a duration in seconds, on a marker whose ID ends\nin \".end\" for an engine that logs only how long a step took when it finishes. The\nmatching line also yields the \".start\" marker, stamped that many seconds earlier, with\nconfidence at most DerivedStartConfidence and the attribute AttrStartDerived."
+        },
+        "min_log_level": {
+          "type": "integer",
+          "description": "MinLogLevel is the log level, above the engine's default, from which the engine prints\nthis line. Below it the marker is neither matched nor expected (decision 0010)."
         }
       },
       "additionalProperties": false,

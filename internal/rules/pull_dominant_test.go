@@ -11,8 +11,8 @@ const pullDominant = "pull-dominant"
 
 // It fires, high, on every real fixture whose image was pulled and took 35% or more of the
 // boot (vLLM 268 of 456 s, llama.cpp 168 of 184 s, kind-nginx 20 of 21 s), and not on the two
-// fixtures whose image was already on the node. No fixture has a readable kubelet version, so
-// each says so and suggests no image volume.
+// fixtures whose image was already on the node. None of these three has a node object, so each
+// says the kubelet version is unread and suggests no image volume.
 func TestPullDominantFixtures(t *testing.T) {
 	for dir, share := range map[string]float64{
 		"vllm/testdata/0.32":          268.0 / 456,
@@ -43,7 +43,7 @@ func TestPullDominantFixtures(t *testing.T) {
 
 // Image volumes are suggested only from kubelet 1.35, when they are on by default; at 1.34
 // they are beta and off, so the advice says why it does not suggest them. The vLLM fixture's
-// report with only node.kubelet changed (no fixture has a kubelet version).
+// report with only node.kubelet changed (the one real kubelet is TestPullDominantRealKubelet's).
 func TestPullDominantKubeletVersion(t *testing.T) {
 	for kubelet, volumes := range map[string]bool{
 		"v1.34.1":           false,
@@ -94,5 +94,21 @@ func TestPullDominantNotComplete(t *testing.T) {
 	r.Totals.PendingToReadySeconds = nil
 	if _, ok := find(r, pullDominant); ok {
 		t.Errorf("fired with no total")
+	}
+}
+
+// On a real capture with a node object (the -lv 4 llama.cpp fixture, kind's kubelet v1.37.0)
+// the advice reads the kubelet version and suggests an image volume, from 1.35 on by default.
+// The capture was a cold pull; a warm one would not exercise the rule.
+func TestPullDominantRealKubelet(t *testing.T) {
+	a, ok := find(fixture(t, "llamacpp/testdata/11889-lv4"), pullDominant)
+	if !ok {
+		t.Fatalf("no %s advice: the capture's image-pull is below 35%%, so it was not a cold pull", pullDominant)
+	}
+	if k, _ := a.Evidence["kubelet"].(string); !strings.HasPrefix(k, "v1.37.") {
+		t.Errorf("evidence kubelet = %v, want the v1.37.x node.json records", a.Evidence["kubelet"])
+	}
+	if !strings.Contains(a.Fix, "image volume") || !strings.Contains(a.Text, "image volume") || strings.Contains(a.Text, "could not be read") {
+		t.Errorf("text %q, fix %q: want an image volume suggested for a v1.37 kubelet", a.Text, a.Fix)
 	}
 }

@@ -1,0 +1,19 @@
+Pod doriki/llamacpp-6f8fbbc7b4-ldm…   engine llamacpp 11889   node doriki-control-plane   total 4:50
+
+scheduling       │                                               0.0s
+image-pull       ██████████████████████████████████████████      4:35
+container-init                                             █     0:01
+engine-init                                                █     0:01
+weight-fetch                                               ██   ~0:10  ggml-org/models
+weight-load                                                 █    0.1s  ggml-org/models
+kv-alloc                                                    █    0.0s
+server-ready                                                █    0.9s
+
+skipped: compile, graph-capture (not applicable to this engine)
+absent: node-provision, first-token (not seen in the events or the log; pack llamacpp/11889)
+~ estimated: confidence below 1.0 (a start derived from a logged duration, or a heuristic marker)
+
+Advice
+  1. pull-dominant: image-pull took 95% of startup (275 s of 290 s) and the image was not on the
+     node; move the model weights into an image volume, prepull the image with a DaemonSet, or pull
+     lazily with SOCI or estargz.

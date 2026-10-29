@@ -59,11 +59,12 @@ func matching(regex string, lines []string) []int {
 	return out
 }
 
-// Every marker matches exactly the capture lines its comment in the pack cites, so the pack
-// says nothing the capture does not show. The fetch markers are at 0.8 because the download
-// prints nothing; the rest are at 1.0.
+// At the default level, every marker the pack keeps (decision 0010) matches exactly the
+// capture lines its comment in the pack cites, so the pack says nothing the capture does not
+// show. The fetch markers are at 0.8 because the download prints nothing; the rest are at 1.0.
 func TestLlamacppMarkersAgainstFixture(t *testing.T) {
-	p, lines := llamacppPack(t), llamacppLines(t)
+	lines := llamacppLines(t)
+	p := atLogLevel(t, llamacppPack(t), lines)
 	want := map[string][]int{
 		"llamacpp.engine.init.end":     {4},
 		"llamacpp.weights.fetch.start": {4},
@@ -89,7 +90,7 @@ func TestLlamacppMarkersAgainstFixture(t *testing.T) {
 	}
 	for _, m := range p.Markers {
 		if strings.Contains(m.ID, ".kv.") {
-			t.Errorf("%s: this pack declares no kv markers (decision 0003)", m.ID)
+			t.Errorf("%s: at the default level this pack keeps no kv markers (decisions 0003, 0010)", m.ID)
 		}
 	}
 }
@@ -122,9 +123,11 @@ func TestLlamacppDetection(t *testing.T) {
 	}
 }
 
-// Each fact reads a real line: the model the server loaded.
+// At the default level, each fact the pack keeps reads a real line: the model the server
+// loaded.
 func TestLlamacppFacts(t *testing.T) {
-	p, lines := llamacppPack(t), llamacppLines(t)
+	lines := llamacppLines(t)
+	p := atLogLevel(t, llamacppPack(t), lines)
 	for _, f := range p.Facts {
 		re := regexp.MustCompile(f.Regex)
 		var v string
