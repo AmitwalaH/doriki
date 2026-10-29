@@ -2,7 +2,8 @@
 
 **Date Discovered:** 2026-10-26
 **Severity:** LOW
-**Status:** OPEN
+**Status:** CLOSED (2026-10-29), by `feat(packs): llamacpp/11889 at -lv 4: fixture captured
+with doriki capture, build/context/KV markers, expected.json`
 **Label:** [ticket]
 **Found by:** the M2 agent, measured: a throwaway llama-server pod with `-lv 4` on the kind
 cluster, same image as the `llamacpp/11889` fixture
@@ -32,3 +33,14 @@ split weight-load into tensor load and KV allocation, and the manifest could car
 
 ## Related
 `packs/llamacpp/11889.yaml`; its `SOURCE.md` (the `-lv 4` comparison); decision 0003.
+
+## Resolution
+Option 1, with decision 0010 (log-level-gated markers), since the pack schema could not say
+"tested at `-lv 4`, not expected at the default level". A second real fixture,
+`packs/llamacpp/testdata/11889-lv4/`, taken with `doriki capture`. `packs/llamacpp/11889.yaml`
+reads the level from `verbosity = N`, and at level 4 adds an `engine.version` fact from the
+build line (lv4 L5), ends weight-load where the context is built (lv4 L131), and adds kv-alloc
+from there to the KV buffer line (lv4 L147) with its size as `mib`. No `load_tensors` marker:
+no line of it marks the end of the load. At the default level the gated entries are dropped,
+so the `11889` fixture's `expected.json` and CLI goldens are unchanged.
+`packs/llamacpp_lv4_test.go` and `packs/capture_test.go` hold it.
