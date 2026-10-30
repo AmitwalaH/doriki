@@ -1,6 +1,8 @@
 package phase
 
 import (
+	"cmp"
+	"math"
 	"math/rand"
 	"reflect"
 	"slices"
@@ -162,4 +164,74 @@ func TestPropertyGeneratorCoverage(t *testing.T) {
 		t.Errorf("restarts %d, cross-source ties %d: want both > 0", restarts, ties)
 	}
 	t.Logf("states %v, inputs with restarts %d, with cross-source ties %d", seen, restarts, ties)
+}
+
+// uncovered is the input's span minus the union of the complete phases, in seconds: the most
+// time the report can honestly call a gap. A phase whose end is not after its start covers
+// nothing.
+func uncovered(phases []model.Phase, span float64) float64 {
+	type interval struct{ start, end float64 }
+	var in []interval
+	for _, p := range phases {
+		if p.State == model.StateComplete && p.End.After(p.Start) {
+			in = append(in, interval{p.Start.Sub(t0).Seconds(), p.End.Sub(t0).Seconds()})
+		}
+	}
+	slices.SortFunc(in, func(a, b interval) int { return cmp.Compare(a.start, b.start) })
+	covered, reach := 0.0, math.Inf(-1)
+	for _, iv := range in {
+		if iv.start > reach {
+			reach = iv.start
+		}
+		if iv.end > reach {
+			covered += iv.end - reach
+			reach = iv.end
+		}
+	}
+	return span - covered
+}
+
+// DK-PHASE-BUG-20261029-gap-after-nested-phase: for the same random inputs as
+// TestAssignProperties, the gaps of the report and of every listed attempt never add up to
+// more than the span minus the union of complete phases, so no time a phase covers is ever
+// also reported as a gap, however phases overlap or nest.
+func TestGapsNeverCoverAPhase(t *testing.T) {
+	property := func(events eventSet, allAttempts bool) bool {
+		r, err := Assign(events, Options{Markers: propertyMarkers, AllAttempts: allAttempts})
+		if err != nil {
+			t.Logf("Assign: %v", err)
+			return false
+		}
+		span := inputSpan(events)
+		check := func(phases []model.Phase, gaps []model.Gap) bool {
+			sum := 0.0
+			for _, g := range gaps {
+				sum += g.Seconds
+			}
+			if limit := uncovered(phases, span); sum > limit+1e-9 {
+				t.Logf("gaps %+v add up to %v s, more than the %v s no complete phase covers", gaps, sum, limit)
+				for _, p := range phases {
+					if p.State == model.StateComplete {
+						t.Logf("  %s %v to %v", p.Name, p.Start.Sub(t0).Seconds(), p.End.Sub(t0).Seconds())
+					}
+				}
+				return false
+			}
+			return true
+		}
+		if !check(r.Phases, r.Gaps) {
+			return false
+		}
+		for _, a := range r.Attempts {
+			if !check(a.Phases, a.Gaps) {
+				t.Logf("in attempt %d", a.Attempt)
+				return false
+			}
+		}
+		return true
+	}
+	cfg := &quick.Config{MaxCount: 1000, Rand: rand.New(rand.NewSource(1))} //nolint:gosec // G404: seeded on purpose so a property failure reproduces
+	if err := quick.Check(property, cfg); err != nil {
+		t.Error(err)
+	}
 }
