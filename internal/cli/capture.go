@@ -89,6 +89,10 @@ func runCapture(cmd *cobra.Command, arg string, kube *genericclioptions.ConfigFl
 	if err != nil {
 		return err
 	}
+	// At the default level pod.json holds both names, so SOURCE.md's command can name them.
+	// The namespace is the pod's, not the one the flags resolved, since a kubeconfig context's
+	// default namespace belongs to this machine (DK-CLI-BUG-20261029-capture-source-command).
+	b.target = string(t.Kind) + "/" + t.Name + " -n " + o.Pod.Namespace
 	if level == redactStrict {
 		h, err := newHasher(o, t.Name)
 		if err != nil {
@@ -380,15 +384,11 @@ func packFor(all []model.Pack, name string) string {
 // sourceMD is the bundle's SOURCE.md: what made it and what was removed, so the person it is
 // sent to knows what they hold (DESIGN.md section 10.3).
 func sourceMD(c captured, level, pack string, at time.Time) string {
-	target := c.target
-	if target == "" {
-		target = "the pod named on the command line"
-	}
 	var b strings.Builder
 	fmt.Fprintf(&b, "# doriki capture\n\n")
 	fmt.Fprintf(&b, "- doriki: %s (commit %s)\n- Captured: %s\n- Parser pack: %s\n- Redaction: %s\n\n",
 		version, commit, at.UTC().Format(time.RFC3339), pack, level)
-	fmt.Fprintf(&b, "## Commands\n\n```sh\ndoriki capture %s --out <dir> --redact-level %s\ndoriki --from-files <dir>   # replays this report\n```\n\n", target, level)
+	fmt.Fprintf(&b, "## Commands\n\n```sh\ndoriki capture %s --out <dir> --redact-level %s\ndoriki --from-files <dir>   # replays this report\n```\n\n", c.target, level)
 	b.WriteString(`## What was removed
 
 Every level:

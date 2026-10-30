@@ -433,3 +433,21 @@ func TestEchoedAPIKeyRedacted(t *testing.T) {
 		t.Errorf("model.ref = %q, want facebook/opt-125m from the same line", r.Manifest.Model.Ref)
 	}
 }
+
+// At the default level SOURCE.md's Commands block is a command the recipient can paste: the
+// target as given and the pod's namespace, which pod.json holds anyway. The namespace is
+// written even when -n was not typed, since one taken from the kubeconfig context is the
+// capturing machine's and would name the wrong namespace elsewhere
+// (DK-CLI-BUG-20261029-capture-source-command).
+func TestCaptureSourceCommand(t *testing.T) {
+	pod := fakeCluster(t, fixture, nil, "")
+	out := filepath.Join(t.TempDir(), "bundle")
+	if _, err := run(t, "capture", "pod/"+pod.Name, "--out", out); err != nil {
+		t.Fatalf("capture: %v", err)
+	}
+	source := bundle(t, out)["SOURCE.md"]
+	want := "doriki capture pod/" + pod.Name + " -n " + pod.Namespace + " --out <dir> --redact-level default\n"
+	if !strings.Contains(source, want) || strings.Contains(source, "named on the command line") {
+		t.Errorf("SOURCE.md does not have %q:\n%s", want, source)
+	}
+}
