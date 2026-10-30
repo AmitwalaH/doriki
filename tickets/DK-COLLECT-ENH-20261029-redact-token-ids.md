@@ -2,7 +2,7 @@
 
 **Date Discovered:** 2026-10-29
 **Severity:** LOW
-**Status:** OPEN
+**Status:** CLOSED (2026-10-30), by `docs: README capture notes, close four tickets, file the DRA ticket`
 **Label:** [ticket]
 **Found by:** the lv4-fixture-canary agent, read in the first `doriki capture` bundle
 **Filed by:** the lv4-fixture-canary agent
@@ -31,3 +31,9 @@ written against the redacted text.
 
 ## Related
 `DK-COLLECT-ENH-20261028-secret-keys-in-log-lines`.
+
+## Resolution
+Option 1. The README's capture section says the value after a log key ending in `token` is
+redacted on purpose (`BOS token = [redacted] '<s>'`), in the bundle and in a report's
+`--include-events` lines, and that no parser pack reads those lines (checked in
+`packs/llamacpp/*.yaml`, 2026-10-30). Revisit with option 2 when a pack needs a tokenizer line.

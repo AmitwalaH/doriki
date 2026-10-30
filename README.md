@@ -123,6 +123,10 @@ restart), `node.json`, `manifest.json`, `report.json` and a `SOURCE.md` saying w
   registry and org are replaced by salted hashes, the same in every file; the image name is kept
   only when a parser pack recognises it. IP addresses are dropped. The fingerprint in the bundle
   then differs from a live report's.
+- **Removed on purpose, though not secret:** the value after a log key ending in `token`, such
+  as llama.cpp's tokenizer ids: `BOS token = 1 '<s>'` is written as `BOS token = [redacted]
+  '<s>'`, in the bundle and in the log lines a report shows (`--include-events`). Redaction
+  errs on the safe side here; no parser pack reads those lines.
 - **Not removed:** a secret with no known shape that the engine prints without a secret-named
   key in front of it. Read `container.log` before you share it.
 
@@ -176,7 +180,9 @@ today:
   Compile and graph capture are shown as not applicable to this engine. At the default level the
   server does not print its build, so the report warns that the version was not read. At
   `-lv 4` it does: the report names build 11889 with no warning, weight-load ends where the
-  context is built, and kv-alloc is observed, with the KV buffer size in the JSON report.
+  context is built, and kv-alloc is observed, with the KV buffer size on the terminal (as GiB
+  with one decimal, so the test model's 1.69 MiB reads `<0.1 GiB`) and, as logged, in the JSON
+  report.
   With llama.cpp's default mmap load on Linux the model file is read in full before the context
   is built, so weight-load includes the disk read; with `--numa`, or a tensor read lazily
   (`--lazy-mode`), pages are read on demand later and that time is not in weight-load.

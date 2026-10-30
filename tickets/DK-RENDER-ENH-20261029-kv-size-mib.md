@@ -2,7 +2,7 @@
 
 **Date Discovered:** 2026-10-29
 **Severity:** LOW
-**Status:** OPEN
+**Status:** CLOSED (2026-10-30), by `feat(render): KV size from mib as GiB on the terminal`
 **Label:** [ticket]
 **Found by:** the lv4-fixture-canary agent, read in code; the owner agreed to defer it
 **Filed by:** the lv4-fixture-canary agent
@@ -27,3 +27,9 @@ where GiB with one decimal reads fine.
 
 ## Related
 Decision 0010; `packs/llamacpp/11889.yaml`.
+
+## Resolution
+Option 1. `attrs` (`internal/render/text/text.go`) renders `mib` as GiB with one decimal, and
+below 0.1 GiB as `<0.1 GiB`, the form "one decimal" takes for a small value (DESIGN.md section
+7.5, unchanged). `gib` renders as before. The JSON report keeps `mib` as the engine printed it.
+The `11889-lv4` text golden's kv-alloc row gained `<0.1 GiB`.
