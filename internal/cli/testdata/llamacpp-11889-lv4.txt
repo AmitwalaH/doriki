@@ -6,7 +6,7 @@ container-init                                             █     0:01
 engine-init                                                █     0:01
 weight-fetch                                               ██   ~0:10  ggml-org/models
 weight-load                                                 █    0.1s  ggml-org/models
-kv-alloc                                                    █    0.0s
+kv-alloc                                                    █    0.0s  <0.1 GiB
 server-ready                                                █    0.9s
 
 skipped: compile, graph-capture (not applicable to this engine)

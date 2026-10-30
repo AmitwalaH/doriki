@@ -9,6 +9,7 @@ import (
 	"io"
 	"math"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -283,11 +284,28 @@ func attrs(p model.Phase) string {
 	}
 	if g := p.Attrs["gib"]; g != "" {
 		parts = append(parts, g+" GiB")
+	} else if m := p.Attrs["mib"]; m != "" {
+		parts = append(parts, sizeFromMiB(m))
 	}
 	if n := p.Attrs["tokens"]; n != "" {
 		parts = append(parts, n+" tokens")
 	}
 	return strings.Join(parts, ", ")
+}
+
+// sizeFromMiB shows a size an engine logged in MiB as GiB with one decimal (DESIGN.md 7.5).
+// Below 0.1 GiB one decimal would read "0.0 GiB", as if nothing were allocated, so it reads
+// "<0.1 GiB": that is how one decimal shows a small size. A value that is not a number is
+// shown as the engine printed it.
+func sizeFromMiB(m string) string {
+	mib, err := strconv.ParseFloat(m, 64)
+	switch {
+	case err != nil:
+		return m + " MiB"
+	case mib < 0.1*1024:
+		return "<0.1 GiB"
+	}
+	return fmt.Sprintf("%.1f GiB", mib/1024)
 }
 
 // duration is m:ss, h:mm:ss from an hour, and one decimal under a second (DESIGN.md 7.5).
