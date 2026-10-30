@@ -529,3 +529,67 @@ func TestEngineInit(t *testing.T) {
 		t.Errorf("generic: engine-init expected")
 	}
 }
+
+// nestedBoot has kv-alloc (5 to 6 s) inside weight-load (0 to 30 s), as an engine that
+// allocates the KV cache while it loads would log them (DESIGN.md section 4.2), with the
+// server listening at listening and Ready 1 s later.
+func nestedBoot(listening float64) []model.Event {
+	return []model.Event{
+		status(model.KindPodCreated, 0),
+		k8s(model.KindScheduled, 0),
+		started(0, 0),
+		logLine(0),
+		marker("x.weights.load.start", 0),
+		marker("x.kv.start", 5),
+		marker("x.kv.end", 6),
+		marker("x.weights.load.end", 30),
+		marker("x.server.listening", listening),
+		status(model.KindPodReady, listening+1),
+	}
+}
+
+// DK-PHASE-BUG-20261029-gap-after-nested-phase: a gap is measured from the latest end among
+// the complete phases so far, so time inside weight-load is never a gap, even after a phase
+// nested in it; a real gap is named after the phase that ended latest.
+func TestGapAfterNestedPhase(t *testing.T) {
+	r := mustAssign(t, nestedBoot(30), Options{Markers: enginePack})
+	if kv := phaseByName(r, model.PhaseKVAlloc); kv.State != model.StateComplete || !kv.End.Equal(at(6)) {
+		t.Fatalf("kv-alloc = %+v, want complete, ending at 6", kv)
+	}
+	if len(r.Gaps) != 0 {
+		t.Errorf("server-ready where weight-load ends: gaps = %+v, want none", r.Gaps)
+	}
+
+	r = mustAssign(t, nestedBoot(40), Options{Markers: enginePack})
+	want := []model.Gap{{After: model.PhaseWeightLoad, Before: model.PhaseServerReady, Seconds: 10}}
+	if !reflect.DeepEqual(r.Gaps, want) {
+		t.Errorf("server-ready 10 s after weight-load: gaps = %+v, want %+v", r.Gaps, want)
+	}
+}
+
+// On a later attempt the "earlier attempts" gap (decision 0007) is unchanged by a nested
+// phase after it, and the nested phase adds no gap of its own.
+func TestEarlierAttemptsGapWithNestedPhase(t *testing.T) {
+	var events []model.Event
+	for _, e := range restartBoot() {
+		if e.Kind != model.KindPodReady {
+			events = append(events, e)
+		}
+	}
+	events = append(events,
+		marker("x.weights.load.start", 4),
+		marker("x.kv.start", 5),
+		marker("x.kv.end", 6),
+		marker("x.weights.load.end", 10),
+		marker("x.server.listening", 10),
+		status(model.KindPodReady, 11),
+	)
+	r := mustAssign(t, events, Options{Markers: enginePack})
+	if r.Attempt != 1 || phaseByName(r, model.PhaseKVAlloc).State != model.StateComplete {
+		t.Fatalf("attempt %d, kv-alloc %+v; want attempt 1 with kv-alloc complete", r.Attempt, phaseByName(r, model.PhaseKVAlloc))
+	}
+	want := []model.Gap{{After: model.PhaseScheduling, Before: model.PhaseImagePull, Seconds: 3, Reason: model.GapEarlierAttempts}}
+	if !reflect.DeepEqual(r.Gaps, want) {
+		t.Errorf("gaps = %+v, want %+v", r.Gaps, want)
+	}
+}

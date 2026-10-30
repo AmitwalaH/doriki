@@ -434,13 +434,16 @@ func setAttr(attrs map[string]string, k, v string) map[string]string {
 }
 
 // gaps reports time over 1 s between consecutive complete phases (DESIGN.md section 6.1
-// step 5). Overlapping phases leave no gap. from is a later attempt's boundary (zero for the
-// first attempt): time before it, after a pod-level phase, was spent by the earlier attempts,
-// so that part is a gap with reason "earlier attempts" (decision 0007); the rest is
-// unattributed.
+// step 5). Overlapping phases leave no gap. Each gap is measured from the latest end among
+// the complete phases so far, not from the previous phase in the fixed order, so time inside
+// a longer earlier phase is never a gap after a phase nested in it; that phase is the gap's
+// After (DK-PHASE-BUG-20261029-gap-after-nested-phase). On equal ends the later phase in the
+// order is kept. from is a later attempt's boundary (zero for the first attempt): time before
+// it, after a pod-level phase, was spent by the earlier attempts, so that part is a gap with
+// reason "earlier attempts" (decision 0007); the rest is unattributed.
 func gaps(phases []model.Phase, from time.Time) []model.Gap {
 	var out []model.Gap
-	var prev *model.Phase
+	var prev *model.Phase // the complete phase that ends latest so far
 	for i := range phases {
 		p := &phases[i]
 		if p.State != model.StateComplete {
@@ -462,7 +465,9 @@ func gaps(phases []model.Phase, from time.Time) []model.Gap {
 				out = append(out, model.Gap{After: prev.Name, Before: p.Name, Seconds: d.Seconds()})
 			}
 		}
-		prev = p
+		if prev == nil || !p.End.Before(prev.End) {
+			prev = p
+		}
 	}
 	return out
 }

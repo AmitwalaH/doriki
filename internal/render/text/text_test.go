@@ -282,3 +282,27 @@ func TestGapReason(t *testing.T) {
 		t.Errorf("earlier attempts cells %d-%d, gap %d-%d; want 0-10 then 11-21:\n%s", ef, el, gf, gl, out)
 	}
 }
+
+// DK-RENDER-ENH-20261029-kv-size-mib: a size logged in MiB is shown as GiB with one decimal
+// (DESIGN.md section 7.5), and below 0.1 GiB as "<0.1 GiB" rather than a false "0.0 GiB"; a
+// size logged in GiB is shown as the engine printed it.
+func TestKVSizeFromMiB(t *testing.T) {
+	for _, c := range []struct {
+		attrs map[string]string
+		want  string
+	}{
+		{map[string]string{"mib": "1.69"}, "<0.1 GiB"},   // llama.cpp's test model
+		{map[string]string{"mib": "100"}, "<0.1 GiB"},    // 0.098 GiB: below 0.1, not rounded up
+		{map[string]string{"mib": "102.4"}, "0.1 GiB"},   // exactly 0.1 GiB
+		{map[string]string{"mib": "4096"}, "4.0 GiB"},    // a real model's buffer
+		{map[string]string{"mib": "1.2.3"}, "1.2.3 MiB"}, // not a number: as the engine printed it
+		{map[string]string{"gib": "1.0", "tokens": "29,056"}, "1.0 GiB, 29,056 tokens"},
+	} {
+		kv := complete(model.PhaseKVAlloc, 0, 1)
+		kv.Attrs = c.attrs
+		out := render(t, model.Report{Phases: []model.Phase{kv}}, false)
+		if got := row(t, out, "kv-alloc"); !strings.HasSuffix(got, "  "+c.want) {
+			t.Errorf("attrs %v: row %q, want it to end in %q", c.attrs, got, c.want)
+		}
+	}
+}

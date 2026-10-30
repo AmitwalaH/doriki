@@ -2,7 +2,7 @@
 
 **Date Discovered:** 2026-10-29
 **Severity:** LOW
-**Status:** OPEN
+**Status:** CLOSED (2026-10-30), by `fix(cli): capture SOURCE.md names the target at the default level`
 **Label:** [ticket]
 **Found by:** the lv4-fixture-canary agent, read in the first `doriki capture` bundle
 **Filed by:** the lv4-fixture-canary agent
@@ -26,3 +26,11 @@ The block is there so the recipient can reproduce the bundle. The pod's name is 
 
 ## Related
 M3 slice 5 (`capture`).
+
+## Resolution
+Option 1. At the default level the Commands block reads `doriki capture pod/<name> -n <ns>
+--out <dir> --redact-level default`. The namespace is always written and comes from the pod
+object, not the kubeconfig context, which belongs to the capturing machine (owner's answer at
+the plan checkpoint, 2026-10-30). `--context` and `--kubeconfig` are not written. Strict keeps
+the hashed target. Test: `TestCaptureSourceCommand`; `TestCaptureStrict` already checks that no
+plain pod name is in a strict SOURCE.md.
