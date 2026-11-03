@@ -205,14 +205,16 @@ today:
 
 One real startup from a GPU pod turns those unverified phases and rules into tested ones. Right
 after the pod becomes Ready (Kubernetes keeps events for about an hour), run `capture`, read
-`container.log` and attach the directory to an issue, with the vLLM version, GPU model and
-image:
+`container.log` and attach the directory, zipped, to an issue, with the vLLM version, GPU
+model and image:
 
 ```sh
-doriki capture pod/<your vLLM pod> -n <namespace> --out vllm-gpu-capture/
+doriki capture pod/<your vLLM pod> -n <namespace> --out vllm-gpu-capture/ --redact-level strict
 ```
 
-With a doriki older than v0.1.0-rc.1, save the three files with kubectl instead:
+[docs/fixtures.md](docs/fixtures.md) shows how a capture becomes a fixture.
+
+With a doriki older than v0.1.0-rc.2, save the three files with kubectl instead:
 
 ```sh
 POD=<your vLLM pod>
@@ -258,8 +260,8 @@ kubectl create clusterrolebinding doriki-reader --clusterrole=doriki-reader --us
 |---|---|---|
 | GitHub Releases | download an archive and `checksums.txt`, then verify (below) | available after v0.1.0-rc.1 |
 | Homebrew | `brew install AmitwalaH/tap/doriki` | available after v0.1.0-rc.1 |
-| Container | `docker run --rm ghcr.io/amitwalah/doriki:0.1.0-rc.1 version` | available after v0.1.0-rc.1 |
-| Go | `go install github.com/AmitwalaH/doriki/cmd/doriki@v0.1.0-rc.1` | available after v0.1.0-rc.1 |
+| Container | `docker run --rm ghcr.io/amitwalah/doriki:0.1.0-rc.2 version` | available after v0.1.0-rc.1 |
+| Go | `go install github.com/AmitwalaH/doriki/cmd/doriki@v0.1.0-rc.2` | available after v0.1.0-rc.1 |
 | krew | `kubectl krew install doriki` | after v0.1.0, once the krew-index pull request is merged |
 
 Every release's `checksums.txt` is signed with cosign, keyless, by the release workflow; each
@@ -267,7 +269,7 @@ archive also has an SPDX SBOM. To verify a download:
 
 ```sh
 cosign verify-blob \
-  --certificate-identity 'https://github.com/AmitwalaH/doriki/.github/workflows/release.yml@refs/tags/v0.1.0-rc.1' \
+  --certificate-identity 'https://github.com/AmitwalaH/doriki/.github/workflows/release.yml@refs/tags/v0.1.0-rc.2' \
   --certificate-oidc-issuer 'https://token.actions.githubusercontent.com' \
   --bundle checksums.txt.sigstore.json checksums.txt
 sha256sum --check --ignore-missing checksums.txt
