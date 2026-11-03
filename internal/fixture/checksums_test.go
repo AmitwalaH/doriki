@@ -101,3 +101,21 @@ func TestVerifyMergesSections(t *testing.T) {
 		t.Errorf("Verify: %v, want container.log has no checksum", err)
 	}
 }
+
+// Lines writes one line per captured file, sorted, and none for the files that are not
+// captures; a SOURCE.md made of them passes Verify.
+func TestLines(t *testing.T) {
+	files := map[string]string{"pod.json": "{}\n", "container.log": "a log line\n", "report.json": "{}", "expected.json": "{}"}
+	in := map[string][]byte{}
+	for k, v := range files {
+		in[k] = []byte(v)
+	}
+	got := Lines(in)
+	if want := entry("container.log", files["container.log"]) + entry("pod.json", files["pod.json"]); got != want {
+		t.Errorf("Lines:\n%s\nwant:\n%s", got, want)
+	}
+	files["SOURCE.md"] = "# x\n\n" + Heading + "\n\n" + got
+	if err := Verify(write(t, files)); err != nil {
+		t.Errorf("Verify on Lines' output: %v", err)
+	}
+}

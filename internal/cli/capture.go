@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"maps"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -23,6 +24,8 @@ import (
 
 	"github.com/AmitwalaH/doriki/internal/collect/files"
 	"github.com/AmitwalaH/doriki/internal/collect/k8s"
+	// Named so it does not clash with the tests' fixture path, a constant of this package.
+	fixturesum "github.com/AmitwalaH/doriki/internal/fixture"
 	"github.com/AmitwalaH/doriki/internal/manifest"
 	"github.com/AmitwalaH/doriki/internal/model"
 	renderjson "github.com/AmitwalaH/doriki/internal/render/json"
@@ -131,8 +134,12 @@ func runCapture(cmd *cobra.Command, arg string, kube *genericclioptions.ConfigFl
 	written := map[string][]byte{
 		"report.json":   report.Bytes(),
 		"manifest.json": append(m, '\n'),
-		"SOURCE.md":     []byte(sourceMD(b, level, r.Manifest.Engine.ParserPack, at)),
 	}
+	// The checksums are of the bytes as written, after strict's hashing, so the bundle is a
+	// fixture as it stands (DK-CLI-ENH-20261029-capture-writes-checksums).
+	all := maps.Clone(b.files)
+	maps.Copy(all, written)
+	written["SOURCE.md"] = []byte(sourceMD(b, level, r.Manifest.Engine.ParserPack, at, fixturesum.Lines(all)))
 	for name, body := range written {
 		if err := os.WriteFile(filepath.Join(out, name), body, 0o600); err != nil {
 			return err
@@ -382,8 +389,9 @@ func packFor(all []model.Pack, name string) string {
 }
 
 // sourceMD is the bundle's SOURCE.md: what made it and what was removed, so the person it is
-// sent to knows what they hold (DESIGN.md section 10.3).
-func sourceMD(c captured, level, pack string, at time.Time) string {
+// sent to knows what they hold (DESIGN.md section 10.3), and last the checksums of its files,
+// which a fixture made from the bundle needs (packs/fixtures_test.go).
+func sourceMD(c captured, level, pack string, at time.Time, checksums string) string {
 	var b strings.Builder
 	fmt.Fprintf(&b, "# doriki capture\n\n")
 	fmt.Fprintf(&b, "- doriki: %s (commit %s)\n- Captured: %s\n- Parser pack: %s\n- Redaction: %s\n\n",
@@ -422,5 +430,12 @@ Images:
 			fmt.Fprintf(&b, "- %s\n", rule)
 		}
 	}
+	fmt.Fprintf(&b, "\n%s\n\n", fixturesum.Heading)
+	b.WriteString(`The sha256 of each file ` + "`doriki capture`" + ` wrote except this one and the derived
+` + "`report.json`" + `; once the bundle is a fixture, ` + "`packs/fixtures_test.go`" + ` recomputes them, so
+a file changed after the capture fails ` + "`make gate`" + `.
+
+`)
+	b.WriteString(checksums)
 	return b.String()
 }

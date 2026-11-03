@@ -1,4 +1,4 @@
-// Package fixture checks the "## Checksums" section of a fixture's SOURCE.md: the sha256 of
+// Package fixture writes and checks the "## Checksums" section of a fixture's SOURCE.md: the sha256 of
 // every captured file, so a fixture edited by an editor or a tool fails the gate instead of
 // passing silently (DESIGN.md section 9.2, DK-REL-ENH-20261026-editor-rewrites).
 package fixture
@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"maps"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -25,6 +26,20 @@ var checksumLine = regexp.MustCompile("^- `([^`]+)`: `sha256:([0-9a-f]{64})`$")
 // and the goldens that -update rewrites after review: expected.json, and the report.json a
 // fixture made by doriki capture holds.
 var notCaptures = []string{"SOURCE.md", "expected.json", "report.json"}
+
+// Lines is a Checksums section's entries for a bundle's files: one per captured file, sorted
+// by name, in the format Verify reads.
+func Lines(files map[string][]byte) string {
+	var b strings.Builder
+	for _, name := range slices.Sorted(maps.Keys(files)) {
+		if slices.Contains(notCaptures, name) {
+			continue
+		}
+		sum := sha256.Sum256(files[name])
+		fmt.Fprintf(&b, "- `%s`: `sha256:%s`\n", name, hex.EncodeToString(sum[:]))
+	}
+	return b.String()
+}
 
 // Verify checks that every captured file in dir has the sha256 its SOURCE.md records, and that
 // SOURCE.md lists no file that is not there. The error names every file that fails.
