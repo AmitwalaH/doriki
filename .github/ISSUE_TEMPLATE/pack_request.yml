@@ -6,8 +6,22 @@ body:
     attributes:
       value: |
         doriki's parser packs are written only from real captures, never from memory, so a
-        capture of one real startup is what makes support possible. Save the three files right
-        after the pod becomes Ready (Kubernetes keeps events for about an hour):
+        capture of one real startup is what makes support possible. Right after the pod becomes
+        Ready (Kubernetes keeps events for about an hour), with doriki v0.1.0-rc.2 or newer:
+
+        ```sh
+        doriki capture pod/<pod> -n <ns> --out <dir> --redact-level strict
+        ```
+
+        `capture` removes secrets and hashes names, and its `SOURCE.md` says what it removed.
+        Read `container.log` yourself before attaching: a secret the engine prints with no
+        known token shape stays. GitHub does not take folders, so zip the directory
+        (`zip -r <dir>.zip <dir>`) and attach the zip below.
+        [docs/fixtures.md](https://github.com/AmitwalaH/doriki/blob/main/docs/fixtures.md)
+        shows how a bundle becomes a fixture.
+
+        **With a doriki older than rc.2 or no doriki at all**, save the three files with
+        kubectl instead:
 
         ```sh
         POD=<your pod>
@@ -16,10 +30,11 @@ body:
         kubectl get events --field-selector involvedObject.name="$POD" -o json > events.json
         ```
 
-        **Redact before attaching**, as the README's "Please send a capture" section describes:
+        Redact them by hand, as the README's "Please send a capture" section describes:
         replace secret values (`HF_TOKEN`, API keys, `--api-key`, passwords) with `REDACTED`;
         replace names only if you must, the same way everywhere; never change a timestamp,
-        reorder lines or delete log lines. Then say below what you changed.
+        reorder lines or delete log lines. Attach the three files (rename to `.txt` if GitHub
+        refuses a file type).
   - type: input
     id: engine
     attributes:
@@ -44,17 +59,25 @@ body:
     validations:
       required: false
   - type: textarea
-    id: captures
+    id: bundle
     attributes:
-      label: The three capture files
-      description: Drag `container.log`, `pod.json` and `events.json` here (rename to `.txt` if GitHub refuses a file type).
+      label: The capture
+      description: Drag the zipped `capture` directory here, or the three kubectl files.
     validations:
       required: true
   - type: textarea
     id: redactions
     attributes:
-      label: What you redacted or renamed
-      description: Every change you made to the files, so we know what is original.
-      placeholder: "Replaced the HF_TOKEN value in pod.json with REDACTED; renamed node gpu-node-7 to node-a everywhere."
+      label: What you removed or renamed by hand
+      description: Anything you changed in addition to what `capture` removed (its `SOURCE.md` lists that), so we know what is original. "Nothing" is a fine answer.
+      placeholder: "Nothing beyond capture. / Replaced a password the server echoes on log line 12 with REDACTED."
+    validations:
+      required: true
+  - type: input
+    id: log-level
+    attributes:
+      label: Log level or verbosity flags
+      description: Any flag or variable that changes how much the engine logs, or "defaults". Some lines only appear at a higher level (llama.cpp prints its build and KV cache only at `-lv 4`).
+      placeholder: "-lv 4, or defaults"
     validations:
       required: true
