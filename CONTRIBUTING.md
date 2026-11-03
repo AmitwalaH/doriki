@@ -7,7 +7,8 @@ Thank you for helping. doriki is small on purpose, so a few rules keep it that w
 1. Install Go 1.26 and golangci-lint v2.
 2. Run `make gate` (build, lint, test) and make sure it is green. CI runs the same target.
 3. Sign off every commit (`git commit -s`). doriki uses the
-   [Developer Certificate of Origin](https://developercertificate.org/) instead of a CLA.
+   [Developer Certificate of Origin](https://developercertificate.org/) instead of a CLA, from
+   November 2026; earlier commits are not signed off.
 
 ## What we accept
 
@@ -15,8 +16,10 @@ Thank you for helping. doriki is small on purpose, so a few rules keep it that w
   by a human, and the author must have run the tests locally.
 - Parser packs must come with a real fixture captured with `doriki capture` under
   `packs/<engine>/testdata/<version>/`, with a `SOURCE.md`. Synthetic logs are not accepted.
-- Fixtures and golden files are never edited by hand. Regenerate them with
-  `go test ./... -update` and explain the diff in the pull request.
+  [docs/fixtures.md](docs/fixtures.md) walks from a capture to a merged fixture.
+- Fixtures and golden files are never edited by hand, and neither is a fixture's `report.json`,
+  which `capture` derives from the other files. Regenerate them with `go test ./... -update`
+  and explain the diff in the pull request.
 
 ## What we close
 

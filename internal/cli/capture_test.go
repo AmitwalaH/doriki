@@ -2,11 +2,15 @@ package cli
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"io"
+	"maps"
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 	"testing"
 
@@ -16,6 +20,7 @@ import (
 	"k8s.io/client-go/kubernetes/fake"
 
 	"github.com/AmitwalaH/doriki/internal/collect/k8s"
+	fixturesum "github.com/AmitwalaH/doriki/internal/fixture"
 )
 
 const llamacppFixture = "../../packs/llamacpp/testdata/11889/"
@@ -449,5 +454,85 @@ func TestCaptureSourceCommand(t *testing.T) {
 	want := "doriki capture pod/" + pod.Name + " -n " + pod.Namespace + " --out <dir> --redact-level default\n"
 	if !strings.Contains(source, want) || strings.Contains(source, "named on the command line") {
 		t.Errorf("SOURCE.md does not have %q:\n%s", want, source)
+	}
+}
+
+// SOURCE.md ends with a Checksums section in the fixture format: one line per file the bundle
+// holds, but SOURCE.md itself and the derived report.json, sorted by name, each with the
+// sha256 of the file as written, at both levels and with a previous container's log
+// (DK-CLI-ENH-20261029-capture-writes-checksums).
+func TestCaptureChecksums(t *testing.T) {
+	for _, tt := range []struct{ name, dir, level string }{
+		{"default", fixture, "default"},
+		{"strict", fixture, "strict"},
+		{"restart", restartFixture, "default"},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			pod := fakeCluster(t, tt.dir, nil, "")
+			out := filepath.Join(t.TempDir(), "bundle")
+			if _, err := run(t, "capture", "pod/"+pod.Name, "--out", out, "--redact-level", tt.level); err != nil {
+				t.Fatalf("capture: %v", err)
+			}
+			files := bundle(t, out)
+			var want []string
+			for _, name := range slices.Sorted(maps.Keys(files)) {
+				if name == "SOURCE.md" || name == "report.json" {
+					continue
+				}
+				sum := sha256.Sum256([]byte(files[name]))
+				want = append(want, "- `"+name+"`: `sha256:"+hex.EncodeToString(sum[:])+"`")
+			}
+
+			source := files["SOURCE.md"]
+			_, section, ok := strings.Cut(source, "\n## Checksums\n")
+			if !ok {
+				t.Fatalf("SOURCE.md has no Checksums section:\n%s", source)
+			}
+			if strings.Contains(section, "\n#") {
+				t.Errorf("the Checksums section is not the last one:\n%s", section)
+			}
+			var got []string
+			for _, line := range strings.Split(section, "\n") {
+				if strings.HasPrefix(line, "- ") {
+					got = append(got, line)
+				}
+			}
+			if !slices.Equal(got, want) {
+				t.Errorf("checksum lines:\n%s\nwant:\n%s", strings.Join(got, "\n"), strings.Join(want, "\n"))
+			}
+			if !strings.Contains(section, "`report.json`") || !strings.Contains(section, "make gate") {
+				t.Errorf("the section does not say why report.json is left out and what checks it:\n%s", section)
+			}
+		})
+	}
+}
+
+// A bundle copied into a fixture directory passes the gate's checksum check as it is, and the
+// check fails, naming the file, once a captured file changes.
+func TestCaptureBundleIsFixture(t *testing.T) {
+	pod := fakeCluster(t, fixture, nil, "")
+	out := filepath.Join(t.TempDir(), "bundle")
+	if _, err := run(t, "capture", "pod/"+pod.Name, "--out", out); err != nil {
+		t.Fatalf("capture: %v", err)
+	}
+	dir := filepath.Join(t.TempDir(), "fixture")
+	if err := os.CopyFS(dir, os.DirFS(out)); err != nil {
+		t.Fatal(err)
+	}
+	if err := fixturesum.Verify(dir); err != nil {
+		t.Fatalf("a fresh bundle fails the fixture check: %v", err)
+	}
+
+	log := filepath.Join(dir, "container.log")
+	b, err := os.ReadFile(log) // #nosec G304 -- the test's own bundle
+	if err != nil {
+		t.Fatal(err)
+	}
+	b[0] ^= 1
+	if err := os.WriteFile(log, b, 0o600); err != nil { // #nosec G703 -- the test's own bundle
+		t.Fatal(err)
+	}
+	if err := fixturesum.Verify(dir); err == nil || !strings.Contains(err.Error(), "container.log has sha256") {
+		t.Errorf("an edited container.log passes the fixture check: %v", err)
 	}
 }
