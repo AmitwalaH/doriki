@@ -235,3 +235,111 @@ func TestGapsNeverCoverAPhase(t *testing.T) {
 		t.Error(err)
 	}
 }
+
+// readyAt is the Ready time the totals imply, in seconds from t0: pod creation, the earliest
+// PodCreated as Assign takes it, plus pending_to_ready. ok is false when there is no total.
+func readyAt(events []model.Event, totals model.Totals) (float64, bool) {
+	created := math.Inf(1)
+	for _, e := range events {
+		if e.Source == model.SourceContainerStatus && e.Kind == model.KindPodCreated {
+			created = min(created, e.TS.Sub(t0).Seconds())
+		}
+	}
+	if totals.PendingToReadySeconds == nil || math.IsInf(created, 1) {
+		return 0, false
+	}
+	return created + *totals.PendingToReadySeconds, true
+}
+
+// owed is the least time, in seconds, the gaps must account for between the earliest complete
+// phase and ready. Each stretch no complete phase covers, between two consecutive phase
+// bounds, may go unreported by up to 2 s: an attempt boundary can split it into two pieces,
+// each left out when 1 s or less (gapOver). A complete phase covers from its earlier time to
+// its later one, so a phase clamped to 0 s still bounds the stretches beside it.
+func owed(phases []model.Phase, ready float64) float64 {
+	type interval struct{ lo, hi float64 }
+	var in []interval
+	for _, p := range phases {
+		if p.State == model.StateComplete {
+			s, e := p.Start.Sub(t0).Seconds(), p.End.Sub(t0).Seconds()
+			in = append(in, interval{min(s, e), max(s, e)})
+		}
+	}
+	if len(in) == 0 {
+		return 0
+	}
+	slices.SortFunc(in, func(a, b interval) int { return cmp.Compare(a.lo, b.lo) })
+	slack := 2 * gapOver.Seconds()
+	total, reach := 0.0, in[0].lo
+	stretch := func(from, to float64) {
+		if d := min(to, ready) - from; d > slack {
+			total += d - slack
+		}
+	}
+	for _, iv := range in {
+		if iv.lo > reach {
+			stretch(reach, iv.lo)
+		}
+		reach = max(reach, iv.hi)
+	}
+	stretch(reach, ready)
+	return total
+}
+
+// DK-PHASE-ENH-20261024-unattributed-before-ready: for the same random inputs, once the pod is
+// Ready the bars add up to the total. From the earliest complete phase to Ready, the gaps of
+// the report and of every listed attempt account for all the time no complete phase covers,
+// short of the threshold at the ends of each stretch (see owed). Without a gap to Ready, an
+// input whose last complete phase ends more than 2 s before Ready fails.
+func TestBarsAddUpWhenReady(t *testing.T) {
+	reached := 0 // inputs where the gaps owed something, so the property was not vacuous
+	property := func(events eventSet, allAttempts bool) bool {
+		r, err := Assign(events, Options{Markers: propertyMarkers, AllAttempts: allAttempts})
+		if err != nil {
+			t.Logf("Assign: %v", err)
+			return false
+		}
+		check := func(phases []model.Phase, gaps []model.Gap, totals model.Totals) bool {
+			ready, ok := readyAt(events, totals)
+			if !ok {
+				return true
+			}
+			sum := 0.0
+			for _, g := range gaps {
+				sum += g.Seconds
+			}
+			want := owed(phases, ready)
+			if want > 0 {
+				reached++
+			}
+			if sum < want-1e-9 {
+				t.Logf("Ready at %v: gaps %+v add up to %v s, less than the %v s owed", ready, gaps, sum, want)
+				for _, p := range phases {
+					if p.State == model.StateComplete {
+						t.Logf("  %s %v to %v", p.Name, p.Start.Sub(t0).Seconds(), p.End.Sub(t0).Seconds())
+					}
+				}
+				return false
+			}
+			return true
+		}
+		if !check(r.Phases, r.Gaps, r.Totals) {
+			return false
+		}
+		for _, a := range r.Attempts {
+			if !check(a.Phases, a.Gaps, a.Totals) {
+				t.Logf("in attempt %d", a.Attempt)
+				return false
+			}
+		}
+		return true
+	}
+	cfg := &quick.Config{MaxCount: 1000, Rand: rand.New(rand.NewSource(1))} //nolint:gosec // G404: seeded on purpose so a property failure reproduces
+	if err := quick.Check(property, cfg); err != nil {
+		t.Error(err)
+	}
+	if reached == 0 {
+		t.Error("no input owed any gap time; the generator never reached the case")
+	}
+	t.Logf("inputs or attempts that owed gap time: %d", reached)
+}

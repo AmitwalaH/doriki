@@ -51,6 +51,19 @@ func enums(t reflect.Type) *jsonschema.Schema {
 	return &jsonschema.Schema{Type: "string", Enum: values}
 }
 
+// readyBoundsGaps adds model.PhaseReady to a gap's before, the one place it may appear: it is
+// a PhaseName but never a phase, so enums, which gives every PhaseName the phases, leaves it
+// out. A schema without a Gap is unchanged.
+func readyBoundsGaps(s *jsonschema.Schema) {
+	gap, ok := s.Definitions["Gap"]
+	if !ok {
+		return
+	}
+	if before, ok := gap.Properties.Get("before"); ok {
+		before.Enum = append(before.Enum, string(model.PhaseReady))
+	}
+}
+
 // Generate returns each schema file's contents. root is the repository root relative to the
 // working directory; Go doc comments in internal/model become descriptions.
 func Generate(root string) (map[string][]byte, error) {
@@ -65,6 +78,7 @@ func Generate(root string) (map[string][]byte, error) {
 			return nil, err
 		}
 		s := r.Reflect(src.value)
+		readyBoundsGaps(s)
 		s.ID = jsonschema.ID(BaseURL + name)
 		b, err := json.MarshalIndent(s, "", "  ")
 		if err != nil {

@@ -115,7 +115,8 @@ func TestAssignGenericBoot(t *testing.T) {
 
 	// scheduling ends at 1, image-pull starts at 3: 2 s unattributed. image-pull to
 	// container-init is exactly 1 s, which is not over the threshold.
-	wantGaps := []model.Gap{{After: model.PhaseScheduling, Before: model.PhaseImagePull, Seconds: 2}}
+	wantGaps := []model.Gap{{After: model.PhaseScheduling, Before: model.PhaseImagePull, Seconds: 2},
+		{After: model.PhaseContainerInit, Before: model.PhaseReady, Seconds: 8}}
 	if !reflect.DeepEqual(r.Gaps, wantGaps) {
 		t.Errorf("gaps = %+v, want %+v", r.Gaps, wantGaps)
 	}
@@ -163,7 +164,8 @@ func TestInvalidPhase(t *testing.T) {
 	}
 	// With image-pull invalid, the next complete pair is scheduling (ends 1) and
 	// container-init (starts 11).
-	wantGaps := []model.Gap{{After: model.PhaseScheduling, Before: model.PhaseContainerInit, Seconds: 10}}
+	wantGaps := []model.Gap{{After: model.PhaseScheduling, Before: model.PhaseContainerInit, Seconds: 10},
+		{After: model.PhaseContainerInit, Before: model.PhaseReady, Seconds: 6}}
 	if !reflect.DeepEqual(r.Gaps, wantGaps) {
 		t.Errorf("gaps = %+v, want %+v", r.Gaps, wantGaps)
 	}
@@ -591,5 +593,58 @@ func TestEarlierAttemptsGapWithNestedPhase(t *testing.T) {
 	want := []model.Gap{{After: model.PhaseScheduling, Before: model.PhaseImagePull, Seconds: 3, Reason: model.GapEarlierAttempts}}
 	if !reflect.DeepEqual(r.Gaps, want) {
 		t.Errorf("gaps = %+v, want %+v", r.Gaps, want)
+	}
+}
+
+// DK-PHASE-ENH-20261024-unattributed-before-ready: when no complete phase ends at Ready, the
+// time from the latest complete end to Ready is a gap before "ready", so the bars add up to
+// the total. Not when that time is 1 s or less, when a complete phase ends at Ready, or when
+// the pod is not Ready, since then nothing bounds it.
+func TestTrailingGapToReady(t *testing.T) {
+	// No pack: container-init ends at the first log line, 10.
+	noPack := func(ready float64) []model.Event {
+		return []model.Event{
+			status(model.KindPodCreated, 0), k8s(model.KindScheduled, 0),
+			k8s(model.KindPulling, 0), k8s(model.KindPulled, 5),
+			started(5, 0), logLine(10), status(model.KindPodReady, ready),
+		}
+	}
+	cases := []struct {
+		name   string
+		events []model.Event
+		opts   Options
+		want   []model.Gap
+	}{
+		{"no pack, container-init ends 40 s before Ready", noPack(50), Options{},
+			[]model.Gap{{After: model.PhaseContainerInit, Before: model.PhaseReady, Seconds: 40}}},
+		{"Ready 0.5 s after container-init", noPack(10.5), Options{}, nil},
+		{"Ready 1 s after container-init, not over the threshold", noPack(11), Options{}, nil},
+		{"server-ready complete, ending at Ready", append(noPack(50), marker("x.server.listening", 10.5)),
+			Options{Markers: []string{"x.server.listening"}}, nil},
+		{"pod not Ready", noPack(50)[:6], Options{}, nil},
+	}
+	for _, c := range cases {
+		if got := mustAssign(t, c.events, c.opts).Gaps; !reflect.DeepEqual(got, c.want) {
+			t.Errorf("%s: gaps = %+v, want %+v", c.name, got, c.want)
+		}
+	}
+
+	// A later attempt whose log was not collected: its latest complete phase is the pod's
+	// scheduling, before the attempt's boundary at 5, so the tail splits as other gaps do
+	// (decision 0007): earlier attempts to the boundary, then unattributed to Ready at 20.
+	restart := []model.Event{
+		status(model.KindPodCreated, 0), k8s(model.KindScheduled, 0),
+		started(1, 0), terminated(5, 0), started(5, 1), status(model.KindPodReady, 20),
+	}
+	r := mustAssign(t, restart, Options{AllAttempts: true})
+	want := []model.Gap{
+		{After: model.PhaseScheduling, Before: model.PhaseReady, Seconds: 5, Reason: model.GapEarlierAttempts},
+		{After: model.PhaseScheduling, Before: model.PhaseReady, Seconds: 15},
+	}
+	if r.Attempt != 1 || !reflect.DeepEqual(r.Gaps, want) {
+		t.Errorf("restart: attempt %d, gaps = %+v; want attempt 1, %+v", r.Attempt, r.Gaps, want)
+	}
+	if g := r.Attempts[0].Gaps; g != nil {
+		t.Errorf("restart: attempt 0, not Ready, gaps = %+v, want none", g)
 	}
 }

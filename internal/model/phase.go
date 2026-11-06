@@ -85,3 +85,8 @@ type Gap struct {
 
 // GapEarlierAttempts is the Gap.Reason for time that belongs to previous boot attempts.
 const GapEarlierAttempts = "earlier attempts"
+
+// PhaseReady is the pod's Ready time as a gap's Before: the time from the last complete phase
+// to Ready, when no complete phase ends there. It bounds gaps only and is never a phase, so
+// Phases leaves it out (DK-PHASE-ENH-20261024-unattributed-before-ready).
+const PhaseReady PhaseName = "ready"

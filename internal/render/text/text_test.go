@@ -283,6 +283,32 @@ func TestGapReason(t *testing.T) {
 	}
 }
 
+// DK-PHASE-ENH-20261024-unattributed-before-ready: the gap to Ready is drawn like any other
+// gap, on the row after its After phase from that phase's end, here to Ready at the track's
+// end, and Ready needs no row of its own.
+func TestTrailingGapRow(t *testing.T) {
+	r := model.Report{
+		Phases: []model.Phase{complete(model.PhaseScheduling, 0, 0), complete(model.PhaseContainerInit, 2, 10)},
+		Gaps:   []model.Gap{{After: model.PhaseContainerInit, Before: model.PhaseReady, Seconds: 40}},
+		Totals: model.Totals{PendingToReadySeconds: f64(50)},
+	}
+	out := render(t, r, false)
+	lines := strings.Split(out, "\n")
+	for i, l := range lines {
+		if strings.HasPrefix(l, string(model.PhaseContainerInit)+" ") && (i+1 >= len(lines) || !strings.HasPrefix(lines[i+1], "gap ")) {
+			t.Errorf("the row after container-init is not the gap:\n%s", out)
+		}
+		if strings.HasPrefix(l, string(model.PhaseReady)) {
+			t.Errorf("a row for ready: %q", l)
+		}
+	}
+	gap := row(t, out, "gap")
+	// 50 s over 44 cells: container-init ends at 10, cell round(8.8) = 9; Ready is the end.
+	if first, last := bar(t, gap); first != 9 || last != trackWidth-1 || !strings.HasSuffix(gap, " 0:40") {
+		t.Errorf("gap row %q: cells %d-%d, want 9-%d and 0:40", gap, first, last, trackWidth-1)
+	}
+}
+
 // DK-RENDER-ENH-20261029-kv-size-mib: a size logged in MiB is shown as GiB with one decimal
 // (DESIGN.md section 7.5), and below 0.1 GiB as "<0.1 GiB" rather than a false "0.0 GiB"; a
 // size logged in GiB is shown as the engine printed it.

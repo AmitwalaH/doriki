@@ -135,7 +135,8 @@
             "graph-capture",
             "kv-alloc",
             "server-ready",
-            "first-token"
+            "first-token",
+            "ready"
           ]
         },
         "seconds": {
