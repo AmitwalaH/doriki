@@ -2,7 +2,7 @@
 
 **Date Discovered:** 2026-10-24
 **Severity:** MEDIUM
-**Status:** OPEN
+**Status:** CLOSED (2026-11-06)
 **Label:** [ticket]
 **Found by:** the M1a agent, read in code while planning, then measured on the kind-nginx fixture
 **Filed by:** the M1a agent
@@ -33,3 +33,17 @@ the container started".
 
 ## Related
 Decision 0003 (generic pack exit code); `DESIGN.md` sections 4.2 and 6.1.
+
+## Resolution (2026-11-06)
+Option 1, in `internal/phase/assign.go` (`gaps`, `between`). When the pod is Ready, the time
+from the latest end among complete phases to Ready is a gap with `before: ready`
+(`model.PhaseReady`, a gap bound only, never a phase) when it is over 1 s. On a later attempt
+it splits into "earlier attempts" and unattributed time like any other gap (decision 0007). The
+report schema's `Gap.before` gains the value `ready` and nothing else (`schema/schema.go`,
+`readyBoundsGaps`). The terminal draws it as a `gap` row under its `after` phase with no change
+to the renderer. A property test (`TestBarsAddUpWhenReady`) checks on random inputs that the
+gaps account for the time no complete phase covers up to Ready. Measured on the six fixtures:
+the time after the last complete phase is under 1 s on every one (kind-nginx 0.69 s, now the
+largest), so no fixture shows the gap; the 40 s case is tested synthetically. Two limits found
+on the way are their own tickets: `DK-PHASE-ENH-20261106-split-gap-at-attempt-boundary` and
+`DK-COLLECT-ENH-20261106-engine-log-whole-second-times`.
