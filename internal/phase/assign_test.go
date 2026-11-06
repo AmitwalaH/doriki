@@ -115,7 +115,8 @@ func TestAssignGenericBoot(t *testing.T) {
 
 	// scheduling ends at 1, image-pull starts at 3: 2 s unattributed. image-pull to
 	// container-init is exactly 1 s, which is not over the threshold.
-	wantGaps := []model.Gap{{After: model.PhaseScheduling, Before: model.PhaseImagePull, Seconds: 2}}
+	wantGaps := []model.Gap{{After: model.PhaseScheduling, Before: model.PhaseImagePull, Seconds: 2},
+		{After: model.PhaseContainerInit, Before: model.PhaseReady, Seconds: 8}}
 	if !reflect.DeepEqual(r.Gaps, wantGaps) {
 		t.Errorf("gaps = %+v, want %+v", r.Gaps, wantGaps)
 	}
@@ -163,7 +164,8 @@ func TestInvalidPhase(t *testing.T) {
 	}
 	// With image-pull invalid, the next complete pair is scheduling (ends 1) and
 	// container-init (starts 11).
-	wantGaps := []model.Gap{{After: model.PhaseScheduling, Before: model.PhaseContainerInit, Seconds: 10}}
+	wantGaps := []model.Gap{{After: model.PhaseScheduling, Before: model.PhaseContainerInit, Seconds: 10},
+		{After: model.PhaseContainerInit, Before: model.PhaseReady, Seconds: 6}}
 	if !reflect.DeepEqual(r.Gaps, wantGaps) {
 		t.Errorf("gaps = %+v, want %+v", r.Gaps, wantGaps)
 	}
@@ -171,6 +173,7 @@ func TestInvalidPhase(t *testing.T) {
 	events[2] = k8s(model.KindPulled, 9.5)
 	assertPhase(t, phaseByName(mustAssign(t, events, Options{}), model.PhaseImagePull), model.Phase{
 		Name: model.PhaseImagePull, Start: at(10), End: at(9.5), Seconds: secs(0), State: model.StateComplete,
+		Attrs:   map[string]string{model.AttrResolution: model.ResolutionSecond},
 		Sources: []model.Source{model.SourceK8sEvent},
 	})
 }
@@ -591,5 +594,107 @@ func TestEarlierAttemptsGapWithNestedPhase(t *testing.T) {
 	want := []model.Gap{{After: model.PhaseScheduling, Before: model.PhaseImagePull, Seconds: 3, Reason: model.GapEarlierAttempts}}
 	if !reflect.DeepEqual(r.Gaps, want) {
 		t.Errorf("gaps = %+v, want %+v", r.Gaps, want)
+	}
+}
+
+// DK-PHASE-ENH-20261024-unattributed-before-ready: when no complete phase ends at Ready, the
+// time from the latest complete end to Ready is a gap before "ready", so the bars add up to
+// the total. Not when that time is 1 s or less, when a complete phase ends at Ready, or when
+// the pod is not Ready, since then nothing bounds it.
+func TestTrailingGapToReady(t *testing.T) {
+	// No pack: container-init ends at the first log line, 10.
+	noPack := func(ready float64) []model.Event {
+		return []model.Event{
+			status(model.KindPodCreated, 0), k8s(model.KindScheduled, 0),
+			k8s(model.KindPulling, 0), k8s(model.KindPulled, 5),
+			started(5, 0), logLine(10), status(model.KindPodReady, ready),
+		}
+	}
+	cases := []struct {
+		name   string
+		events []model.Event
+		opts   Options
+		want   []model.Gap
+	}{
+		{"no pack, container-init ends 40 s before Ready", noPack(50), Options{},
+			[]model.Gap{{After: model.PhaseContainerInit, Before: model.PhaseReady, Seconds: 40}}},
+		{"Ready 0.5 s after container-init", noPack(10.5), Options{}, nil},
+		{"Ready 1 s after container-init, not over the threshold", noPack(11), Options{}, nil},
+		{"server-ready complete, ending at Ready", append(noPack(50), marker("x.server.listening", 10.5)),
+			Options{Markers: []string{"x.server.listening"}}, nil},
+		{"pod not Ready", noPack(50)[:6], Options{}, nil},
+	}
+	for _, c := range cases {
+		if got := mustAssign(t, c.events, c.opts).Gaps; !reflect.DeepEqual(got, c.want) {
+			t.Errorf("%s: gaps = %+v, want %+v", c.name, got, c.want)
+		}
+	}
+
+	// A later attempt whose log was not collected: its latest complete phase is the pod's
+	// scheduling, before the attempt's boundary at 5, so the tail splits as other gaps do
+	// (decision 0007): earlier attempts to the boundary, then unattributed to Ready at 20.
+	restart := []model.Event{
+		status(model.KindPodCreated, 0), k8s(model.KindScheduled, 0),
+		started(1, 0), terminated(5, 0), started(5, 1), status(model.KindPodReady, 20),
+	}
+	r := mustAssign(t, restart, Options{AllAttempts: true})
+	want := []model.Gap{
+		{After: model.PhaseScheduling, Before: model.PhaseReady, Seconds: 5, Reason: model.GapEarlierAttempts},
+		{After: model.PhaseScheduling, Before: model.PhaseReady, Seconds: 15},
+	}
+	if r.Attempt != 1 || !reflect.DeepEqual(r.Gaps, want) {
+		t.Errorf("restart: attempt %d, gaps = %+v; want attempt 1, %+v", r.Attempt, r.Gaps, want)
+	}
+	if g := r.Attempts[0].Gaps; g != nil {
+		t.Errorf("restart: attempt 0, not Ready, gaps = %+v, want none", g)
+	}
+}
+
+// DK-PHASE-ENH-20261025-server-ready-resolution: a complete phase under 1 s with a bound from
+// a whole-second source (the pod object's times, and Kubernetes event times without a
+// fraction) carries resolution "1s", whichever bound it is. A phase timed by the runtime alone
+// keeps its value bare, even at a whole second; so do Kubernetes event times with a fraction
+// (an eventTime), a cached pull, which starts and ends at one event (decision 0004), and a
+// phase of 1 s or more.
+func TestResolutionOnSubSecondPhases(t *testing.T) {
+	events := []model.Event{
+		status(model.KindPodCreated, 0), k8s(model.KindScheduled, 0), // pod object and event, both whole-second: 0 s
+		k8s(model.KindPulling, 1.25), k8s(model.KindPulled, 1.75), // event times with a fraction: 0.5 s
+		started(2, 0), logLine(2.3), // whole-second start, runtime end: 0.3 s
+		marker("x.weights.load.start", 3), marker("x.weights.load.end", 3.1), // runtime only: 0.1 s
+		marker("x.server.listening", 10.038), status(model.KindPodReady, 10), // whole-second end: clamped to 0 s
+	}
+	r := mustAssign(t, events, Options{Markers: enginePack})
+	want := map[model.PhaseName]bool{
+		model.PhaseScheduling:    true,
+		model.PhaseImagePull:     false,
+		model.PhaseContainerInit: true,
+		model.PhaseWeightLoad:    false,
+		model.PhaseServerReady:   true,
+	}
+	for name, marked := range want {
+		p := phaseByName(r, name)
+		if p.State != model.StateComplete {
+			t.Fatalf("%s = %+v, want complete", name, p)
+		}
+		if got := p.Attrs[model.AttrResolution] == model.ResolutionSecond; got != marked {
+			t.Errorf("%s (%v s, sources %v): resolution 1s = %v, want %v", name, deref(p.Seconds), p.Sources, got, marked)
+		}
+	}
+	assertPhase(t, phaseByName(r, model.PhaseServerReady), model.Phase{
+		Name: model.PhaseServerReady, Start: at(10.038), End: at(10), Seconds: secs(0), State: model.StateComplete,
+		Attrs:   map[string]string{model.AttrResolution: model.ResolutionSecond},
+		Sources: []model.Source{model.SourceContainerStatus, model.SourceEngineLog}})
+
+	// 1 s exactly is not under 1 s; a cached pull is 0 s by definition, not by resolution.
+	events = []model.Event{
+		status(model.KindPodCreated, 0), k8s(model.KindScheduled, 1), cachedPull(2),
+		started(3, 0), logLine(4), status(model.KindPodReady, 5),
+	}
+	r = mustAssign(t, events, Options{})
+	for _, name := range []model.PhaseName{model.PhaseScheduling, model.PhaseImagePull, model.PhaseContainerInit} {
+		if p := phaseByName(r, name); p.State != model.StateComplete || p.Attrs[model.AttrResolution] != "" {
+			t.Errorf("%s = %+v, want complete without resolution", name, p)
+		}
 	}
 }

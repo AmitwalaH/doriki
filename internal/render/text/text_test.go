@@ -283,6 +283,54 @@ func TestGapReason(t *testing.T) {
 	}
 }
 
+// DK-PHASE-ENH-20261025-server-ready-resolution: a phase whose seconds have whole-second
+// resolution and are under 1 s prints "<1s", not a figure that reads as exact: "0.0s" would
+// read as free. The attribute is not repeated in the note after the duration. A phase without
+// it keeps its one-decimal figure (TestDurationIsReportSeconds).
+func TestResolutionPrintsUnderOneSecond(t *testing.T) {
+	whole := map[string]string{model.AttrResolution: model.ResolutionSecond}
+	ready := model.Phase{Name: model.PhaseServerReady, Start: at(10.039), End: at(10), Seconds: f64(0), State: model.StateComplete, Attrs: whole}
+	initp := complete(model.PhaseContainerInit, 2, 2.4)
+	initp.Attrs = whole
+	load := complete(model.PhaseWeightLoad, 3, 3.5)
+	load.Attrs, load.Confidence = whole, f32(0.9)
+	out := render(t, model.Report{Phases: []model.Phase{complete(model.PhaseScheduling, 0, 0), initp, load, ready},
+		Totals: model.Totals{PendingToReadySeconds: f64(10)}}, false)
+	for name, want := range map[model.PhaseName]string{
+		model.PhaseServerReady: " <1s", model.PhaseContainerInit: " <1s", model.PhaseWeightLoad: " ~<1s",
+	} {
+		if r := row(t, out, string(name)); !strings.HasSuffix(r, want) {
+			t.Errorf("%s row %q, want it to end in %q", name, r, want)
+		}
+	}
+}
+
+// DK-PHASE-ENH-20261024-unattributed-before-ready: the gap to Ready is drawn like any other
+// gap, on the row after its After phase from that phase's end, here to Ready at the track's
+// end, and Ready needs no row of its own.
+func TestTrailingGapRow(t *testing.T) {
+	r := model.Report{
+		Phases: []model.Phase{complete(model.PhaseScheduling, 0, 0), complete(model.PhaseContainerInit, 2, 10)},
+		Gaps:   []model.Gap{{After: model.PhaseContainerInit, Before: model.PhaseReady, Seconds: 40}},
+		Totals: model.Totals{PendingToReadySeconds: f64(50)},
+	}
+	out := render(t, r, false)
+	lines := strings.Split(out, "\n")
+	for i, l := range lines {
+		if strings.HasPrefix(l, string(model.PhaseContainerInit)+" ") && (i+1 >= len(lines) || !strings.HasPrefix(lines[i+1], "gap ")) {
+			t.Errorf("the row after container-init is not the gap:\n%s", out)
+		}
+		if strings.HasPrefix(l, string(model.PhaseReady)) {
+			t.Errorf("a row for ready: %q", l)
+		}
+	}
+	gap := row(t, out, "gap")
+	// 50 s over 44 cells: container-init ends at 10, cell round(8.8) = 9; Ready is the end.
+	if first, last := bar(t, gap); first != 9 || last != trackWidth-1 || !strings.HasSuffix(gap, " 0:40") {
+		t.Errorf("gap row %q: cells %d-%d, want 9-%d and 0:40", gap, first, last, trackWidth-1)
+	}
+}
+
 // DK-RENDER-ENH-20261029-kv-size-mib: a size logged in MiB is shown as GiB with one decimal
 // (DESIGN.md section 7.5), and below 0.1 GiB as "<0.1 GiB" rather than a false "0.0 GiB"; a
 // size logged in GiB is shown as the engine printed it.

@@ -179,8 +179,9 @@ func Assign(events []model.Event, opts Options) (model.Report, error) {
 	pod := podPhases(sorted, opts.Markers)
 	report := model.Report{ReportVersion: model.ReportVersion, AttemptsTotal: attemptsTotal(attempts)}
 	for i, a := range attempts {
-		phases, gaps, warnings := assignAttempt(a.events, opts.Markers, opts.Pack, pod, a.from, opts.NotApplicable)
-		totals := attemptTotals(a.events, phases, created, hasCreated)
+		ready, isReady := first(a.events, podReady)
+		phases, gaps, warnings := assignAttempt(a.events, opts.Markers, opts.Pack, pod, a.from, opts.NotApplicable, ready, isReady)
+		totals := attemptTotals(phases, created, hasCreated, ready, isReady)
 		if i == chosen {
 			report.Attempt = a.number
 			report.Phases, report.Gaps, report.Totals, report.Warnings = phases, gaps, totals, warnings
@@ -290,7 +291,7 @@ func attemptNumbers(attempts []attempt) string {
 	return strings.Join(s, ", ")
 }
 
-func assignAttempt(events []model.Event, markers []string, pack string, pod map[model.PhaseName]model.Phase, from time.Time, notApplicable []model.PhaseName) ([]model.Phase, []model.Gap, []model.Warning) {
+func assignAttempt(events []model.Event, markers []string, pack string, pod map[model.PhaseName]model.Phase, from time.Time, notApplicable []model.PhaseName, ready model.Event, isReady bool) ([]model.Phase, []model.Gap, []model.Warning) {
 	var (
 		phases   []model.Phase
 		warnings []model.Warning
@@ -316,7 +317,7 @@ func assignAttempt(events []model.Event, markers []string, pack string, pod map[
 		}
 		phases = append(phases, p)
 	}
-	return phases, gaps(phases, from), append(warnings, unobserved(phases, events, markers, pack)...)
+	return phases, gaps(phases, from, ready, isReady), append(warnings, unobserved(phases, events, markers, pack)...)
 }
 
 // unobserved warns about each expected engine phase still absent once the pod is Ready
@@ -404,7 +405,24 @@ func assignPhase(name model.PhaseName, s spec, events []model.Event, markers []s
 	seconds := max(d, 0).Seconds() // within 1 s either way is timestamp resolution
 	p.Seconds = &seconds
 	p.State = model.StateComplete
+	// Under a second, a whole-second bound makes the figure uncertain by up to its whole
+	// value, so the phase says so. A phase that starts and ends at one event (a cached pull,
+	// decision 0004) is 0 s by definition, not by measurement.
+	if seconds < 1 && startIdx != endIdx && (wholeSecond(start) || wholeSecond(end)) {
+		p.Attrs = setAttr(p.Attrs, model.AttrResolution, model.ResolutionSecond)
+	}
 	return p
+}
+
+// wholeSecondSources write times with 1 s resolution: the pod object's times (creation,
+// container start and end, the Ready and PodScheduled conditions; collect/files podEvents and
+// scheduledFallback) and Kubernetes event times (firstTimestamp and lastTimestamp; collect/files
+// k8sEvents). metav1.Time is written in whole seconds. An event's eventTime has microseconds,
+// so wholeSecond also asks for no fraction: a time with one is finer than a second.
+var wholeSecondSources = []model.Source{model.SourceContainerStatus, model.SourceK8sEvent}
+
+func wholeSecond(e model.Event) bool {
+	return slices.Contains(wholeSecondSources, e.Source) && e.TS.Nanosecond() == 0
 }
 
 // below1 is a confidence as written on a phase: only when below 1.0.
@@ -440,8 +458,11 @@ func setAttr(attrs map[string]string, k, v string) map[string]string {
 // After (DK-PHASE-BUG-20261029-gap-after-nested-phase). On equal ends the later phase in the
 // order is kept. from is a later attempt's boundary (zero for the first attempt): time before
 // it, after a pod-level phase, was spent by the earlier attempts, so that part is a gap with
-// reason "earlier attempts" (decision 0007); the rest is unattributed.
-func gaps(phases []model.Phase, from time.Time) []model.Gap {
+// reason "earlier attempts" (decision 0007); the rest is unattributed. When the pod is Ready,
+// the time from the latest end to Ready is a gap before model.PhaseReady, split the same way,
+// so the bars add up to the total even when no complete phase ends at Ready
+// (DK-PHASE-ENH-20261024-unattributed-before-ready).
+func gaps(phases []model.Phase, from time.Time, ready model.Event, isReady bool) []model.Gap {
 	var out []model.Gap
 	var prev *model.Phase // the complete phase that ends latest so far
 	for i := range phases {
@@ -450,24 +471,35 @@ func gaps(phases []model.Phase, from time.Time) []model.Gap {
 			continue
 		}
 		if prev != nil {
-			start := prev.End
-			if from.After(start) {
-				end := from
-				if p.Start.Before(end) {
-					end = p.Start
-				}
-				if d := end.Sub(start); d > gapOver {
-					out = append(out, model.Gap{After: prev.Name, Before: p.Name, Seconds: d.Seconds(), Reason: model.GapEarlierAttempts})
-				}
-				start = end
-			}
-			if d := p.Start.Sub(start); d > gapOver {
-				out = append(out, model.Gap{After: prev.Name, Before: p.Name, Seconds: d.Seconds()})
-			}
+			out = append(out, between(*prev, p.Name, p.Start, from)...)
 		}
 		if prev == nil || !p.End.Before(prev.End) {
 			prev = p
 		}
+	}
+	if prev != nil && isReady {
+		out = append(out, between(*prev, model.PhaseReady, ready.TS, from)...)
+	}
+	return out
+}
+
+// between is the gap from prev's end to next, at before: the part before from (earlier
+// attempts) and the rest, each only when over the threshold.
+func between(prev model.Phase, before model.PhaseName, next, from time.Time) []model.Gap {
+	var out []model.Gap
+	start := prev.End
+	if from.After(start) {
+		end := from
+		if next.Before(end) {
+			end = next
+		}
+		if d := end.Sub(start); d > gapOver {
+			out = append(out, model.Gap{After: prev.Name, Before: before, Seconds: d.Seconds(), Reason: model.GapEarlierAttempts})
+		}
+		start = end
+	}
+	if d := next.Sub(start); d > gapOver {
+		out = append(out, model.Gap{After: prev.Name, Before: before, Seconds: d.Seconds()})
 	}
 	return out
 }
@@ -475,7 +507,7 @@ func gaps(phases []model.Phase, from time.Time) []model.Gap {
 // attemptTotals measures from pod creation to this attempt's Ready and first token
 // (DESIGN.md section 6.1 step 6). Wall-clock span, never a sum of phases. A value whose end
 // point is missing, or precedes creation, is omitted.
-func attemptTotals(events []model.Event, phases []model.Phase, created model.Event, hasCreated bool) model.Totals {
+func attemptTotals(phases []model.Phase, created model.Event, hasCreated bool, ready model.Event, isReady bool) model.Totals {
 	var t model.Totals
 	if !hasCreated {
 		return t
@@ -487,7 +519,7 @@ func attemptTotals(events []model.Event, phases []model.Phase, created model.Eve
 		s := ts.Sub(created.TS).Seconds()
 		return &s
 	}
-	if ready, ok := first(events, podReady); ok {
+	if isReady {
 		t.PendingToReadySeconds = since(ready.TS)
 	}
 	for _, p := range phases {

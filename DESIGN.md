@@ -248,7 +248,7 @@ TGI is intentionally absent: the project was archived in March 2026.
 2. Sort by timestamp; ties broken by source priority `k8s-event > container-status > cri > otel-span > engine-log`.
 3. For each phase in the fixed order, find its first start marker at or after the previous phase's start, and its first end marker after that start. Missing start → `absent`; missing end → `open`.
 4. A phase whose end precedes its start by more than 1 s (clock bug or restart) is marked `invalid` and listed in warnings; it never contributes to totals.
-5. Compute `gaps` between consecutive complete phases when the gap exceeds 1 s.
+5. Compute `gaps` between consecutive complete phases when the gap exceeds 1 s. When the pod is Ready and no complete phase ends at or after Ready, the time from the latest complete end to Ready is a gap too, with `before: ready`, so the bars add up to `pending_to_ready`.
 6. Totals: `pending_to_ready = Ready(True) − creationTimestamp`; `pending_to_first_token = first_token − creationTimestamp` when observed.
 7. Container restarts: each `restartCount` increment opens a new boot attempt; the report covers the latest attempt by default, `--attempt N` selects another, and `--all-attempts` lists them.
 
@@ -317,7 +317,7 @@ Read-only: `get`/`list` on `pods`, `pods/log`, `events`, `nodes`, and the owner 
 
 ### 7.5 Output rules
 
-Terminal output fits 100 columns, no color when not a TTY or `NO_COLOR` is set, durations as `m:ss`, sizes as GiB with one decimal. JSON is the report schema from section 4.4 and nothing else. HTML is a single self-contained file with inline CSS and no JavaScript, so it can be attached to a ticket.
+Terminal output fits 100 columns, no color when not a TTY or `NO_COLOR` is set, durations as `m:ss`, sizes as GiB with one decimal. Under a second a duration has one decimal, or reads `<1s` when the phase has a whole-second Kubernetes bound (its `resolution: "1s"` attribute). JSON is the report schema from section 4.4 and nothing else. HTML is a single self-contained file with inline CSS and no JavaScript, so it can be attached to a ticket.
 
 ## 8. Tech stack and repository layout
 

@@ -193,6 +193,36 @@ func TestSchemasReject(t *testing.T) {
 	}
 }
 
+// DK-PHASE-ENH-20261024-unattributed-before-ready: "ready" is a gap's before and nothing else.
+// A report with a gap from a phase to Ready validates; a phase named "ready", or a gap after
+// "ready", does not. Built from the vLLM golden, so the rest of the report is real.
+func TestReadyIsOnlyAGapBound(t *testing.T) {
+	report := compile(t, "report.v1.json")
+	golden := readJSON(t, "../internal/cli/testdata/vllm-0.32.json")
+	with := func(f func(m map[string]any)) any {
+		var m map[string]any
+		b, _ := json.Marshal(golden)
+		_ = json.Unmarshal(b, &m)
+		f(m)
+		return instance(t, m)
+	}
+	gap := func(after, before string) map[string]any {
+		return map[string]any{"after": after, "before": before, "seconds": 40.0}
+	}
+	trailing := with(func(m map[string]any) { m["gaps"] = []any{gap("container-init", "ready")} })
+	if err := report.Validate(trailing); err != nil {
+		t.Errorf("a gap before ready is rejected: %v", err)
+	}
+	for name, bad := range map[string]any{
+		"a phase named ready": with(func(m map[string]any) { m["phases"].([]any)[0].(map[string]any)["name"] = "ready" }),
+		"a gap after ready":   with(func(m map[string]any) { m["gaps"] = []any{gap("ready", "first-token")} }),
+	} {
+		if err := report.Validate(bad); err == nil {
+			t.Errorf("report schema accepted %s", name)
+		}
+	}
+}
+
 // start_from_duration is documented in the pack schema (owner decision on the M1b spike): the
 // description comes from the Go comment on the field.
 func TestPackSchemaDocumentsStartFromDuration(t *testing.T) {

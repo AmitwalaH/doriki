@@ -24,16 +24,16 @@ This is real output, not a mock-up: vLLM 0.32 starting `facebook/opt-125m` on CP
 ```text
 Pod default/vllm-785fb8997d-bvsz4   engine vllm 0.32.0   node doriki-control-plane   total 7:36
 
-scheduling       │                                               0.0s
+scheduling       │                                                <1s
 image-pull       ██████████████████████████                      4:28
-container-init                             █                     0.4s
+container-init                             █                      <1s
 engine-init                                ███████               1:11  facebook/opt-125m
 gap                                               ░              0:01
 weight-fetch                                      ██████████    ~1:48  facebook/opt-125m
 weight-load                                                 █   ~0.5s
 kv-alloc                                                    █    0.0s  1.0 GiB, 29,056 tokens
 gap                                                         ░    0:05
-server-ready                                                │    0.0s
+server-ready                                                │     <1s
 
 skipped: compile, graph-capture (the engine said it skips them)
 absent: node-provision, first-token (not seen in the events or the log; pack vllm/0.32)
@@ -46,7 +46,9 @@ Advice
 ```
 
 Bars are placed by when each phase ran and sized by its share of the time from pod creation to
-Ready; `gap` rows are time no phase accounts for. `~` marks an estimate: vLLM logs only how long
+Ready; `gap` rows are time no phase accounts for. `<1s` marks a phase under a second with a
+Kubernetes time at one end: those times are whole seconds, so a smaller figure would claim more
+than they hold. `~` marks an estimate: vLLM logs only how long
 the weight download and load took, so their starts are computed from those durations. The
 Advice block names the phase that dominated and a fix that applies to this cluster: here the
 4:28 image pull. Image volumes are suggested only on a node whose kubelet is 1.35 or newer,
@@ -188,6 +190,11 @@ today:
   (`--lazy-mode`), pages are read on demand later and that time is not in weight-load.
 - Engines without a pack (anything other than vLLM 0.32.0 and llama.cpp today) get the
   Kubernetes phases only, with a warning naming the image.
+- **The bars add up to the total once the pod is Ready.** Time no phase covers is a `gap` row,
+  including the time from the last phase to Ready when no phase ends there (an engine without a
+  pack, or a pack whose last line never printed). Gaps of 1 s or less are not drawn. Checked on
+  random inputs by a property test; on the six captures the time after the last phase is under
+  1 s, so none of them shows such a gap.
 - **Advice: only `pull-dominant` has fired on a real capture** (vLLM 59%, llama.cpp 91% and 95%
   at `-lv 4`, the nginx capture 95%). The `-lv 4` llama.cpp capture is the only one that holds a
   node object; there it read kubelet v1.37.0 and printed: "image-pull took 95% of startup (275 s

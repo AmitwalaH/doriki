@@ -1,8 +1,8 @@
 Pod doriki/llamacpp-f6ff5f6c9-tl55v   engine llamacpp   node doriki-control-plane   total 3:04
 
-scheduling       │                                               0.0s
+scheduling       │                                                <1s
 image-pull       ████████████████████████████████████████        2:48
-container-init                                            █      0.3s
+container-init                                            █       <1s
 engine-init                                               █      0:02
 weight-fetch                                              ███   ~0:11  ggml-org/models
 weight-load                                                 █    0.1s  ggml-org/models

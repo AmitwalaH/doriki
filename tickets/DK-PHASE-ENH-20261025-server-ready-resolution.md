@@ -2,7 +2,7 @@
 
 **Date Discovered:** 2026-10-25
 **Severity:** LOW
-**Status:** OPEN
+**Status:** CLOSED (2026-11-06)
 **Label:** [ticket]
 **Found by:** the M1b agent, measured on the vLLM 0.32 fixture
 **Filed by:** the M1b agent
@@ -34,3 +34,17 @@ probe latency the user could tune (`periodSeconds`), and the report cannot show 
 
 ## Related
 `DK-COLLECT-ENH-20261024-pull-duration`; `DESIGN.md` sections 4.2 and 6.1 step 4.
+
+## Resolution (2026-11-06)
+Option 1, in `internal/phase/assign.go` (`assignPhase`, `wholeSecond`) and
+`internal/render/text/text.go`. A complete phase under 1 s with a bound from a whole-second
+source gets `attrs.resolution: "1s"`, and the terminal prints `<1s` for it. The whole-second
+sources, read from the collectors: `container-status` (creation, container start and end, the
+Ready and PodScheduled conditions; all `metav1.Time`, written in whole seconds) and
+`k8s-event` (`firstTimestamp` and `lastTimestamp`), unless the time has a fraction, as an
+`eventTime` (microseconds) does. A phase that starts and ends at one event, a cached pull
+(decision 0004), keeps its exact 0 s. The rule is wider than this ticket's server-ready: on the
+six fixtures it marks 13 rows, `scheduling` on all six, `container-init` on five and
+`server-ready` on vLLM and llama.cpp `-lv 4`. Their CLI goldens, `expected.json` files and
+the `-lv 4` `report.json` change on those rows only, re-recorded in their own commit after the
+owner's approval. Option 2 (a finer Ready time) stays open for later.

@@ -245,6 +245,11 @@ func phaseRow(p model.Phase, tr track, st styles) string {
 			seconds = *p.Seconds
 		}
 		bar, dur = tr.cells(p.Start, p.End, '█'), duration(seconds)
+		// A whole-second bound makes a figure under 1 s uncertain by up to its whole value;
+		// "0.0s" would read as free (DESIGN.md section 7.5).
+		if p.Attrs[model.AttrResolution] == model.ResolutionSecond {
+			dur = "<1s"
+		}
 	case model.StateOpen:
 		bar, dur = tr.cells(p.Start, tr.origin.Add(tr.span), '█'), "open"
 	default: // invalid: its times contradict each other, so it gets no bar
