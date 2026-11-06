@@ -90,3 +90,11 @@ const GapEarlierAttempts = "earlier attempts"
 // to Ready, when no complete phase ends there. It bounds gaps only and is never a phase, so
 // Phases leaves it out (DK-PHASE-ENH-20261024-unattributed-before-ready).
 const PhaseReady PhaseName = "ready"
+
+// AttrResolution is on a complete phase under 1 s with a bound that has whole-second
+// resolution (a Kubernetes time), so its seconds say less than they seem to. Its value is
+// ResolutionSecond (DK-PHASE-ENH-20261025-server-ready-resolution).
+const (
+	AttrResolution   = "resolution"
+	ResolutionSecond = "1s"
+)

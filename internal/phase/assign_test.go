@@ -173,6 +173,7 @@ func TestInvalidPhase(t *testing.T) {
 	events[2] = k8s(model.KindPulled, 9.5)
 	assertPhase(t, phaseByName(mustAssign(t, events, Options{}), model.PhaseImagePull), model.Phase{
 		Name: model.PhaseImagePull, Start: at(10), End: at(9.5), Seconds: secs(0), State: model.StateComplete,
+		Attrs:   map[string]string{model.AttrResolution: model.ResolutionSecond},
 		Sources: []model.Source{model.SourceK8sEvent},
 	})
 }
@@ -646,5 +647,54 @@ func TestTrailingGapToReady(t *testing.T) {
 	}
 	if g := r.Attempts[0].Gaps; g != nil {
 		t.Errorf("restart: attempt 0, not Ready, gaps = %+v, want none", g)
+	}
+}
+
+// DK-PHASE-ENH-20261025-server-ready-resolution: a complete phase under 1 s with a bound from
+// a whole-second source (the pod object's times, and Kubernetes event times without a
+// fraction) carries resolution "1s", whichever bound it is. A phase timed by the runtime alone
+// keeps its value bare, even at a whole second; so do Kubernetes event times with a fraction
+// (an eventTime), a cached pull, which starts and ends at one event (decision 0004), and a
+// phase of 1 s or more.
+func TestResolutionOnSubSecondPhases(t *testing.T) {
+	events := []model.Event{
+		status(model.KindPodCreated, 0), k8s(model.KindScheduled, 0), // pod object and event, both whole-second: 0 s
+		k8s(model.KindPulling, 1.25), k8s(model.KindPulled, 1.75), // event times with a fraction: 0.5 s
+		started(2, 0), logLine(2.3), // whole-second start, runtime end: 0.3 s
+		marker("x.weights.load.start", 3), marker("x.weights.load.end", 3.1), // runtime only: 0.1 s
+		marker("x.server.listening", 10.038), status(model.KindPodReady, 10), // whole-second end: clamped to 0 s
+	}
+	r := mustAssign(t, events, Options{Markers: enginePack})
+	want := map[model.PhaseName]bool{
+		model.PhaseScheduling:    true,
+		model.PhaseImagePull:     false,
+		model.PhaseContainerInit: true,
+		model.PhaseWeightLoad:    false,
+		model.PhaseServerReady:   true,
+	}
+	for name, marked := range want {
+		p := phaseByName(r, name)
+		if p.State != model.StateComplete {
+			t.Fatalf("%s = %+v, want complete", name, p)
+		}
+		if got := p.Attrs[model.AttrResolution] == model.ResolutionSecond; got != marked {
+			t.Errorf("%s (%v s, sources %v): resolution 1s = %v, want %v", name, deref(p.Seconds), p.Sources, got, marked)
+		}
+	}
+	assertPhase(t, phaseByName(r, model.PhaseServerReady), model.Phase{
+		Name: model.PhaseServerReady, Start: at(10.038), End: at(10), Seconds: secs(0), State: model.StateComplete,
+		Attrs:   map[string]string{model.AttrResolution: model.ResolutionSecond},
+		Sources: []model.Source{model.SourceContainerStatus, model.SourceEngineLog}})
+
+	// 1 s exactly is not under 1 s; a cached pull is 0 s by definition, not by resolution.
+	events = []model.Event{
+		status(model.KindPodCreated, 0), k8s(model.KindScheduled, 1), cachedPull(2),
+		started(3, 0), logLine(4), status(model.KindPodReady, 5),
+	}
+	r = mustAssign(t, events, Options{})
+	for _, name := range []model.PhaseName{model.PhaseScheduling, model.PhaseImagePull, model.PhaseContainerInit} {
+		if p := phaseByName(r, name); p.State != model.StateComplete || p.Attrs[model.AttrResolution] != "" {
+			t.Errorf("%s = %+v, want complete without resolution", name, p)
+		}
 	}
 }

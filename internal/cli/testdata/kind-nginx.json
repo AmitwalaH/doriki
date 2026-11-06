@@ -32,6 +32,9 @@
       "end": "2026-10-24T14:57:53Z",
       "seconds": 0,
       "state": "complete",
+      "attrs": {
+        "resolution": "1s"
+      },
       "sources": [
         "k8s-event",
         "container-status"
@@ -57,6 +60,9 @@
       "end": "2026-10-24T14:58:13.306219429Z",
       "seconds": 0.306219429,
       "state": "complete",
+      "attrs": {
+        "resolution": "1s"
+      },
       "sources": [
         "container-status",
         "engine-log"

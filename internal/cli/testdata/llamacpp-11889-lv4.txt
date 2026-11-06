@@ -1,13 +1,13 @@
 Pod doriki/llamacpp-6f8fbbc7b4-ldm…   engine llamacpp 11889   node doriki-control-plane   total 4:50
 
-scheduling       │                                               0.0s
+scheduling       │                                                <1s
 image-pull       ██████████████████████████████████████████      4:35
 container-init                                             █     0:01
 engine-init                                                █     0:01
 weight-fetch                                               ██   ~0:10  ggml-org/models
 weight-load                                                 █    0.1s  ggml-org/models
 kv-alloc                                                    █    0.0s  <0.1 GiB
-server-ready                                                █    0.9s
+server-ready                                                █     <1s
 
 skipped: compile, graph-capture (not applicable to this engine)
 absent: node-provision, first-token (not seen in the events or the log; pack llamacpp/11889)

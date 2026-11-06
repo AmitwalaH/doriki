@@ -405,7 +405,24 @@ func assignPhase(name model.PhaseName, s spec, events []model.Event, markers []s
 	seconds := max(d, 0).Seconds() // within 1 s either way is timestamp resolution
 	p.Seconds = &seconds
 	p.State = model.StateComplete
+	// Under a second, a whole-second bound makes the figure uncertain by up to its whole
+	// value, so the phase says so. A phase that starts and ends at one event (a cached pull,
+	// decision 0004) is 0 s by definition, not by measurement.
+	if seconds < 1 && startIdx != endIdx && (wholeSecond(start) || wholeSecond(end)) {
+		p.Attrs = setAttr(p.Attrs, model.AttrResolution, model.ResolutionSecond)
+	}
 	return p
+}
+
+// wholeSecondSources write times with 1 s resolution: the pod object's times (creation,
+// container start and end, the Ready and PodScheduled conditions; collect/files podEvents and
+// scheduledFallback) and Kubernetes event times (firstTimestamp and lastTimestamp; collect/files
+// k8sEvents). metav1.Time is written in whole seconds. An event's eventTime has microseconds,
+// so wholeSecond also asks for no fraction: a time with one is finer than a second.
+var wholeSecondSources = []model.Source{model.SourceContainerStatus, model.SourceK8sEvent}
+
+func wholeSecond(e model.Event) bool {
+	return slices.Contains(wholeSecondSources, e.Source) && e.TS.Nanosecond() == 0
 }
 
 // below1 is a confidence as written on a phase: only when below 1.0.

@@ -48,6 +48,7 @@ func TestAttemptBoundaryAtTermination(t *testing.T) {
 		t.Fatalf("attempt %d of %d, list %d; want 1 of 2 and both listed", r.Attempt, r.AttemptsTotal, len(r.Attempts))
 	}
 	scheduling := model.Phase{Name: model.PhaseScheduling, Start: at(0), End: at(0), Seconds: secs(0), State: model.StateComplete,
+		Attrs:   map[string]string{model.AttrResolution: model.ResolutionSecond},
 		Sources: []model.Source{model.SourceK8sEvent, model.SourceContainerStatus}}
 	cached := map[string]string{model.AttrCached: "true"}
 
@@ -57,6 +58,7 @@ func TestAttemptBoundaryAtTermination(t *testing.T) {
 		Attrs: cached, Sources: []model.Source{model.SourceK8sEvent}})
 	assertPhase(t, phaseByName(r, model.PhaseContainerInit), model.Phase{
 		Name: model.PhaseContainerInit, Start: at(3), End: at(3.8), Seconds: secs(0.8), State: model.StateComplete,
+		Attrs:   map[string]string{model.AttrResolution: model.ResolutionSecond},
 		Sources: []model.Source{model.SourceContainerStatus, model.SourceEngineLog}})
 	if got := deref(r.Totals.PendingToReadySeconds); got != 3.0 {
 		t.Errorf("pending_to_ready = %v, want 3 (from pod creation)", got)
@@ -72,6 +74,7 @@ func TestAttemptBoundaryAtTermination(t *testing.T) {
 		Attrs: cached, Sources: []model.Source{model.SourceK8sEvent}})
 	assertPhase(t, phaseByName(first, model.PhaseContainerInit), model.Phase{
 		Name: model.PhaseContainerInit, Start: at(1), End: at(1.1), Seconds: secs(0.1), State: model.StateComplete,
+		Attrs:   map[string]string{model.AttrResolution: model.ResolutionSecond},
 		Sources: []model.Source{model.SourceContainerStatus, model.SourceEngineLog}})
 	if r.Attempts[0].Totals.PendingToReadySeconds != nil {
 		t.Errorf("attempt 0 pending_to_ready = %v, want omitted (Ready came in attempt 1)", *r.Attempts[0].Totals.PendingToReadySeconds)
