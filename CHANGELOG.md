@@ -11,7 +11,7 @@ This file is written by hand until release-please runs
 ## [0.1.0] - 2026-11-18
 
 The first stable release. Added lists everything v0.1.0 does, for a reader new to doriki;
-Changed and Fixed list only what moved since v0.1.0-rc.2.
+Changed and Fixed list only what moved since v0.1.0-rc.3.
 
 ### Added
 
@@ -44,6 +44,23 @@ Changed and Fixed list only what moved since v0.1.0-rc.2.
   a Homebrew cask and a krew manifest; `checksums.txt` is signed keyless with cosign and each
   archive has an SPDX SBOM. (#6)
 - `deploy/rbac.yaml`, a read-only ClusterRole for whoever runs doriki. (#5)
+- `docs/fixtures.md`, which walks a shared capture to a test fixture; the issue form asks for a
+  strict capture as a zip. (#9)
+
+### Changed
+
+Nothing since v0.1.0-rc.3.
+
+### Fixed
+
+Nothing since v0.1.0-rc.3.
+
+## [0.1.0-rc.3] - 2026-11-15
+
+### Added
+
+- `capture` ends `SOURCE.md` with the Checksums section a test fixture needs, so a bundle passes
+  the fixture check as it stands. (#9)
 - `docs/fixtures.md`, which walks a shared capture to a test fixture; the issue form asks for a
   strict capture as a zip. (#9)
 
@@ -102,6 +119,7 @@ The first release candidate.
   (#6)
 - `doriki version`. (#1)
 
-[0.1.0]: https://github.com/AmitwalaH/doriki/compare/v0.1.0-rc.2...v0.1.0
+[0.1.0]: https://github.com/AmitwalaH/doriki/compare/v0.1.0-rc.3...v0.1.0
+[0.1.0-rc.3]: https://github.com/AmitwalaH/doriki/compare/v0.1.0-rc.2...v0.1.0-rc.3
 [0.1.0-rc.2]: https://github.com/AmitwalaH/doriki/compare/v0.1.0-rc.1...v0.1.0-rc.2
 [0.1.0-rc.1]: https://github.com/AmitwalaH/doriki/releases/tag/v0.1.0-rc.1
