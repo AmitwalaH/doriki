@@ -1,6 +1,7 @@
 package manifest
 
 import (
+	"maps"
 	"strings"
 	"testing"
 
@@ -98,6 +99,26 @@ func TestSanitizeLeavesOtherEvents(t *testing.T) {
 		if model.CompareEvents(in[i], out[i]) != 0 {
 			t.Errorf("event %d changed: %+v -> %+v", i, in[i], out[i])
 		}
+	}
+}
+
+// The allowlist also holds exact names, for variables the engines read outside the prefixes:
+// MODEL_ENDPOINT (llama.cpp) and TRANSFORMERS_OFFLINE (huggingface_hub). An exact name admits
+// itself only, not every name it starts.
+func TestSanitizeExactNames(t *testing.T) {
+	got := sanitizedFacts(t, []model.Event{
+		envFact("MODEL_ENDPOINT", "http://hf-mirror.internal"),
+		envFact("TRANSFORMERS_OFFLINE", "1"),
+		envFact("MODEL_SECRET", "s3cret"),
+		envFact("MODEL_ENDPOINTS", "x"),
+		envFact("TRANSFORMERS_CACHE", "/cache"),
+	})
+	want := map[string]string{
+		model.FactEnvPrefix + "MODEL_ENDPOINT":       "http://hf-mirror.internal",
+		model.FactEnvPrefix + "TRANSFORMERS_OFFLINE": "1",
+	}
+	if !maps.Equal(got, want) {
+		t.Errorf("got %v, want %v", got, want)
 	}
 }
 
