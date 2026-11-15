@@ -58,6 +58,9 @@ Changed and Fixed list only what moved since v0.1.0-rc.2.
 - The bars add up to the total once the pod is Ready: time from the last phase to Ready is a
   `gap` row (JSON `before: "ready"`) when no phase ends there, for example with no engine pack.
   (#11)
+- `fetch-remote-hub` no longer advises a mirror to a pod already using one (`HF_ENDPOINT`,
+  `MODEL_ENDPOINT`) or running offline; `model.source` shows the mirror's host; the env
+  allowlist gains `MODEL_ENDPOINT` and `TRANSFORMERS_OFFLINE`. (#14)
 
 ## [0.1.0-rc.2] - 2026-10-30
 
