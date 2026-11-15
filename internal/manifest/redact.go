@@ -94,8 +94,12 @@ func Sanitize(events []model.Event) []model.Event {
 	return out
 }
 
+// allowlisted reads envAllowlist: an entry ending in "_" admits every name it starts, any
+// other entry only itself.
 func allowlisted(name string) bool {
-	return slices.ContainsFunc(envAllowlist, func(prefix string) bool { return strings.HasPrefix(name, prefix) })
+	return slices.ContainsFunc(envAllowlist, func(e string) bool {
+		return name == e || (strings.HasSuffix(e, "_") && strings.HasPrefix(name, e))
+	})
 }
 
 // RedactEnv is the env capture rule for one variable: keep is false outside the allowlist;
