@@ -10,7 +10,7 @@ no SaaS and sends no telemetry.
 
 **doriki measures and advises; it never changes the cluster.**
 
-**Status:** pre-release; v0.1.0 is planned for 18 Nov 2026, with a release candidate first.
+**Status:** v0.1.0, the first stable release; changes are in [CHANGELOG.md](CHANGELOG.md).
 doriki profiles a live pod, Deployment or StatefulSet, once or with `--follow` while it boots,
 builds the same report from saved files (`--from-files`), ends it with advice, saves a redacted
 bundle to share (`capture`) and checks a parser pack against a log (`pack test`).
@@ -172,14 +172,15 @@ today:
 - **Not yet observed: compile and graph-capture.** Eager mode turns both off and CPU vLLM does
   not capture CUDA graphs. The pack has markers for them taken from the vLLM 0.32.0 source, at
   lower confidence, but no capture has exercised them.
-- **GPU vLLM images (`vllm/vllm-openai`) are matched by the pack's image pattern but unverified.**
+- **GPU vLLM 0.32.0 images (`vllm/vllm-openai`) are matched by the pack but unverified.**
   On a GPU pod doriki will try, and the waterfall may miss or misplace phases.
 - **llama.cpp server build 11889 on CPU, at its default log level and at `-lv 4`.** Two real
   captures in `kind` ([default](packs/llamacpp/testdata/11889/SOURCE.md),
   [`-lv 4`](packs/llamacpp/testdata/11889-lv4/SOURCE.md), the second taken with `doriki capture`
   itself): engine start-up, weight download, weight load and server ready are observed.
   llama-server prints nothing while it downloads a model, so the download is the silent interval
-  before it starts loading, marked `~` (measured: 10.86 s with the model not cached, 0 s cached).
+  before it starts loading, marked `~` (measured in the default-level capture: 10.86 s with the
+  model not cached, 0 s cached).
   Compile and graph capture are shown as not applicable to this engine. At the default level the
   server does not print its build, so the report warns that the version was not read. At
   `-lv 4` it does: the report names build 11889 with no warning, weight-load ends where the
@@ -189,8 +190,14 @@ today:
   With llama.cpp's default mmap load on Linux the model file is read in full before the context
   is built, so weight-load includes the disk read; with `--numa`, or a tensor read lazily
   (`--lazy-mode`), pages are read on demand later and that time is not in weight-load.
-- Engines without a pack (anything other than vLLM 0.32.0 and llama.cpp today) get the
-  Kubernetes phases only, with a warning naming the image.
+- Engines without a pack get the Kubernetes phases only, with a warning naming the image: any
+  engine other than vLLM and llama.cpp, and a vLLM version other than 0.32.0 or a llama.cpp
+  build other than 11889 when the log names it (the warning then names the version too).
+  llama.cpp at its default level does not print its build, so any build uses the 11889 pack,
+  with the warning that the version was not read.
+- **Engines that load the model after Ready, such as Ollama, are not shown in v0.1:** the report
+  ends at Ready, so a model loaded on the first request is not in it
+  ([decision 0011](docs/decisions/0011-lazy-load-deferred.md)).
 - **The bars add up to the total once the pod is Ready.** Time no phase covers is a `gap` row,
   including the time from the last phase to Ready when no phase ends there (an engine without a
   pack, or a pack whose last line never printed). Gaps of 1 s or less are not drawn. Checked on
@@ -269,10 +276,10 @@ kubectl create clusterrolebinding doriki-reader --clusterrole=doriki-reader --us
 
 | Channel | Command | Status |
 |---|---|---|
-| GitHub Releases | download an archive and `checksums.txt`, then verify (below) | available after v0.1.0-rc.1 |
-| Homebrew | `brew install AmitwalaH/tap/doriki` | available after v0.1.0-rc.1 |
-| Container | `docker run --rm ghcr.io/amitwalah/doriki:0.1.0-rc.2 version` | available after v0.1.0-rc.1 |
-| Go | `go install github.com/AmitwalaH/doriki/cmd/doriki@v0.1.0-rc.2` | available after v0.1.0-rc.1 |
+| GitHub Releases | download an archive and `checksums.txt`, then verify (below) | available from v0.1.0 |
+| Homebrew | `brew install AmitwalaH/tap/doriki` | available from v0.1.0 |
+| Container | `docker run --rm ghcr.io/amitwalah/doriki:0.1.0 version` | available from v0.1.0 |
+| Go | `go install github.com/AmitwalaH/doriki/cmd/doriki@v0.1.0` | available from v0.1.0 |
 | krew | `kubectl krew install doriki` | after v0.1.0, once the krew-index pull request is merged |
 
 Every release's `checksums.txt` is signed with cosign, keyless, by the release workflow; each
@@ -280,7 +287,7 @@ archive also has an SPDX SBOM. To verify a download:
 
 ```sh
 cosign verify-blob \
-  --certificate-identity 'https://github.com/AmitwalaH/doriki/.github/workflows/release.yml@refs/tags/v0.1.0-rc.2' \
+  --certificate-identity 'https://github.com/AmitwalaH/doriki/.github/workflows/release.yml@refs/tags/v0.1.0' \
   --certificate-oidc-issuer 'https://token.actions.githubusercontent.com' \
   --bundle checksums.txt.sigstore.json checksums.txt
 sha256sum --check --ignore-missing checksums.txt
@@ -303,10 +310,10 @@ make build
 
 ## Roadmap
 
-v0.1.0 is planned for **18 Nov 2026**: what is above, after a release candidate and a period
-of validation on real clusters. The Ollama pack is cut from v0.1: Ollama loads
-its model on the first request, after the pod is Ready, which the fixed phase order cannot show
-yet ([`DK-PHASE-ENH-20261026-lazy-load-phase-order`](tickets/DK-PHASE-ENH-20261026-lazy-load-phase-order.md)). Everything cut from v0.1, and why, is in
+v0.1.0 is what is above. The Ollama pack waits for v0.2: Ollama loads its model on the first
+request, after the pod is Ready, which the fixed phase order cannot show; v0.2 is planned to
+report that load in a first-request block after server-ready, together with `--probe`
+([decision 0011](docs/decisions/0011-lazy-load-deferred.md)). Everything cut from v0.1, and why, is in
 [`docs/v0.2-backlog.md`](docs/v0.2-backlog.md): `diff` with a CI exit code, the Prometheus
 exporter, the SGLang pack and the HTML report lead its default order, which v0.1 feedback will
 settle.

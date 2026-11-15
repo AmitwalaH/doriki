@@ -2,7 +2,7 @@
 
 **Date Discovered:** 2026-10-26
 **Severity:** MEDIUM
-**Status:** OPEN, v0.2
+**Status:** DECIDED, v0.2: option 1, by `docs/decisions/0011-lazy-load-deferred.md` (2026-11-15)
 **Label:** [decision]
 **Found by:** the M2 agent, read in code while planning the Ollama pack
 **Filed by:** the M2 agent
