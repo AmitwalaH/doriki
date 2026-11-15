@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/AmitwalaH/doriki/internal/manifest"
 	"github.com/AmitwalaH/doriki/internal/model"
 )
 
@@ -82,5 +83,52 @@ func TestFetchRemoteHubEstimated(t *testing.T) {
 	a, _ = find(hubReport(60, "vllm", "huggingface.co"), fetchRemoteHub)
 	if _, ok := a.Evidence["estimated"]; ok || strings.Contains(a.Text, "estimated") {
 		t.Errorf("confidence 1.0: evidence %v, text %q", a.Evidence, a.Text)
+	}
+}
+
+// envReport is a weight-fetch of 60 s of 100 s for the Hub-shaped ref org/model under the given
+// engine and env, its model.source set by manifest.ModelSource as the pipeline sets it
+// (internal/cli/profile.go), so the env reaches the rule only through model.source.
+func envReport(engine string, env map[string]string) model.Report {
+	r := hubReport(60, engine, "")
+	if engine == "" {
+		r.Manifest.Engine = nil
+	}
+	r.Manifest.Container = &model.ManifestContainer{EnvAllowlist: env}
+	r.Manifest.Model.Source = manifest.ModelSource(r.Manifest)
+	return r
+}
+
+// A pod already pulling through a mirror is not told to use one; the same pod without the
+// mirror is, in vLLM's words.
+func TestFetchRemoteHubMirrorInUse(t *testing.T) {
+	if a, ok := find(envReport("vllm", map[string]string{"HF_ENDPOINT": "http://hf-mirror.internal"}), fetchRemoteHub); ok {
+		t.Errorf("HF_ENDPOINT set to a mirror, but %s fired: %s", fetchRemoteHub, a.Text)
+	}
+	a, ok := find(envReport("vllm", nil), fetchRemoteHub)
+	if !ok {
+		t.Fatalf("no mirror: %s did not fire", fetchRemoteHub)
+	}
+	if !strings.Contains(a.Fix, "HF_ENDPOINT") || strings.Contains(a.Fix, "MODEL_ENDPOINT") || !strings.Contains(a.Text, "HF_ENDPOINT") {
+		t.Errorf("vLLM: fix %q, text %q; want HF_ENDPOINT only", a.Fix, a.Text)
+	}
+}
+
+// The mirror variable is the one the engine reads: MODEL_ENDPOINT for llama.cpp (it reads
+// HF_ENDPOINT only as a fallback), both when the engine is unknown.
+func TestFetchRemoteHubMirrorVariable(t *testing.T) {
+	a, ok := find(envReport("llamacpp", nil), fetchRemoteHub)
+	if !ok {
+		t.Fatalf("llama.cpp: %s did not fire", fetchRemoteHub)
+	}
+	if !strings.Contains(a.Fix, "MODEL_ENDPOINT") || strings.Contains(a.Fix, "HF_ENDPOINT") || !strings.Contains(a.Text, "MODEL_ENDPOINT") {
+		t.Errorf("llama.cpp: fix %q, text %q; want MODEL_ENDPOINT only", a.Fix, a.Text)
+	}
+	a, ok = find(envReport("", nil), fetchRemoteHub)
+	if !ok {
+		t.Fatalf("unknown engine: %s did not fire", fetchRemoteHub)
+	}
+	if want := "HF_ENDPOINT; MODEL_ENDPOINT under llama.cpp"; !strings.Contains(a.Fix, want) || !strings.Contains(a.Text, want) {
+		t.Errorf("unknown engine: fix %q, text %q; want %q", a.Fix, a.Text, want)
 	}
 }

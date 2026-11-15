@@ -96,7 +96,7 @@ Advice says what to try and why; it never claims how much time a fix will save.
 | Rule | Fires when | Suggests |
 |---|---|---|
 | `pull-dominant` | image-pull is 35% or more of the time to Ready and the image was not already on the node | a prepull DaemonSet; lazy pulling (SOCI, estargz); an image volume for the weights, only from kubelet 1.35 |
-| `fetch-remote-hub` | weight-fetch is 25% or more and the model comes from huggingface.co | a cluster-local mirror (`HF_ENDPOINT` under vLLM), Dragonfly's `hf://` proxy or a ModelCar image; under vLLM, pin `--revision` |
+| `fetch-remote-hub` | weight-fetch is 25% or more and the model comes from huggingface.co; a mirror already in use (`HF_ENDPOINT`, or `MODEL_ENDPOINT` under llama.cpp) or offline mode turns it off | a cluster-local mirror (`HF_ENDPOINT` under vLLM, `MODEL_ENDPOINT` under llama.cpp), Dragonfly's `hf://` proxy or a ModelCar image; under vLLM, pin `--revision` |
 | `compile-miss` | compile is 20% or more and the engine logged a torch.compile cache miss | `VLLM_CACHE_ROOT` on a PersistentVolumeClaim; the same GPU type, tensor parallel size, dtype and engine version between boots |
 | `load-slow-storage` | weights load slower than 0.5 GB/s, the size estimated from the engine's loaded-weight memory | weights on local NVMe; under vLLM, `--load-format runai_streamer` or `tensorizer` |
 | `restart-loop` | the container restarted two or more times | find the crash first: `kubectl logs --previous` |
@@ -116,7 +116,8 @@ restart), `node.json`, `manifest.json`, `report.json` and a `SOURCE.md` saying w
 `--out` must be a new or empty directory. Everything is redacted before it is written:
 
 - **Removed at every level:** environment variables outside the allowlist (`VLLM_*`, `HF_*`,
-  `SGLANG_*`, `OLLAMA_*`, `LLAMA_*`, `CUDA_*`, `NCCL_*`); the value of a variable, flag or log
+  `SGLANG_*`, `OLLAMA_*`, `LLAMA_*`, `CUDA_*`, `NCCL_*`, and `MODEL_ENDPOINT` and
+  `TRANSFORMERS_OFFLINE` by name); the value of a variable, flag or log
   key whose name holds a secret word (such as token, key, secret, password, credential, auth); values shaped
   like a known token (Hugging Face, OpenAI-style, GitHub, Slack, AWS key ids, JWTs) in every file
   and log line; kubectl's last-applied annotation; everything in `node.json` but the name,
@@ -213,7 +214,10 @@ today:
   `restart-loop` (the restart capture restarted once, one short of the trigger), and
   `compile-miss` and `load-slow-storage`, which need the torch.compile cache and loaded-memory
   lines vLLM prints only on GPU; the pack reads them as written in the vLLM 0.32.0 source, but
-  no capture has exercised them.
+  no capture has exercised them. `fetch-remote-hub` takes the model's source from its name and
+  the allowlisted environment, so a relative model directory such as `models/opt-125m` looks
+  like a Hub id to it, and `HF_ENDPOINT=https://hf.co` (the Hub's short name) looks like a
+  mirror.
 
 ### Please send a capture from a GPU vLLM pod
 
