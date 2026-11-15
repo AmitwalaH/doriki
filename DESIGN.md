@@ -233,7 +233,7 @@ Every pack ships with at least one fixture under `packs/<engine>/testdata/<versi
 | `vllm` | 0.32.0 (CPU fixture; widened as GPU fixtures arrive) | CPU run in `kind` (M1b); Kaggle/Colab GPU runs and community donations |
 | `sglang` | 0.5.x | same |
 | `llamacpp` | server b4xxx+ | CPU run in `kind`, used for e2e |
-| `ollama` | 0.6+ | CPU run in `kind` |
+| `ollama` (v0.2, decision 0011: loads the model after Ready) | 0.6+ | CPU run in `kind` |
 | `generic` | any | none (K8s phases only) |
 
 TGI is intentionally absent: the project was archived in March 2026.
@@ -396,7 +396,7 @@ This is what keeps the core testable from fixtures and lets the exporter (v0.3) 
 | Pack golden | every `packs/*/testdata/*` fixture through the full offline pipeline; output diffed against `expected.json` | `goldie`; `-update` flag regenerates after a reviewed change | every push |
 | CLI golden | `doriki --from-files … -o text/json/html` output snapshots | `goldie` | every push |
 | Schema | every report/manifest/pack in testdata validates against `schema/*.json` | `santhosh-tekuri/jsonschema` | every push |
-| E2E | `kind` cluster → deploy llama.cpp server (CPU, tiny GGUF) and Ollama → `doriki deploy/llamacpp` → assert phases `image-pull`, `weight-load`, `server-ready` complete and totals > 0 | `kind`, `kubectl`, Go test harness | PRs to `main`, \~6 min |
+| E2E | `kind` cluster → deploy llama.cpp server (CPU, tiny GGUF) → `doriki deploy/llamacpp` → assert phases `image-pull`, `weight-load`, `server-ready` complete and totals > 0 | `kind`, `kubectl`, Go test harness | PRs to `main`, \~6 min |
 | Pack-PR check | a PR touching `packs/` must add or update a fixture; the workflow fails otherwise | `.github/workflows/pack-pr.yml` | pack PRs |
 
 ### 9.2 Fixture policy
