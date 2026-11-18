@@ -3,7 +3,7 @@ module github.com/AmitwalaH/doriki
 go 1.26.10
 
 require (
-	charm.land/lipgloss/v2 v2.0.6
+	charm.land/lipgloss/v2 v2.1.1
 	github.com/Masterminds/semver/v3 v3.5.0
 	github.com/invopop/jsonschema v0.14.0
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.3
